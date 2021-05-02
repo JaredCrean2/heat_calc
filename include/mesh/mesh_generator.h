@@ -1,46 +1,19 @@
-#include <iostream>
+// generates structured meshes on a mapped cube
 
+#ifndef MESH_GENERATOR_H
+#define MESH_GENERATOR_H
+
+#include <iostream>
 #include "ProjectDefs.h"
 #include "apf.h"
 #include "apfMDS.h"
 #include "apfMesh2.h"
 #include "apfShape.h"
 #include "gmi_null.h"
+#include "mesh/mesh_input.h"
 
 namespace Mesh
 {
-
-struct Point
-{
-  double x;
-  double y;
-  double z;
-};
-
-struct ModelEntitySpec
-{
-  explicit ModelEntitySpec(const int dim=0, const int tag=0) :
-    dim(dim),
-    tag(tag)
-  {}
-
-  int dim;
-  int tag;
-};
-
-struct MeshSpec
-{
-  double xmin = 0;
-  double xmax = 1;
-  double ymin = 0;
-  double ymax = 1;
-  double zmin = 0;
-  double zmax = 1;
-  int nx = 10;
-  int ny = 10;
-  int nz = 10;
-  int coord_order = 1;
-};
 
 Point identity(const Point& point);
 
@@ -82,8 +55,6 @@ class MeshGenerator
           for (int k=0; k < m_meshspec.nz+1; ++k)
           {
             Point p = computeVertCoords(i, j, k);
-            std::cout << "Creating vertex " << i << ", " << j << ", " << k;
-            std::cout << " at coords " << p.x << ", " << p.y << ", " << p.z << std::endl;
             apf::Vector3 p2(p.x, p.y, p.z);
             auto me = getVertModelEntity(i, j, k);
             m_verts[i][j][k] = m_mesh->createVert(me);
@@ -161,7 +132,6 @@ class MeshGenerator
       else
         me = ModelEntitySpec(3, 0);
 
-      std::cout << "model entity: " << me.dim << ", " << me.tag << std::endl;
       return m_mesh->findModelEntity(me.dim, me.tag);
     }
 
@@ -441,3 +411,5 @@ make_mesh_generator(const MeshSpec& meshspec, T&& func=&identity)
 }
 
 } // namespace
+
+#endif  // header guard
