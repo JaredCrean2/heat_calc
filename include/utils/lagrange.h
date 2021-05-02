@@ -1,0 +1,143 @@
+#include <vector>
+#include <cassert>
+#include "ProjectDefs.h"
+
+// class for evaluating Lagrange polynomials and their derivatives
+class LagrangeBasis
+{
+  public: 
+    using Index = std::vector<double>::size_type;
+
+    LagrangeBasis(const std::vector<double>& pts);
+    // evaluate the pth polynomial at point x
+    double evalPoly(Index p, double x);
+
+    double evalPolyDeriv(Index p, double x);
+
+    Index getNumPoints() const { return m_pts.size();}
+
+  private:
+    std::vector<double> m_pts;
+    std::vector<double> m_denoms;
+
+};
+
+
+// class that caches Lagrange polynomial values and derivatives for
+// 3D tensor-product point sets
+class LagrangeEvaluatorTP
+{
+  public:
+    using Index = LagrangeBasis::Index;
+
+    LagrangeEvaluatorTP(const std::vector<double> pts_in,
+                        const std::vector<double> pts_out) :
+      m_vals(boost::extents[pts_out.size()][pts_in.size()]), 
+      m_derivs(boost::extents[pts_out.size()][pts_in.size()])
+    {
+      LagrangeBasis basis(pts_in);
+      for (Index i=0; i < pts_out.size(); ++i)
+        for (Index j=0; j < pts_in.size(); ++j)
+      {
+        m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
+        m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
+      }
+    }
+
+    // interpolates the values (defined at pts_int) to pts_out
+    // It is recommended that T have the BOOST_RESTRICT qualifier for best performance
+    template<typename T>
+    void interpolateVals(ArrayType<T, 3> vals_in, ArrayType<T, 3> vals_out)
+    {
+      for (int i=0; i < 3; ++i)
+      {
+        assert(vals_in.shape()[i] == getNumPointsIn());
+        assert(vals_out.shape()[i] == getNumPointsOut());
+      }
+
+
+      for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
+        for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
+          for (Index k_out=0; k_out < getNumPointsOut(); ++k_out)
+          {
+            vals_out[i_out][j_out][k_out] = 0;
+            for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
+              for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
+                //TODO: precompute first two lagrange polynomials here
+                for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+                  vals_out[i_out][j_out][k_out] += 
+                    m_vals[i_out][i_in]*m_vals[j_out][j_in]*m_vals[k_out][k_in]*vals_in[i_in][j_in][k_in];
+          }
+    }
+
+    // computes the derivatives of the values (defined at pts_int) at pts_out
+    // vals_out is npts_out x npts_out x npts_out x 3
+    template<typename T>
+    void interpolateVals(ArrayType<T, 3> vals_in, ArrayType<T, 4> vals_out)
+    {
+      for (int i=0; i < 3; ++i)
+      {
+        assert(vals_in.shape()[i] == getNumPointsIn());
+        assert(vals_out.shape()[i] == getNumPointsOut());
+      }
+
+
+      for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
+        for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
+          for (Index k_out=0; k_out < getNumPointsOut(); ++k_out)
+          {
+            vals_out[i_out][j_out][k_out][0] = 0;
+            vals_out[i_out][j_out][k_out][1] = 0;
+            vals_out[i_out][j_out][k_out][2] = 0;
+            for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
+              for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
+                // TODO: precompute first two multiplications
+                for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+                {
+                  vals_out[i_out][j_out][k_out][0] += 
+                    m_derivs[i_out][i_in]*m_vals[j_out][j_in]*m_vals[k_out][k_in]*vals_in[i_in][j_in][k_in];
+                  vals_out[i_out][j_out][k_out][1] += 
+                    m_vals[i_out][i_in]*m_derivs[j_out][j_in]*m_vals[k_out][k_in]*vals_in[i_in][j_in][k_in];
+                  vals_out[i_out][j_out][k_out][2] += 
+                    m_vals[i_out][i_in]*m_vals[j_out][j_in]*m_derivs[k_out][k_in]*vals_in[i_in][j_in][k_in];
+
+                }
+          }
+    }
+
+    double getInterpolantValue(const Index i_in,  const Index j_in,  const Index k_in,
+                               const Index i_out, const Index j_out, const Index k_out)
+    {
+      return m_vals[i_in][i_out] * m_vals[j_in][j_out] * m_vals[k_in][k_out];
+    }
+
+    double getInterpolantDx(const Index i_in,  const Index j_in,  const Index k_in,
+                            const Index i_out, const Index j_out, const Index k_out)
+    {
+      return m_derivs[i_in][i_out] * m_vals[j_in][j_out] * m_vals[k_in][k_out];
+    }
+
+    double getInterpolantDy(const Index i_in,  const Index j_in,  const Index k_in,
+                            const Index i_out, const Index j_out, const Index k_out)
+    {
+      return m_vals[i_in][i_out] * m_derivs[j_in][j_out] * m_vals[k_in][k_out];
+    }
+
+    double getInterpolantDz(const Index i_in,  const Index j_in,  const Index k_in,
+                            const Index i_out, const Index j_out, const Index k_out)
+    {
+      return m_vals[i_in][i_out] * m_vals[j_in][j_out] * m_derivs[k_in][k_out];
+    }
+
+    Index getNumPointsIn() const {return m_vals.shape()[1];}
+
+    Index getNumPointsOut() const {return m_vals.shape()[0];}
+
+  private:
+    // TODO use BOOST_RESTRICT
+    // basis function values and derivatives, npts_out x npts_in
+    ArrayType<double, 2> m_vals;
+    ArrayType<double, 2> m_derivs;
+
+};
+

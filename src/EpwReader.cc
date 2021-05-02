@@ -29,7 +29,7 @@ void EPWReader::readFile(const std::string& fname)
 
 EPWReader::TData EPWReader::parseLine(std::string& line)
 {
-  int day, month, year, hour, minute;
+  int day, month, year, hour;
   double temp;
   const char* delim = ",";
 
