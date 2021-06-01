@@ -21,7 +21,9 @@ else()
 
 endif()
 
-add_library(mesh mesh_generator.cc)
+add_library(mesh mesh_generator.cc
+                 mesh_helper.cc
+                 mesh.cc)
 
 target_include_directories(mesh PUBLIC
                           "${PROJECT_BINARY_DIR}/include"  # needed for configured header
@@ -31,6 +33,8 @@ target_include_directories(mesh PUBLIC
                           )
 
 target_link_libraries(mesh PUBLIC SCOREC::core)
+
+set(${ALL_LIBS} ${ALL_LIBS} mesh PARENT_SCOPE)
 
 
 add_executable(generate_mesh generate_mesh.cc)

@@ -6,5 +6,7 @@ project(RetirementCalc)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(ALL_LIBS "")
+
 add_subdirectory(src)
-#add_subdirectory(test)
+add_subdirectory(test)
