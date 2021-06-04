@@ -1,6 +1,7 @@
 #include "mesh/mesh_helper.h"
 #include "apfShape.h"
 #include "apf.h"
+#include <iostream>
 
 namespace Mesh {
 
@@ -83,7 +84,7 @@ void setDofsDirichlet(ApfData& apf_data, apf::MeshEntity* e, const int val)
 
 //-----------------------------------------------------------------------------
 // Dof numbering
-
+/*
 void initializeElnums(ApfData& apf_data)
 {
 
@@ -95,6 +96,39 @@ void initializeElnums(ApfData& apf_data)
 
   apf_data.m->end(it);
 }
+*/
+
+int countNumEls(ApfData& apf_data, const MeshEntityGroupSpec& vol_group)
+{
+  int numel = 0;
+  apf::MeshIterator* it = apf_data.m->begin(3);
+  apf::MeshEntity* e;
+  while ( (e = apf_data.m->iterate(it)) )
+  {
+    auto me = getMESpec(apf_data.m, e);
+    if (vol_group.hasModelEntity(me))
+      numel += 1;
+  }
+
+  return numel;
+}
+
+void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpec>& vol_groups, apf::Numbering* group_nums)
+{
+  apf::MeshIterator* it = m->begin(3);
+  apf::MeshEntity* e;
+
+  while ( (e = m->iterate(it)) )
+  {
+    auto me = getMESpec(m, e);
+    for (const auto& vol_group : vol_groups)
+      if (vol_group.hasModelEntity(me))
+      {
+        apf::number(group_nums, e, 0, 0, vol_group.getIdx());
+        break;
+      }
+  }
+}
 
 // on exit, elnums_start and elnums_end are the starting numbers for the next
 // block
@@ -104,32 +138,45 @@ void setDofNumbers(apf::Mesh* m, MeshEntityGroupSpec volume_group,
                    apf::Numbering* el_nums);
 
 
-void getDofNums(ApfData apf_data, const int el_start, const int el_end,
-                ArrayType<Index, 2>& nodenums)
+void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+                ArrayType<Index, 2>& nodenums, std::vector<apf::MeshEntity*>& elements_group)
 {
   apf::Downward down;
   apf::MeshIterator* it = apf_data.m->begin(3);
   apf::MeshEntity* e;
-
+  std::vector<apf::MeshEntity*> elements(apf_data.m->count(3));
   while ( (e = apf_data.m->iterate(it)) )
   {
     int elnum = apf::getNumber(apf_data.el_nums, e, 0, 0);
-    if (elnum < el_start || elnum > el_end)
+    elements[elnum] = e;
+  }
+  apf_data.m->end(it);
+
+  int el_idx = 0;
+  for( auto e : elements )
+  {
+    auto me_spec = getMESpec(apf_data.m, e);
+    if (!(vol_group.hasModelEntity(me_spec)))
       continue;
 
+
+    elements_group.push_back(e);
     int idx=0, offset=0;
     for (int dim=0; dim <= 3; ++dim)
     {
       int ndown = apf_data.m->getDownward(e, dim, down);
 
-      int nnodes_dim = apf_data.sol_shape->getEntityShape(apf_data.m->getType(down[0]))->countNodes();
+      int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(down[0]));
       for (int i=0; i < ndown; ++i)
         for (int j=0; j < nnodes_dim; ++j)
-          nodenums[elnum - el_start][idx++] =
+        {
+          nodenums[el_idx][idx++] =
             apf::getNumber(apf_data.dof_nums, down[i], j, 0);
+        }
 
       offset += ndown * nnodes_dim;
     }
+    el_idx += 1;
   }
 }
 
@@ -192,7 +239,7 @@ ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
         n_face_entities = apf_data.m->getDownward(e, dim, face_entities);
       }
 
-      int nnodes_dim = apf_data.sol_shape->getEntityShape(apf_data.m->getType(face_entities[0]))->countNodes();
+      int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(face_entities[0]));
       for (int i=0; i < n_face_entities; ++i)
       {
         int foundidx = 0;

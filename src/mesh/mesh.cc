@@ -1,14 +1,31 @@
 #include "mesh/mesh.h"
 #include "mesh/mesh_helper.h"
+#include "mesh/dof_numbering.h"
+#include "PCU.h"
+#include "mpi.h"
+
 #include "apfShape.h"
 
 namespace Mesh {
 
-MeshCG::MeshCG(apf::Mesh* m,
+bool _initialized = initialize();
+
+bool initialize()
+{
+  if (!PCU_Comm_Initialized())
+  {
+    MPI_Init(0, NULL);
+    PCU_Comm_Init();
+  }
+
+  return true;
+}
+
+MeshCG::MeshCG(apf::Mesh2* m,
         std::vector<MeshEntityGroupSpec> volume_group_spec,
         std::vector<MeshEntityGroupSpec> bc_spec,
         std::vector<MeshEntityGroupSpec> other_surface_spec,
-        int solution_degree, int coord_degree) :
+        const int solution_degree, const int coord_degree) :
   m_apf_data(m),
   m_volume_spec(volume_group_spec),
   m_bc_spec(bc_spec),
@@ -17,6 +34,7 @@ MeshCG::MeshCG(apf::Mesh* m,
   assert(coord_degree == 1);
   m_dof_numbering.sol_degree   = solution_degree;
   m_dof_numbering.coord_degree = coord_degree;
+  setVolumeIndices();
   setSurfaceIndices();
   setApfData();
   createVolumeGroups();
@@ -24,7 +42,11 @@ MeshCG::MeshCG(apf::Mesh* m,
 }
 
 
-
+void MeshCG::setVolumeIndices()
+{
+  for (SInt i=0; i < m_volume_spec.size(); ++i)
+    m_volume_spec[i].setIdx(i);
+}
 
 void MeshCG::setSurfaceIndices()
 {
@@ -55,38 +77,41 @@ void MeshCG::setApfData()
                                         apf::getConstant(3), 1);
   m_apf_data.is_dirichlet = apf::createNumbering(m_apf_data.m, "is_dirichlet",
                                               m_apf_data.sol_shape, 1);
+  m_apf_data.vol_groups = apf::createNumbering(m_apf_data.m, "vol_group",
+                                               apf::getConstant(3), 1);
+
+  setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);
+
 }
 
 void MeshCG::createVolumeGroups()
 {
   setDirichletNodes(m_apf_data, m_bc_spec);
+  AdjacencyNumberer reorderer(m_apf_data.m, m_apf_data.dof_nums,
+                              m_apf_data.el_nums, m_apf_data.is_dirichlet);
+  reorderer.reorder();
+  int num_dofs = reorderer.getNumDofs();
 
-  int elnum_start = 0, elnum_end = 0, curr_dof = 0;
-  std::vector<std::pair<int, int>> el_bounds;
-  initializeElnums(m_apf_data);
-  for (SInt i=0; i < m_volume_spec.size(); ++i)
-  {
-    setDofNums(m_apf_data.m, m_volume_spec[i],
-               elnum_start, curr_dof,
-               m_apf_data.is_dirichlet,
-               m_apf_data.dof_nums, m_apf_data.el_nums);
-    el_bounds.push_back(std::make_pair(elnum_start, elnum_end-1));
-    elnum_start = elnum_end;
-  }
-
-  m_dof_numbering.num_dofs = curr_dof - 1;
-  setDirichletDofs(m_apf_data, curr_dof);
+  m_dof_numbering.num_dofs = num_dofs;
+  m_dof_numbering.num_dofs_total = reorderer.getNumTotalDofs();
   //apf::synchronize(m_apf_data.dof_nums);
-  m_dof_numbering.num_dofs_total = curr_dof - 1;
+
+  m_elements = reorderer.getElements();
+  m_elnums_global_to_local.resize(m_elements.size());
 
   for (SInt i=0; i < m_volume_spec.size(); ++i)
   {
-    auto bounds = el_bounds[i];
     //TODO: avoid Boost array deep copies
-    ArrayType<Index, 2> dof_nums(boost::extents[bounds.second - bounds.first + 1][m_dof_numbering.nodes_per_element]);
-    getDofNums(m_apf_data, bounds.first, bounds.second, dof_nums);
-    m_vol_group.push_back(VolumeGroup(bounds.first, bounds.second, dof_nums));
+    int numel_i = countNumEls(m_apf_data, m_volume_spec[i]);
+    ArrayType<Index, 2> dof_nums(boost::extents[numel_i][m_dof_numbering.nodes_per_element]);
+    std::vector<apf::MeshEntity*> elements_group;
+    getDofNums(m_apf_data, m_volume_spec[i], dof_nums, elements_group);
+    m_vol_group.push_back(VolumeGroup(dof_nums, elements_group));
+
+    for (SInt j=0; j < elements_group.size(); ++j)
+      m_elnums_global_to_local[apf::getNumber(m_apf_data.el_nums, elements_group[j], 0, 0)] = j;
   }
+
 }
 
 void MeshCG::createFaceGroups()
@@ -127,8 +152,9 @@ void MeshCG::createFaceGroups()
 
             assert(localidx != -1);
 
-            int elnum = apf::getNumber(m_apf_data.el_nums, e, 0, 0);
+            int elnum = apf::getNumber(m_apf_data.el_nums, e_i, 0, 0);
             face_group.faces.push_back(FaceSpec(elnum, localidx));
+            break;
           }
         }
       }
@@ -138,27 +164,23 @@ void MeshCG::createFaceGroups()
     // get dofs
     auto nfaces = face_group.faces.size();
     int num_nodes_per_face = nodemap.shape()[1];
-    face_group.nodenums = ArrayType<Index, 2>(boost::extents[nfaces][num_nodes_per_face]);
+    face_group.nodenums.resize(boost::extents[nfaces][num_nodes_per_face]);
+    //face_group.nodenums = ArrayType<Index, 2>(boost::extents[nfaces][num_nodes_per_face]);
 
     for (SInt i=0; i < nfaces; ++i)
     {
       FaceSpec& face_i = face_group.faces[i];
+      int vol_group = apf::getNumber(m_apf_data.vol_groups, 
+                                     m_elements[face_i.el], 0, 0);
+      auto& parent_group = m_vol_group[vol_group];
 
-      // get VolumeGroup
-      VolumeGroup* parent_group= nullptr;
-      for (auto& volgroup : m_vol_group)
-        if (face_i.el >= volgroup.el_start &&
-            face_i.el <= volgroup.el_end)
-          parent_group = &volgroup;
-
-      assert(parent_group != nullptr);
       //TODO: consider storing VolumeGroup dofs in offset array (so
       //they can be indexed by the global element number rather than
       //the local one)
-      int group_elnum = face_i.el - parent_group->el_start; 
+      int group_elnum = m_elnums_global_to_local[face_i.el];
       for (int node=0; node <  num_nodes_per_face; ++node)
         face_group.nodenums[i][node] =
-          parent_group->nodenums[group_elnum][nodemap[face_i.face][node]];
+          parent_group.nodenums[group_elnum][nodemap[face_i.face][node]];
     }
   }
 }

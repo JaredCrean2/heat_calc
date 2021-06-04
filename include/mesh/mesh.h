@@ -6,6 +6,7 @@
 
 #include <apf.h>
 #include <apfMesh.h>
+#include <apfMesh2.h>
 #include <apfNumbering.h>
 #include <vector>
 
@@ -15,6 +16,8 @@ using DofInt = int;      // for degrees of freedom
 using Index = int;       // for element/face numbers
 using LocalIndex = int;  // for local to the element numbering
 
+
+bool initialize();
 
 // Identifies the face of an element
 struct FaceSpec
@@ -28,15 +31,14 @@ struct FaceSpec
 class VolumeGroup
 {
   public:
-    VolumeGroup (const Index el_start, const Index el_end, ArrayType<Index, 2>& nodenums) :
-      el_start(el_start),
-      el_end(el_end),
-      nodenums(nodenums)
+    VolumeGroup (ArrayType<Index, 2>& nodenums, std::vector<apf::MeshEntity*> elements) :
+      nodenums(nodenums),
+      m_elements(elements)
     {}
 
-    Index el_start;
-    Index el_end;
     ArrayType<Index, 2> nodenums;  // nelems x npts per element
+
+    std::vector<apf::MeshEntity*> m_elements;
 
     // given derivative d/dxi, computes d/dx
     // deriv_xi: num_nodes_per_element x 3
@@ -53,17 +55,19 @@ struct FaceGroup
 
 struct ApfData
 {
-  explicit ApfData(apf::Mesh* m = nullptr, apf::Numbering* dof_nums=nullptr,
+  explicit ApfData(apf::Mesh2* m = nullptr, apf::Numbering* dof_nums=nullptr,
                    apf::Numbering* is_dirichlet=nullptr, apf::FieldShape* sol_shape=nullptr) :
     m(m), dof_nums(dof_nums), is_dirichlet(is_dirichlet), sol_shape(sol_shape)
   {}
 
-  apf::Mesh* m;
+  apf::Mesh2* m;
   apf::Numbering* dof_nums;
   apf::Numbering* el_nums;
   apf::Numbering* is_dirichlet;  // if dof is dirichlet
   apf::FieldShape* sol_shape;    // FieldShape of solution
-  std::vector<apf::MeshEntity*> elements;
+  apf::Numbering* vol_groups;    // volume group number of elements
+
+  //std::vector<apf::MeshEntity*> elements;
 };
 
 struct DofNumbering
@@ -81,11 +85,11 @@ class MeshCG
   using SInt = std::vector<VolumeGroup>::size_type;
 
   public:
-    MeshCG(apf::Mesh* m,
+    MeshCG(apf::Mesh2* m,
            std::vector<MeshEntityGroupSpec> volume_group_spec,
            std::vector<MeshEntityGroupSpec> bc_spec,
            std::vector<MeshEntityGroupSpec> other_surface_spec,
-           int solution_degree, int coord_degree);
+           const int solution_degree, const int coord_degree);
 
     // getting faces
     const FaceGroup& getFaces(const MeshEntityGroupSpec& surf)
@@ -133,15 +137,17 @@ class MeshCG
     // dof functions
 
     // gets total number of dofs, including dirichlet BC dofs
-    Index getNumTotalDofs() const;
+    Index getNumTotalDofs() const {return m_dof_numbering.num_dofs_total;}
 
     // gets number of dofs, exluding dirichlet BC dofs
-    Index getNumDofs() const;
+    Index getNumDofs() const {return m_dof_numbering.num_dofs;}
 
     // returns all the dofs connected to the given node (including self)
     void getDofConnectivity(const Index el, const Index node, std::vector<DofInt>);
 
   private:
+    void setVolumeIndices();
+
     void setSurfaceIndices();
 
     void setApfData();
@@ -161,6 +167,8 @@ class MeshCG
     std::vector<VolumeGroup> m_vol_group;
     //std::vector<std::vector<FaceGroup>> m_bc_faces;
     std::vector<FaceGroup> m_all_faces;
+    std::vector<apf::MeshEntity*> m_elements;
+    std::vector<Index> m_elnums_global_to_local;  // element numbers to group element numbers
 };
 
 

@@ -41,6 +41,8 @@ class MeshGenerator
 
       m_mesh->acceptChanges();
       m_mesh->verify();
+
+      apf::writeASCIIVtkFiles("mesh_created", m_mesh);
      
       return m_mesh;
     }

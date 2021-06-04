@@ -24,7 +24,13 @@ void setDofsDirichlet(ApfData& apf_data, apf::MeshEntity* e, const int val);
 //-----------------------------------------------------------------------------
 // Dof numbering
 
-void initializeElnums(ApfData& apf_data);
+//void initializeElnums(ApfData& apf_data);
+
+// counts number of elements in a volume group
+// Note: this iterates over all elements in the mesh, and may be slow
+int countNumEls(ApfData& apf_data, const MeshEntityGroupSpec& vol_group);
+
+void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpec>& vol_groups, apf::Numbering* group_nums);
 
 //TODO: implement this
 // on exit, elnums_start and elnums_end are the starting numbers for the next
@@ -34,8 +40,9 @@ void setDofNums(apf::Mesh* m, MeshEntityGroupSpec volume_group,
                    apf::Numbering* is_dirichlet, apf::Numbering* dof_nums,
                    apf::Numbering* el_nums);
 
-void getDofNums(ApfData apf_data, const int el_start, const int el_end,
-                ArrayType<Index, 2>& nodenums);
+void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+                ArrayType<Index, 2>& nodenums,
+                std::vector<apf::MeshEntity*>& elements_group);
 
 
 void setDirichletDofs(ApfData& apf_data, int& dof_start);
