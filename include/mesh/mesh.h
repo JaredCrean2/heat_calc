@@ -31,12 +31,15 @@ struct FaceSpec
 class VolumeGroup
 {
   public:
-    VolumeGroup (ArrayType<Index, 2>& nodenums, std::vector<apf::MeshEntity*> elements) :
+    VolumeGroup (ArrayType<Index, 2>& nodenums, ArrayType<Real, 3> coords,
+                std::vector<apf::MeshEntity*> elements) :
       nodenums(nodenums),
+      coords(coords),
       m_elements(elements)
     {}
 
     ArrayType<Index, 2> nodenums;  // nelems x npts per element
+    ArrayType<Real, 3> coords;     // nelems x npts per element x 3
 
     std::vector<apf::MeshEntity*> m_elements;
 
@@ -72,10 +75,10 @@ struct ApfData
 
 struct DofNumbering
 {
-  int sol_degree            = 0;
-  int coord_degree          = 0;
-  int num_dofs              = 0;
-  int num_dofs_total        = 0;
+  int sol_degree        = 0;
+  int coord_degree      = 0;
+  int num_dofs          = 0;
+  int num_dofs_total    = 0;
   int nodes_per_element = 0;
   int nodes_per_face    = 0;
 };

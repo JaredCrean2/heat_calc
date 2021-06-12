@@ -104,9 +104,14 @@ void MeshCG::createVolumeGroups()
     //TODO: avoid Boost array deep copies
     int numel_i = countNumEls(m_apf_data, m_volume_spec[i]);
     ArrayType<Index, 2> dof_nums(boost::extents[numel_i][m_dof_numbering.nodes_per_element]);
+    ArrayType<Real, 3> coords(boost::extents[numel_i][m_dof_numbering.nodes_per_element][3]);
     std::vector<apf::MeshEntity*> elements_group;
-    getDofNums(m_apf_data, m_volume_spec[i], dof_nums, elements_group);
-    m_vol_group.push_back(VolumeGroup(dof_nums, elements_group));
+
+    getGroupElements(m_apf_data, m_volume_spec[i], elements_group);
+    getDofNums(m_apf_data, m_volume_spec[i], elements_group, dof_nums);
+    getCoords(m_apf_data,  m_volume_spec[i], elements_group, coords);
+
+    m_vol_group.push_back(VolumeGroup(dof_nums, coords, elements_group));
 
     for (SInt j=0; j < elements_group.size(); ++j)
       m_elnums_global_to_local[apf::getNumber(m_apf_data.el_nums, elements_group[j], 0, 0)] = j;

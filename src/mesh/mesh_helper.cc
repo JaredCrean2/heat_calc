@@ -130,37 +130,31 @@ void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpe
   }
 }
 
-// on exit, elnums_start and elnums_end are the starting numbers for the next
-// block
-void setDofNumbers(apf::Mesh* m, MeshEntityGroupSpec volume_group,
-                   int& elnums_start, int& dof_start,
-                   apf::Numbering* is_dirichlet, apf::Numbering* dof_nums,
-                   apf::Numbering* el_nums);
-
-
-void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
-                ArrayType<Index, 2>& nodenums, std::vector<apf::MeshEntity*>& elements_group)
+void getGroupElements(ApfData apf_data, MeshEntityGroupSpec& volume_group,
+                      std::vector<apf::MeshEntity*>& elements)
 {
-  apf::Downward down;
   apf::MeshIterator* it = apf_data.m->begin(3);
   apf::MeshEntity* e;
-  std::vector<apf::MeshEntity*> elements(apf_data.m->count(3));
   while ( (e = apf_data.m->iterate(it)) )
   {
-    int elnum = apf::getNumber(apf_data.el_nums, e, 0, 0);
-    elements[elnum] = e;
+    auto me_spec = getMESpec(apf_data.m, e);
+    if (!(volume_group.hasModelEntity(me_spec)))
+      continue;
+
+    elements.push_back(e);
   }
   apf_data.m->end(it);
+}
 
+void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+                std::vector<apf::MeshEntity*>& elements,
+                ArrayType<Index, 2>& nodenums)
+{
+
+  apf::Downward down;
   int el_idx = 0;
   for( auto e : elements )
   {
-    auto me_spec = getMESpec(apf_data.m, e);
-    if (!(vol_group.hasModelEntity(me_spec)))
-      continue;
-
-
-    elements_group.push_back(e);
     int idx=0, offset=0;
     for (int dim=0; dim <= 3; ++dim)
     {
@@ -179,6 +173,41 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
     el_idx += 1;
   }
 }
+
+void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+               std::vector<apf::MeshEntity*>& elements,
+               ArrayType<Real, 3>& coords)
+{
+  apf::Downward down;
+  apf::FieldShape* fshape = apf_data.m->getShape();
+  apf::Vector3 point;
+  int el_idx = 0;
+  for( auto e : elements )
+  {
+    int idx=0, offset=0;
+    for (int dim=0; dim <= 3; ++dim)
+    {
+      int ndown = apf_data.m->getDownward(e, dim, down);
+
+      int nnodes_dim = fshape->countNodesOn(apf_data.m->getType(down[0]));
+      for (int i=0; i < ndown; ++i)
+        for (int j=0; j < nnodes_dim; ++j)
+        {
+          apf_data.m->getPoint(down[i], j, point);
+
+          coords[el_idx][idx][0] = point.x();
+          coords[el_idx][idx][1] = point.y();
+          coords[el_idx][idx][2] = point.z();
+          ++idx;
+        }
+
+      offset += ndown * nnodes_dim;
+    }
+    ++el_idx;
+  }
+}
+
+
 
 void setDirichletDofs(ApfData& apf_data, int& dof_start)
 {
