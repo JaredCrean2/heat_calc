@@ -38,10 +38,10 @@ class LagrangeEvaluatorTP
       LagrangeBasis basis(pts_in);
       for (Index i=0; i < pts_out.size(); ++i)
         for (Index j=0; j < pts_in.size(); ++j)
-      {
-        m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
-        m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
-      }
+        {
+          m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
+          m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
+        }
     }
 
     // interpolates the values (defined at pts_int) to pts_out
@@ -138,6 +138,5 @@ class LagrangeEvaluatorTP
     // basis function values and derivatives, npts_out x npts_in
     ArrayType<double, 2> m_vals;
     ArrayType<double, 2> m_derivs;
-
 };
 

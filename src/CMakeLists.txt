@@ -1,6 +1,6 @@
 message("Processing source directory")
 
-set(src_files EpwReader.cc utils/lagrange.cc)
+set(src_files EpwReader.cc utils/lagrange.cc utils/quadrature.cc)
 
 add_library(heat_lib "${src_files}")
 target_include_directories(heat_lib PUBLIC

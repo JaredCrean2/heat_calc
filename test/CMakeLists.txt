@@ -15,6 +15,7 @@ target_link_libraries(unit_tests
                      ${GTEST_BOTH_LIBRARIES}
                      pthread 
                      mesh
+                     heat_lib
                      SCOREC::core)
 
 message("Linking to ALL_LIBS = ${ALL_LIBS}")
