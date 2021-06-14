@@ -47,7 +47,7 @@ class LagrangeEvaluatorTP
     // interpolates the values (defined at pts_int) to pts_out
     // It is recommended that T have the BOOST_RESTRICT qualifier for best performance
     template<typename T>
-    void interpolateVals(ArrayType<T, 3> vals_in, ArrayType<T, 3> vals_out)
+    void interpolateVals(ArrayType<T, 3>& vals_in, ArrayType<T, 3>& vals_out)
     {
       for (int i=0; i < 3; ++i)
       {
@@ -70,10 +70,10 @@ class LagrangeEvaluatorTP
           }
     }
 
-    // computes the derivatives of the values (defined at pts_int) at pts_out
+    // computes the derivatives of the values (defined at pts_in) at pts_out
     // vals_out is npts_out x npts_out x npts_out x 3
     template<typename T>
-    void interpolateVals(ArrayType<T, 3> vals_in, ArrayType<T, 4> vals_out)
+    void interpolateDerivs(ArrayType<T, 3>& vals_in, ArrayType<T, 4>& vals_out)
     {
       for (int i=0; i < 3; ++i)
       {
@@ -105,28 +105,29 @@ class LagrangeEvaluatorTP
           }
     }
 
+    // TODO: check ordering of in vs out
     double getInterpolantValue(const Index i_in,  const Index j_in,  const Index k_in,
                                const Index i_out, const Index j_out, const Index k_out)
     {
-      return m_vals[i_in][i_out] * m_vals[j_in][j_out] * m_vals[k_in][k_out];
+      return m_vals[i_out][i_in] * m_vals[j_out][j_in] * m_vals[k_out][k_in];
     }
 
     double getInterpolantDx(const Index i_in,  const Index j_in,  const Index k_in,
                             const Index i_out, const Index j_out, const Index k_out)
     {
-      return m_derivs[i_in][i_out] * m_vals[j_in][j_out] * m_vals[k_in][k_out];
+      return m_derivs[i_out][i_in] * m_vals[j_out][j_in] * m_vals[k_out][k_in];
     }
 
     double getInterpolantDy(const Index i_in,  const Index j_in,  const Index k_in,
                             const Index i_out, const Index j_out, const Index k_out)
     {
-      return m_vals[i_in][i_out] * m_derivs[j_in][j_out] * m_vals[k_in][k_out];
+      return m_vals[i_out][i_in] * m_derivs[j_out][j_in] * m_vals[k_out][k_in];
     }
 
     double getInterpolantDz(const Index i_in,  const Index j_in,  const Index k_in,
                             const Index i_out, const Index j_out, const Index k_out)
     {
-      return m_vals[i_in][i_out] * m_vals[j_in][j_out] * m_derivs[k_in][k_out];
+      return m_vals[i_out][i_in] * m_vals[j_out][j_in] * m_derivs[k_out][k_in];
     }
 
     Index getNumPointsIn() const {return m_vals.shape()[1];}
