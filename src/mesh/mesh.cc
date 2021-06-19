@@ -39,6 +39,7 @@ MeshCG::MeshCG(apf::Mesh2* m,
   setApfData();
   createVolumeGroups();
   createFaceGroups();
+  setNormals();
 }
 
 
@@ -158,11 +159,32 @@ void MeshCG::createFaceGroups()
             assert(localidx != -1);
 
             int elnum = apf::getNumber(m_apf_data.el_nums, e_i, 0, 0);
-            face_group.faces.push_back(FaceSpec(elnum, localidx));
+            int elnum_local = m_elnums_global_to_local[elnum];
+            int vol_group_idx = -1;
+            // TODO: could cache this, because it is a function of me_parent
+            for (const auto& vol_group : m_volume_spec)
+              if (vol_group.hasModelEntity(me_parent))
+                vol_group_idx = vol_group.getIdx();
+
+            assert(vol_group_idx != -1);
+
+            face_group.faces.push_back(FaceSpec(elnum, elnum_local, localidx, vol_group_idx));
             break;
           }
         }
       }
+    }
+
+    void setNormals()
+    {
+      // convention: v3 to v1 is xi1, v3 to v2 is xi2, v3 to v7 is xi3
+      normals_xi.resize(6);
+      normals_xi[0] = apf::Vector3( 0,  0, -1);
+      normals_xi[1] = apf::Vector3( 1,  0,  0);
+      normals_xi[2] = apf::Vector3( 0,  1,  0);
+      normals_xi[3] = apf::Vector3(-1,  0,  0);
+      normals_xi[4] = apf::Vector3( 0, -1,  0);
+      normals_xi[5] = apf::Vector3( 0,  0,  1);
     }
 
 

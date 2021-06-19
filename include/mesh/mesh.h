@@ -22,9 +22,12 @@ bool initialize();
 // Identifies the face of an element
 struct FaceSpec
 {
-  FaceSpec(Index el, LocalIndex face) : el(el), face(face) {}
-  Index el;
+  FaceSpec(Index el, Index el_group, LocalIndex face, LocalIndex vol_group)
+    : el(el), el_group(el_group), face(face), vol_group(vol_group) {}
+  Index el;  // global element index
+  Index el_group;  // index within element VolumeGroup
   LocalIndex face;  // local face id
+  LocalIndex vol_group; // volume group index
 };
 
 
@@ -136,6 +139,8 @@ class MeshCG
           return m_volume_spec[idx];
     }
 
+    std::vector<apf::Vector3> normals_xi;
+
     //---------------------------------------------------------------------
     // dof functions
 
@@ -158,6 +163,8 @@ class MeshCG
     void createVolumeGroups();
 
     void createFaceGroups();
+
+    void setNormals();
 
     // input
     ApfData m_apf_data;

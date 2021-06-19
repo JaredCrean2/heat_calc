@@ -174,6 +174,68 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
   }
 }
 
+ArrayType<LocalIndex, 3>& getTensorProductMap(const DofNumbering& dof_numbering)
+{
+  static ArrayType<LocalIndex, 3> degree1(boost::extents[2][2][2]);
+  static ArrayType<LocalIndex, 3> degree2(boost::extents[3][3][3]);
+
+  degree1[0][0][0] = 3;
+  degree1[1][0][0] = 0;
+  degree1[0][1][0] = 2;
+  degree1[1][1][0] = 1;
+  degree1[0][0][1] = 7;
+  degree1[1][0][1] = 4;
+  degree1[0][1][1] = 6;
+  degree1[1][1][1] = 5;
+
+  LocalIndex offset = 8;
+  degree2[0][0][0] = 3;
+  degree2[2][0][0] = 0;
+  degree2[0][2][0] = 2;
+  degree2[2][2][0] = 1;
+  degree2[0][0][2] = 7;
+  degree2[2][0][2] = 4;
+  degree2[0][2][2] = 6;
+  degree2[2][2][2] = 5;
+  // mid-edge nodes (bottom)
+  degree2[1][0][0] = 3 + offset;
+  degree2[2][1][0] = 0 + offset;
+  degree2[1][2][0] = 1 + offset;
+  degree2[0][1][0] = 2 + offset;
+  // mid-edge nodes (vertical)
+  degree2[0][0][1] = 7 + offset;
+  degree2[2][0][1] = 4 + offset;
+  degree2[2][2][1] = 5 + offset;
+  degree2[0][2][1] = 6 + offset;
+  // mid-edge nodes (top)
+  degree2[1][0][2] = 11 + offset;
+  degree2[2][1][2] = 8  + offset;
+  degree2[1][2][2] = 6  + offset;
+  degree2[0][1][2] = 10 + offset;
+  // face nodes
+  offset = 8 + 12;
+  degree2[1][1][0] = 0 + offset;
+  degree2[2][1][1] = 1 + offset;
+  degree2[1][2][1] = 2 + offset;
+  degree2[0][1][1] = 3 + offset;
+  degree2[1][0][1] = 4 + offset;
+  degree2[1][1][2] = 5 + offset;
+  // interior nodes
+  offset = 8 + 12 + 6;
+  degree2[1][1][1] = 0 + offset;
+
+  if (dof_numbering.sol_degree == 1)
+    return degree1;
+  else if (dof_numbering.sol_degree == 2)
+    return degree2;
+  else
+  {
+    auto msg = std::string("unsupported solution degree: ") + std::to_string(dof_numbering.sol_degree);
+    throw std::argument_error(msg);
+  }
+
+}
+
 void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements,
                ArrayType<Real, 3>& coords)

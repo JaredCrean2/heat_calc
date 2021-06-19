@@ -39,6 +39,8 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements_group,
                 ArrayType<Index, 2>& nodenums);
 
+ArrayType<LocalIndex, 3>& getTensorProductMap(const DofNumbering& dof_numbering);
+
 void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements_group,
                ArrayType<Real, 3>& coords);
