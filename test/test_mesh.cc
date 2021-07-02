@@ -1,49 +1,11 @@
 #include "gtest/gtest.h"
 
-#include "mesh/mesh_generator.h"
+#include "mesh_helper.h"
 #include "mesh/mesh.h"
-#include <memory>
 
 TEST(Default, All)
 {
   EXPECT_TRUE(true);
-}
-
-std::shared_ptr<Mesh::MeshCG> makeStandardMesh()
-{
-  Mesh::MeshSpec meshspec;
-  meshspec.xmin = 0;
-  meshspec.xmax = 2;
-  meshspec.ymin = 0;
-  meshspec.ymax = 2;
-  meshspec.zmin = 0;
-  meshspec.zmax = 2;
-  meshspec.nx = 5;
-  meshspec.ny = 5;
-  meshspec.nz = 5;
-
-  auto generator = Mesh::make_mesh_generator(meshspec, &(Mesh::identity));
-  auto m = generator.generate();
-
-  // make volume groups
-  Mesh::MeshEntityGroupSpec volume_group("volume0");
-  volume_group.addModelEntity(Mesh::ModelEntitySpec(3, 0));
-  std::vector<Mesh::MeshEntityGroupSpec> volume_groups{volume_group};
-
-  // make surface groups
-  std::vector<Mesh::MeshEntityGroupSpec> surface_groups;
-  for (int i=0; i < 6; ++i)
-  {
-    surface_groups.emplace_back(std::string("surface") + std::to_string(i));
-    surface_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, i), Mesh::ModelEntitySpec(3, 0));
-    surface_groups.back().setIsDirichlet(true);
-  }
-
-  std::vector<Mesh::MeshEntityGroupSpec> other_surfaces;
-  auto mesh = std::make_shared<Mesh::MeshCG>(m, volume_groups, surface_groups,
-                                       other_surfaces, 1, 1);
-
-  return mesh;
 }
 
 TEST(Mesh, Entities)

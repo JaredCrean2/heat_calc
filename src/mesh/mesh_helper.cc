@@ -179,46 +179,47 @@ const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree)
   static ArrayType<LocalIndex, 3> degree1(boost::extents[2][2][2]);
   static ArrayType<LocalIndex, 3> degree2(boost::extents[3][3][3]);
 
-  degree1[0][0][0] = 3;
-  degree1[1][0][0] = 0;
-  degree1[0][1][0] = 2;
-  degree1[1][1][0] = 1;
-  degree1[0][0][1] = 7;
-  degree1[1][0][1] = 4;
-  degree1[0][1][1] = 6;
-  degree1[1][1][1] = 5;
+  degree1[0][0][0] = 0;
+  degree1[1][0][0] = 1;
+  degree1[0][1][0] = 3;
+  degree1[1][1][0] = 2;
+  degree1[0][0][1] = 4;
+  degree1[1][0][1] = 5;
+  degree1[0][1][1] = 7;
+  degree1[1][1][1] = 6;
 
   LocalIndex offset = 8;
-  degree2[0][0][0] = 3;
-  degree2[2][0][0] = 0;
-  degree2[0][2][0] = 2;
-  degree2[2][2][0] = 1;
-  degree2[0][0][2] = 7;
-  degree2[2][0][2] = 4;
-  degree2[0][2][2] = 6;
-  degree2[2][2][2] = 5;
+  degree2[0][0][0] = 0;
+  degree2[2][0][0] = 1;
+  degree2[0][2][0] = 3;
+  degree2[2][2][0] = 2;
+  degree2[0][0][2] = 4;
+  degree2[2][0][2] = 5;
+  degree2[0][2][2] = 7;
+  degree2[2][2][2] = 6;
+
   // mid-edge nodes (bottom)
-  degree2[1][0][0] = 3 + offset;
-  degree2[2][1][0] = 0 + offset;
-  degree2[1][2][0] = 1 + offset;
-  degree2[0][1][0] = 2 + offset;
+  degree2[1][0][0] = 0 + offset;
+  degree2[2][1][0] = 1 + offset;
+  degree2[1][2][0] = 2 + offset;
+  degree2[0][1][0] = 3 + offset;
   // mid-edge nodes (vertical)
-  degree2[0][0][1] = 7 + offset;
-  degree2[2][0][1] = 4 + offset;
-  degree2[2][2][1] = 5 + offset;
-  degree2[0][2][1] = 6 + offset;
+  degree2[0][0][1] = 4 + offset;
+  degree2[2][0][1] = 5 + offset;
+  degree2[2][2][1] = 6 + offset;
+  degree2[0][2][1] = 7 + offset;
   // mid-edge nodes (top)
-  degree2[1][0][2] = 11 + offset;
-  degree2[2][1][2] = 8  + offset;
-  degree2[1][2][2] = 6  + offset;
-  degree2[0][1][2] = 10 + offset;
+  degree2[1][0][2] = 8  + offset;
+  degree2[2][1][2] = 9  + offset;
+  degree2[1][2][2] = 10 + offset;
+  degree2[0][1][2] = 11 + offset;
   // face nodes
   offset = 8 + 12;
   degree2[1][1][0] = 0 + offset;
-  degree2[2][1][1] = 1 + offset;
-  degree2[1][2][1] = 2 + offset;
-  degree2[0][1][1] = 3 + offset;
-  degree2[1][0][1] = 4 + offset;
+  degree2[2][1][1] = 2 + offset;
+  degree2[1][2][1] = 3 + offset;
+  degree2[0][1][1] = 4 + offset;
+  degree2[1][0][1] = 1 + offset;
   degree2[1][1][2] = 5 + offset;
   // interior nodes
   offset = 8 + 12 + 6;
@@ -256,17 +257,17 @@ const std::vector<Real>& getTensorProductXi(const int degree)
 const std::vector<apf::Vector3>& getNormals()
 {
   // convention: v3 to v1 is xi1, v3 to v2 is xi2, v3 to v7 is xi3
+  // convention: v0 to v1 to xi1, v0 to v3 is xi2, v0 to v4 is xi3
   static std::vector<apf::Vector3> normals_xi(6);
   normals_xi[0] = apf::Vector3( 0,  0, -1);
-  normals_xi[1] = apf::Vector3( 1,  0,  0);
-  normals_xi[2] = apf::Vector3( 0,  1,  0);
-  normals_xi[3] = apf::Vector3(-1,  0,  0);
-  normals_xi[4] = apf::Vector3( 0, -1,  0);
+  normals_xi[1] = apf::Vector3( 0, -1,  0);
+  normals_xi[2] = apf::Vector3( 1,  0,  0);
+  normals_xi[3] = apf::Vector3( 0,  1,  0);
+  normals_xi[4] = apf::Vector3(-1,  0,  0);
   normals_xi[5] = apf::Vector3( 0,  0,  1);
 
   return normals_xi;
 }
-
 
 
 void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,

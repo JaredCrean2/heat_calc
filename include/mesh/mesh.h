@@ -74,6 +74,22 @@ class TensorProductMapper
             to[tp_nodemap[i][j][k]] = from[i][j][k];
     }
 
+    template <typename Array3D>
+    std::ostream& printTP(std::ostream& os, const Array3D& from) const
+    {
+      for (unsigned int i=0; i < tp_nodemap.shape()[0]; ++i)
+        for (unsigned int j=0; j < tp_nodemap.shape()[1]; ++j)
+        {
+          for (unsigned int k=0; k < tp_nodemap.shape()[2]; ++k)
+            os << from[i][j][k] << ", ";
+
+          os << "\n";
+        }
+
+      return os;
+    }
+
+
 
   private:
     const ArrayType<LocalIndex, 3>& tp_nodemap;

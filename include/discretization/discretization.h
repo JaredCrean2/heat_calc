@@ -8,9 +8,9 @@
 class VolumeDiscretization
 {
   public:
-    const Mesh::VolumeGroup& vol_group;
+    explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group);
     ArrayType<Real, 4> dxidx;
-    const ArrayType<Mesh::LocalIndex, 3>& tp_nodemap;
+    const Mesh::VolumeGroup& vol_group;
 
     int getNumElems() const { return vol_group.getNumElems();}
 
@@ -36,8 +36,7 @@ typename Array::element computeDet3x3(Array& A)
 
 
 template <typename Array>
-void computeAdjugate(Array& A,
-                     Array& B)
+void computeCofactor(Array& A, Array& B)
 {
 
   assert(A.num_dimensions() == 2);
@@ -65,9 +64,9 @@ template <typename Array>
 void computeInverse3x3(Array& A, Array& B)
 {
   auto detA = computeDet3x3(A);
-  computeAdjugate(A, B);
+  computeCofactor(A, B);
 
-  // B = (adjugate(A))^T / detA
+  // B = (cofactor(A))^T / detA
   B[0][0] /= detA;
   B[1][1] /= detA;
   B[2][2] /= detA;
