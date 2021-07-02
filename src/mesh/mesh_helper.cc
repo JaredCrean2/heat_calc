@@ -174,7 +174,7 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
   }
 }
 
-ArrayType<LocalIndex, 3>& getTensorProductMap(const DofNumbering& dof_numbering)
+const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree)
 {
   static ArrayType<LocalIndex, 3> degree1(boost::extents[2][2][2]);
   static ArrayType<LocalIndex, 3> degree2(boost::extents[3][3][3]);
@@ -224,17 +224,50 @@ ArrayType<LocalIndex, 3>& getTensorProductMap(const DofNumbering& dof_numbering)
   offset = 8 + 12 + 6;
   degree2[1][1][1] = 0 + offset;
 
-  if (dof_numbering.sol_degree == 1)
+  if (degree == 1)
     return degree1;
-  else if (dof_numbering.sol_degree == 2)
+  else if (degree == 2)
     return degree2;
   else
   {
-    auto msg = std::string("unsupported solution degree: ") + std::to_string(dof_numbering.sol_degree);
-    throw std::argument_error(msg);
+    auto msg = std::string("unsupported degree: ") + std::to_string(degree);
+    throw std::invalid_argument(msg);
   }
 
 }
+
+const std::vector<Real>& getTensorProductXi(const int degree)
+{
+  static std::vector<Real> xi1{0, 1};
+  static std::vector<Real> xi2{0, 0.5, 1};
+
+  if (degree == 1)
+    return xi1;
+  else if (degree == 2)
+    return xi2;
+  else
+  {
+    auto msg = std::string("unsupported degree ") + std::to_string(degree);
+    throw std::invalid_argument(msg);
+  }
+}
+
+
+const std::vector<apf::Vector3>& getNormals()
+{
+  // convention: v3 to v1 is xi1, v3 to v2 is xi2, v3 to v7 is xi3
+  static std::vector<apf::Vector3> normals_xi(6);
+  normals_xi[0] = apf::Vector3( 0,  0, -1);
+  normals_xi[1] = apf::Vector3( 1,  0,  0);
+  normals_xi[2] = apf::Vector3( 0,  1,  0);
+  normals_xi[3] = apf::Vector3(-1,  0,  0);
+  normals_xi[4] = apf::Vector3( 0, -1,  0);
+  normals_xi[5] = apf::Vector3( 0,  0,  1);
+
+  return normals_xi;
+}
+
+
 
 void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements,

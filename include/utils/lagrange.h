@@ -46,9 +46,11 @@ class LagrangeEvaluatorTP
 
     // interpolates the values (defined at pts_int) to pts_out
     // It is recommended that T have the BOOST_RESTRICT qualifier for best performance
-    template<typename T>
-    void interpolateVals(ArrayType<T, 3>& vals_in, ArrayType<T, 3>& vals_out)
+    template<typename Array>
+    void interpolateVals(Array& vals_in, Array& vals_out)
     {
+      assert(vals_in.num_dimensions()   == 3);
+      assert(vals_out.num_dimensions() == 3);
       for (int i=0; i < 3; ++i)
       {
         assert(vals_in.shape()[i] == getNumPointsIn());
@@ -72,9 +74,12 @@ class LagrangeEvaluatorTP
 
     // computes the derivatives of the values (defined at pts_in) at pts_out
     // vals_out is npts_out x npts_out x npts_out x 3
-    template<typename T>
-    void interpolateDerivs(ArrayType<T, 3>& vals_in, ArrayType<T, 4>& vals_out)
+    template<typename Array3, typename Array4>
+    void interpolateDerivs(Array3& vals_in, Array4& vals_out)
     {
+      assert(vals_in.num_dimensions()   == 3);
+      assert(vals_out.num_dimensions() == 4);
+      assert(vals_out.shape()[3]       == 3);
       for (int i=0; i < 3; ++i)
       {
         assert(vals_in.shape()[i] == getNumPointsIn());

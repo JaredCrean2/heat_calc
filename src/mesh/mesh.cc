@@ -29,7 +29,11 @@ MeshCG::MeshCG(apf::Mesh2* m,
   m_apf_data(m),
   m_volume_spec(volume_group_spec),
   m_bc_spec(bc_spec),
-  m_all_face_spec(other_surface_spec)
+  m_all_face_spec(other_surface_spec),
+  m_tensor_product_coord_map(getTensorProductMap(coord_degree),
+                             getTensorProductXi(coord_degree)),
+  m_tensor_product_sol_map(getTensorProductMap(solution_degree),
+                           getTensorProductXi(solution_degree))
 {
   assert(coord_degree == 1);
   m_dof_numbering.sol_degree   = solution_degree;
@@ -39,7 +43,6 @@ MeshCG::MeshCG(apf::Mesh2* m,
   setApfData();
   createVolumeGroups();
   createFaceGroups();
-  setNormals();
 }
 
 
@@ -67,10 +70,14 @@ void MeshCG::setSurfaceIndices()
 void MeshCG::setApfData()
 {
   m_apf_data.sol_shape = apf::getLagrange(m_dof_numbering.sol_degree);
+  m_apf_data.coord_shape = apf::getLagrange(m_dof_numbering.coord_degree);
+
   m_dof_numbering.nodes_per_element =
     apf::countElementNodes(m_apf_data.sol_shape, apf::Mesh::HEX);
   m_dof_numbering.nodes_per_face =
     apf::countElementNodes(m_apf_data.sol_shape, apf::Mesh::QUAD);
+  m_dof_numbering.coord_nodes_per_element =
+    apf::countElementNodes(m_apf_data.coord_shape, apf::Mesh::HEX);
 
   m_apf_data.dof_nums = apf::createNumbering(m_apf_data.m, "dof_nums",
                                           m_apf_data.sol_shape, 1);
@@ -100,19 +107,26 @@ void MeshCG::createVolumeGroups()
   m_elements = reorderer.getElements();
   m_elnums_global_to_local.resize(m_elements.size());
 
+  auto& normals_xi = getNormals();
+
   for (SInt i=0; i < m_volume_spec.size(); ++i)
   {
     //TODO: avoid Boost array deep copies
     int numel_i = countNumEls(m_apf_data, m_volume_spec[i]);
     ArrayType<Index, 2> dof_nums(boost::extents[numel_i][m_dof_numbering.nodes_per_element]);
-    ArrayType<Real, 3> coords(boost::extents[numel_i][m_dof_numbering.nodes_per_element][3]);
+    ArrayType<Real, 3> coords(boost::extents[numel_i][m_dof_numbering.coord_nodes_per_element][3]);
+    //TODO: get coords on coordinate field
     std::vector<apf::MeshEntity*> elements_group;
 
     getGroupElements(m_apf_data, m_volume_spec[i], elements_group);
     getDofNums(m_apf_data, m_volume_spec[i], elements_group, dof_nums);
     getCoords(m_apf_data,  m_volume_spec[i], elements_group, coords);
 
-    m_vol_group.push_back(VolumeGroup(dof_nums, coords, elements_group));
+    //TODO: use emplace
+    m_vol_group.push_back(VolumeGroup(dof_nums, coords,
+      m_tensor_product_coord_map, m_tensor_product_sol_map, 
+      normals_xi, m_dof_numbering.sol_degree,
+      elements_group));
 
     for (SInt j=0; j < elements_group.size(); ++j)
       m_elnums_global_to_local[apf::getNumber(m_apf_data.el_nums, elements_group[j], 0, 0)] = j;
@@ -173,18 +187,6 @@ void MeshCG::createFaceGroups()
           }
         }
       }
-    }
-
-    void setNormals()
-    {
-      // convention: v3 to v1 is xi1, v3 to v2 is xi2, v3 to v7 is xi3
-      normals_xi.resize(6);
-      normals_xi[0] = apf::Vector3( 0,  0, -1);
-      normals_xi[1] = apf::Vector3( 1,  0,  0);
-      normals_xi[2] = apf::Vector3( 0,  1,  0);
-      normals_xi[3] = apf::Vector3(-1,  0,  0);
-      normals_xi[4] = apf::Vector3( 0, -1,  0);
-      normals_xi[5] = apf::Vector3( 0,  0,  1);
     }
 
 

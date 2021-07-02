@@ -1,6 +1,8 @@
 message("Processing source directory")
 
-set(src_files EpwReader.cc utils/lagrange.cc utils/quadrature.cc utils/legendre.cc)
+set(src_files EpwReader.cc utils/lagrange.cc utils/quadrature.cc utils/legendre.cc discretization/discretization.cc)
+
+add_subdirectory(mesh)
 
 add_library(heat_lib "${src_files}")
 target_include_directories(heat_lib PUBLIC
@@ -9,6 +11,9 @@ target_include_directories(heat_lib PUBLIC
                           "${PROJECT_SOURCE_DIR}/include/utils"
                           "${Boost_INCLUDE_DIRS}"
 )
+
+target_link_libraries(heat_lib PUBLIC mesh)
+
 set(ALL_LIBS ${ALL_LIBS} heat_lib PARENT_SCOPE)
 message("ALL_LIBS = ${ALL_LIBS}")
 
@@ -22,4 +27,3 @@ target_include_directories(heat_calc PUBLIC
 target_link_libraries(heat_calc PUBLIC heat_lib)
 
 
-add_subdirectory(mesh)
