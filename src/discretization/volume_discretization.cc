@@ -1,4 +1,4 @@
-#include "discretization/discretization.h"
+#include "discretization/volume_discretization.h"
 #include "utils/lagrange.h"
 #include <iostream>
 
