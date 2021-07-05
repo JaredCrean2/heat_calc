@@ -174,101 +174,6 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
   }
 }
 
-const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree)
-{
-  static ArrayType<LocalIndex, 3> degree1(boost::extents[2][2][2]);
-  static ArrayType<LocalIndex, 3> degree2(boost::extents[3][3][3]);
-
-  degree1[0][0][0] = 0;
-  degree1[1][0][0] = 1;
-  degree1[0][1][0] = 3;
-  degree1[1][1][0] = 2;
-  degree1[0][0][1] = 4;
-  degree1[1][0][1] = 5;
-  degree1[0][1][1] = 7;
-  degree1[1][1][1] = 6;
-
-  LocalIndex offset = 8;
-  degree2[0][0][0] = 0;
-  degree2[2][0][0] = 1;
-  degree2[0][2][0] = 3;
-  degree2[2][2][0] = 2;
-  degree2[0][0][2] = 4;
-  degree2[2][0][2] = 5;
-  degree2[0][2][2] = 7;
-  degree2[2][2][2] = 6;
-
-  // mid-edge nodes (bottom)
-  degree2[1][0][0] = 0 + offset;
-  degree2[2][1][0] = 1 + offset;
-  degree2[1][2][0] = 2 + offset;
-  degree2[0][1][0] = 3 + offset;
-  // mid-edge nodes (vertical)
-  degree2[0][0][1] = 4 + offset;
-  degree2[2][0][1] = 5 + offset;
-  degree2[2][2][1] = 6 + offset;
-  degree2[0][2][1] = 7 + offset;
-  // mid-edge nodes (top)
-  degree2[1][0][2] = 8  + offset;
-  degree2[2][1][2] = 9  + offset;
-  degree2[1][2][2] = 10 + offset;
-  degree2[0][1][2] = 11 + offset;
-  // face nodes
-  offset = 8 + 12;
-  degree2[1][1][0] = 0 + offset;
-  degree2[2][1][1] = 2 + offset;
-  degree2[1][2][1] = 3 + offset;
-  degree2[0][1][1] = 4 + offset;
-  degree2[1][0][1] = 1 + offset;
-  degree2[1][1][2] = 5 + offset;
-  // interior nodes
-  offset = 8 + 12 + 6;
-  degree2[1][1][1] = 0 + offset;
-
-  if (degree == 1)
-    return degree1;
-  else if (degree == 2)
-    return degree2;
-  else
-  {
-    auto msg = std::string("unsupported degree: ") + std::to_string(degree);
-    throw std::invalid_argument(msg);
-  }
-
-}
-
-const std::vector<Real>& getTensorProductXi(const int degree)
-{
-  static std::vector<Real> xi1{0, 1};
-  static std::vector<Real> xi2{0, 0.5, 1};
-
-  if (degree == 1)
-    return xi1;
-  else if (degree == 2)
-    return xi2;
-  else
-  {
-    auto msg = std::string("unsupported degree ") + std::to_string(degree);
-    throw std::invalid_argument(msg);
-  }
-}
-
-
-const std::vector<apf::Vector3>& getNormals()
-{
-  // convention: v3 to v1 is xi1, v3 to v2 is xi2, v3 to v7 is xi3
-  // convention: v0 to v1 to xi1, v0 to v3 is xi2, v0 to v4 is xi3
-  static std::vector<apf::Vector3> normals_xi(6);
-  normals_xi[0] = apf::Vector3( 0,  0, -1);
-  normals_xi[1] = apf::Vector3( 0, -1,  0);
-  normals_xi[2] = apf::Vector3( 1,  0,  0);
-  normals_xi[3] = apf::Vector3( 0,  1,  0);
-  normals_xi[4] = apf::Vector3(-1,  0,  0);
-  normals_xi[5] = apf::Vector3( 0,  0,  1);
-
-  return normals_xi;
-}
-
 
 void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements,
@@ -325,10 +230,16 @@ void setDirichletDofs(ApfData& apf_data, int& dof_start)
 
 ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
 {
+  apf::Downward faces;
+  apf::Downward face_entities;
+  apf::Downward el_entities;
+
   apf::MeshIterator* it = apf_data.m->begin(3);
   apf::MeshEntity* e = apf_data.m->iterate(it);
   apf_data.m->end(it);
-  auto type = apf_data.m->getType(e);
+
+  int nfaces = apf_data.m->getDownward(e, 2, faces);
+  auto type = apf_data.m->getType(faces[0]);
   apf::EntityShape* eshape = apf_data.sol_shape->getEntityShape(type);
   int nnodes = eshape->countNodes();
 
@@ -336,11 +247,6 @@ ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
   // note: this must be consistent with how getDofs maps dofs to a 1D array
   // The convention here is: vertices, then edges, then faces (in APF
   // topology order)
-  apf::Downward faces;
-  apf::Downward face_entities;
-  apf::Downward el_entities;
-
-  int nfaces = apf_data.m->getDownward(e, 2, faces);
 
   ArrayType<LocalIndex, 2> nodemap(boost::extents[nfaces][nnodes]);
 
@@ -361,7 +267,7 @@ ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
       } else
       { 
         n_el_entities = apf_data.m->getDownward(e, dim, el_entities);
-        n_face_entities = apf_data.m->getDownward(e, dim, face_entities);
+        n_face_entities = apf_data.m->getDownward(faces[face], dim, face_entities);
       }
 
       int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(face_entities[0]));

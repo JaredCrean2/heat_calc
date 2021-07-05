@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "mesh_helper.h"
-#include "discretization/discretization.h"
+#include "discretization/volume_discretization.h"
 #include "mesh/mesh_generator.h"
 
 TEST(VolDisc, dxidx)
@@ -61,7 +61,7 @@ TEST(VolDisc, MatFuncs)
 
   // inverse
   ArrayType<Real, 2> Ainv(boost::extents[3][3]);
-  Ainv[0][0] =  1; Ainv[0][1] =  -2; Ainv[0][2] = -1;
+  Ainv[0][0] =  1; Ainv[0][1] =  -2; Ainv[0][2] =  1;
   Ainv[1][0] = -4; Ainv[1][1] =   5; Ainv[1][2] = -2;
   Ainv[2][0] = 8.0/3.0; Ainv[2][1] =   -8.0/3.0; Ainv[2][2] = 1;
 

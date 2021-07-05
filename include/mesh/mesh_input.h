@@ -3,9 +3,15 @@
 
 #include <vector>
 #include <stdexcept>
+#include <algorithm>
 
 namespace Mesh
 {
+
+using DofInt = int;      // for degrees of freedom
+using Index = int;       // for element/face numbers
+using LocalIndex = int;  // for local to the element numbering
+
 
 struct Point
 {
@@ -85,7 +91,6 @@ class MeshEntityGroupSpec
   {
     //TODO: store model_entities in sorted order, do binary search
     return std::find(m_model_entities.begin(), m_model_entities.end(), me_spec) != m_model_entities.end();
-
   }
 
   ModelEntitySpec getParentEntity(const ModelEntitySpec& me) const

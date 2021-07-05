@@ -305,3 +305,37 @@ TEST(Polynomials, LagrangeTP)
   }
 
 }
+
+
+TEST(Polynomials, LagrangeTPIn)
+{
+  std::vector<Real> pts_in = {-1.0, 0.0, 1.0};
+  ArrayType<Real, 2> pts_out(boost::extents[4][3]);
+  pts_out[0][0] = -0.75; pts_out[0][1] = -0.25; pts_out[0][2] = -0.5;
+  pts_out[1][0] = -0.5;  pts_out[1][1] = 0.0;   pts_out[1][2] = -0.25;
+  pts_out[2][0] = 0.0;   pts_out[2][1] = 0.25;  pts_out[2][2] = 0.1;
+  pts_out[3][0] = 0.5;   pts_out[3][1] = 0.75;  pts_out[3][2] = 0.5;
+  LagrangeEvaluatorTPIn basis(pts_in, pts_out);
+
+  EXPECT_EQ(basis.getNumPointsIn(), static_cast<unsigned int>(3));
+  EXPECT_EQ(basis.getNumPointsOut(), static_cast<unsigned int>(4));
+
+  {
+    ArrayType<Real, 3> vals_in(boost::extents[3][3][3]);
+    ArrayType<Real, 1> vals_out(boost::extents[4]);
+    //ArrayType<Real, 4> derivs_out(boost::extents[4][3]);
+
+    for (int i=0; i < 3; ++i)
+      for (int j=0; j < 3; ++j)
+        for (int k=0; k < 3; ++k)
+          vals_in[i][j][k] = testPoly(pts_in[i], pts_in[j], pts_in[k]);
+
+    // test interpolation functions
+    basis.interpolateVals(vals_in, vals_out);
+    //basis.interpolateDerivs(vals_in, derivs_out);
+
+    for (int i=0; i < 4; ++i)
+      EXPECT_FLOAT_EQ(vals_out[i], testPoly(pts_out[i][0], pts_out[i][1],
+                                            pts_out[i][2]));
+  }
+}

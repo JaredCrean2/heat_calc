@@ -23,6 +23,10 @@ class Quadrature
 
     Real getWeight(const int i) const { return m_weights[i]; }
 
+    const std::vector<Real>& getPoints() const { return m_pts;}
+
+    const std::vector<Real>& getWeights() const { return m_weights;}
+
     int getExactness() const { return m_exactness; }
 
     int getNumPoints() const { return m_pts.size(); }
@@ -38,5 +42,7 @@ class Quadrature
 
 
 Quadrature getGaussianQuadrature(const int exactness);
+
+
 
 #endif

@@ -30,10 +30,8 @@ MeshCG::MeshCG(apf::Mesh2* m,
   m_volume_spec(volume_group_spec),
   m_bc_spec(bc_spec),
   m_all_face_spec(other_surface_spec),
-  m_tensor_product_coord_map(getTensorProductMap(coord_degree),
-                             getTensorProductXi(coord_degree)),
-  m_tensor_product_sol_map(getTensorProductMap(solution_degree),
-                           getTensorProductXi(solution_degree))
+  m_tensor_product_coord_map(getReferenceElement(apf::Mesh::HEX, coord_degree)),
+  m_tensor_product_sol_map(getReferenceElement(apf::Mesh::HEX, solution_degree))
 {
   assert(coord_degree == 1);
   m_dof_numbering.sol_degree   = solution_degree;
@@ -107,7 +105,10 @@ void MeshCG::createVolumeGroups()
   m_elements = reorderer.getElements();
   m_elnums_global_to_local.resize(m_elements.size());
 
-  auto& normals_xi = getNormals();
+  ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
+                                            m_dof_numbering.coord_degree);
+  ReferenceElement* ref_el_sol   = getReferenceElement(apf::Mesh::HEX,
+                                            m_dof_numbering.sol_degree);
 
   for (SInt i=0; i < m_volume_spec.size(); ++i)
   {
@@ -125,8 +126,7 @@ void MeshCG::createVolumeGroups()
     //TODO: use emplace
     m_vol_group.push_back(VolumeGroup(dof_nums, coords,
       m_tensor_product_coord_map, m_tensor_product_sol_map, 
-      normals_xi, m_dof_numbering.sol_degree,
-      elements_group));
+      ref_el_coord, ref_el_sol, elements_group));
 
     for (SInt j=0; j < elements_group.size(); ++j)
       m_elnums_global_to_local[apf::getNumber(m_apf_data.el_nums, elements_group[j], 0, 0)] = j;
@@ -139,6 +139,15 @@ void MeshCG::createFaceGroups()
 
   apf::Downward down;
   ArrayType<LocalIndex, 2> nodemap = getFaceNodeMap(m_apf_data);
+
+  //TODO: DEBUGGING
+  for (unsigned int i=0; i < nodemap.shape()[0]; ++i)
+  {
+    std::cout << "face " << i << " nodemap: " << std::endl;
+    for (unsigned int j=0; j < nodemap.shape()[1]; ++j)
+      std::cout << "  node " << j << " vertex " << nodemap[i][j] << std::endl;
+  }
+
   for (auto& surf : m_all_face_spec)
   {
     m_all_faces.emplace_back();

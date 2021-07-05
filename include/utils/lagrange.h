@@ -146,3 +146,60 @@ class LagrangeEvaluatorTP
     ArrayType<double, 2> m_derivs;
 };
 
+
+// non-tensor product output version
+class LagrangeEvaluatorTPIn
+{
+  public:
+    using Index = LagrangeBasis::Index;
+
+    LagrangeEvaluatorTPIn(const std::vector<Real>& pts_in,
+                          ArrayType<Real, 2>& pts_out) :
+      m_vals(boost::extents[pts_out.size()][pts_in.size()][3]), 
+      m_derivs(boost::extents[pts_out.size()][pts_in.size()][3])
+    {
+      LagrangeBasis basis(pts_in);
+      for (Index i=0; i < pts_out.size(); ++i)
+        for (Index j=0; j < pts_in.size(); ++j)
+          for (Index d=0; d < 3; ++d)
+          {
+            m_vals[i][j][d]   = basis.evalPoly(j, pts_out[i][d]);
+            //m_derivs[i][j][d] = basis.evalPolyDeriv(j, pts_out[i][d]);
+          }
+    }
+
+    Index getNumPointsIn() const {return m_vals.shape()[1];}
+
+    Index getNumPointsOut() const {return m_vals.shape()[0];}
+
+    template <typename Array3D, typename Array1D>
+    void interpolateVals(const Array3D& vals_in, Array1D& vals_out)
+    {
+      assert(vals_in.num_dimensions()   == 3);
+      assert(vals_out.num_dimensions() == 1);
+      for (int i=0; i < 3; ++i)
+        assert(vals_in.shape()[i] == getNumPointsIn());
+
+      assert(vals_out.shape()[0] == getNumPointsOut());
+
+      for (Index i_out =0; i_out < getNumPointsOut(); ++i_out)
+      {
+        vals_out[i_out] = 0;
+        for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
+          for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
+            for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+              vals_out[i_out] += m_vals[i_out][i_in][0] *
+                                 m_vals[i_out][j_in][1] *
+                                 m_vals[i_out][k_in][2] *
+                                 vals_in[i_in][j_in][k_in];
+      }
+    }
+
+
+  private:
+    ArrayType<double, 3> m_vals;
+    ArrayType<double, 3> m_derivs;
+};
+
+
+

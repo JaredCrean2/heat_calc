@@ -3,6 +3,7 @@
 
 #include "ProjectDefs.h"
 #include "mesh/mesh_input.h"
+#include "mesh/reference_element.h"
 
 #include <apf.h>
 #include <apfMesh.h>
@@ -10,11 +11,7 @@
 #include <apfNumbering.h>
 #include <vector>
 
-namespace Mesh{
-
-using DofInt = int;      // for degrees of freedom
-using Index = int;       // for element/face numbers
-using LocalIndex = int;  // for local to the element numbering
+namespace Mesh {
 
 
 bool initialize();
@@ -35,10 +32,10 @@ struct FaceSpec
 class TensorProductMapper
 {
   public:
-    TensorProductMapper(const ArrayType<LocalIndex, 3>& tp_nodemap,
-                        const std::vector<Real>& xi) :
-      tp_nodemap(tp_nodemap),
-      m_xi(xi)
+    explicit TensorProductMapper(ReferenceElement* ref_el) :
+      tp_nodemap(ref_el->getTensorProductMap()),
+      m_xi(ref_el->getTensorProductXi()),
+      m_ref_el(ref_el)
     {}
 
     const std::vector<Real> getXi() const { return m_xi;}
@@ -94,6 +91,7 @@ class TensorProductMapper
   private:
     const ArrayType<LocalIndex, 3>& tp_nodemap;
     const std::vector<Real> m_xi;
+    ReferenceElement* m_ref_el;
 };
 
 
@@ -103,21 +101,24 @@ class VolumeGroup
     VolumeGroup (ArrayType<Index, 2>& nodenums, ArrayType<Real, 3> coords,
                  const TensorProductMapper& tp_mapper_coord,
                  const TensorProductMapper& tp_mapper_sol,
-                 const std::vector<apf::Vector3>& normals_xi,
-                 const int sol_degree,
+                 ReferenceElement* ref_el_coord,
+                 ReferenceElement* ref_el_sol,
                  std::vector<apf::MeshEntity*>& elements) :
       nodenums(nodenums),
       coords(coords),
-      normals_xi(normals_xi),
-      sol_degree(sol_degree),
+      normals_xi(ref_el_coord->getNormals()),
+      sol_degree(ref_el_sol->getDegree()),
       m_elements(elements),
       m_tp_mapper_coord(tp_mapper_coord),
-      m_tp_mapper_sol(tp_mapper_sol)
+      m_tp_mapper_sol(tp_mapper_sol),
+      m_ref_el_coord(ref_el_coord),
+      m_ref_el_sol(ref_el_sol)
     {}
 
     ArrayType<Index, 2> nodenums;  // nelems x npts per element
     ArrayType<Real, 3> coords;   // nelems x npts per element coord x 3
-    const std::vector<apf::Vector3>& normals_xi;
+    ArrayType<Real, 2> normals_xi;  // nfaces x 3
+    // const std::vector<apf::Vector3>& normals_xi;
     int sol_degree;
 
     std::vector<apf::MeshEntity*> m_elements;
@@ -141,13 +142,18 @@ class VolumeGroup
   private:
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;
-
+    ReferenceElement* m_ref_el_coord;
+    ReferenceElement* m_ref_el_sol;
 };
 
 struct FaceGroup
 {
   std::vector<FaceSpec> faces;
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
+
+  int getNumFaces() const { return nodenums.shape()[0];}
+
+  int getNumSolPtsPerFace() const { return nodenums.shape()[1];}
 };
 
 struct ApfData
