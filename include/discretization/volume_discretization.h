@@ -4,6 +4,7 @@
 #include "ProjectDefs.h"
 #include <cassert>
 #include "mesh/mesh.h"
+#include "utils/quadrature.h"
 
 class VolumeDiscretization
 {
@@ -11,6 +12,7 @@ class VolumeDiscretization
     explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group);
     ArrayType<Real, 4> dxidx;
     const Mesh::VolumeGroup& vol_group;
+    Quadrature quad;
 
     int getNumElems() const { return vol_group.getNumElems();}
 
@@ -35,8 +37,8 @@ typename Array::element computeDet3x3(Array& A)
 }
 
 
-template <typename Array>
-void computeCofactor(Array& A, Array& B)
+template <typename ArrayIn, typename ArrayOut>
+void computeCofactor(ArrayIn& A, ArrayOut& B)
 {
 
   assert(A.num_dimensions() == 2);
@@ -60,8 +62,8 @@ void computeCofactor(Array& A, Array& B)
   B[2][2] =   A[0][0]*A[1][1] - A[0][1]*A[1][0];
 }
 
-template <typename Array>
-void computeInverse3x3(Array& A, Array& B)
+template <typename ArrayIn, typename ArrayOut>
+void computeInverse3x3(ArrayIn& A, ArrayOut& B)
 {
   auto detA = computeDet3x3(A);
   computeCofactor(A, B);

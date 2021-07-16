@@ -107,17 +107,20 @@ class VolumeGroup
       nodenums(nodenums),
       coords(coords),
       normals_xi(ref_el_coord->getNormals()),
+      ref_el_coord(ref_el_coord),
+      ref_el_sol(ref_el_sol),
       sol_degree(ref_el_sol->getDegree()),
       m_elements(elements),
       m_tp_mapper_coord(tp_mapper_coord),
-      m_tp_mapper_sol(tp_mapper_sol),
-      m_ref_el_coord(ref_el_coord),
-      m_ref_el_sol(ref_el_sol)
+      m_tp_mapper_sol(tp_mapper_sol)
     {}
 
     ArrayType<Index, 2> nodenums;  // nelems x npts per element
     ArrayType<Real, 3> coords;   // nelems x npts per element coord x 3
     ArrayType<Real, 2> normals_xi;  // nfaces x 3
+    ReferenceElement* ref_el_coord;
+    ReferenceElement* ref_el_sol;
+
     // const std::vector<apf::Vector3>& normals_xi;
     int sol_degree;
 
@@ -142,14 +145,19 @@ class VolumeGroup
   private:
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;
-    ReferenceElement* m_ref_el_coord;
-    ReferenceElement* m_ref_el_sol;
 };
 
 struct FaceGroup
 {
+  FaceGroup(ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol) :
+    ref_el_coord(ref_el_coord),
+    ref_el_sol(ref_el_sol)
+  {}
+
   std::vector<FaceSpec> faces;
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
+  ReferenceElement* ref_el_coord;
+  ReferenceElement* ref_el_sol;
 
   int getNumFaces() const { return nodenums.shape()[0];}
 

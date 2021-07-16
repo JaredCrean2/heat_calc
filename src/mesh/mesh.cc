@@ -140,17 +140,14 @@ void MeshCG::createFaceGroups()
   apf::Downward down;
   ArrayType<LocalIndex, 2> nodemap = getFaceNodeMap(m_apf_data);
 
-  //TODO: DEBUGGING
-  for (unsigned int i=0; i < nodemap.shape()[0]; ++i)
-  {
-    std::cout << "face " << i << " nodemap: " << std::endl;
-    for (unsigned int j=0; j < nodemap.shape()[1]; ++j)
-      std::cout << "  node " << j << " vertex " << nodemap[i][j] << std::endl;
-  }
+  ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
+                                            m_dof_numbering.coord_degree);
+  ReferenceElement* ref_el_sol   = getReferenceElement(apf::Mesh::HEX,
+                                            m_dof_numbering.sol_degree);
 
   for (auto& surf : m_all_face_spec)
   {
-    m_all_faces.emplace_back();
+    m_all_faces.emplace_back(ref_el_coord, ref_el_sol);
     auto& face_group = m_all_faces.back();
 
     //TODO: consider doing adjacency based search (starting with min

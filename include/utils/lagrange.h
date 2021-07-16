@@ -153,18 +153,20 @@ class LagrangeEvaluatorTPIn
   public:
     using Index = LagrangeBasis::Index;
 
+    template <typename Array2D>
     LagrangeEvaluatorTPIn(const std::vector<Real>& pts_in,
-                          ArrayType<Real, 2>& pts_out) :
+                          const Array2D& pts_out) :
       m_vals(boost::extents[pts_out.size()][pts_in.size()][3]), 
-      m_derivs(boost::extents[pts_out.size()][pts_in.size()][3])
+      m_derivs(boost::extents[pts_out.shape()[0]][pts_in.size()][3])
     {
+      assert(pts_out.num_dimensions() == 2);
       LagrangeBasis basis(pts_in);
       for (Index i=0; i < pts_out.size(); ++i)
         for (Index j=0; j < pts_in.size(); ++j)
           for (Index d=0; d < 3; ++d)
           {
             m_vals[i][j][d]   = basis.evalPoly(j, pts_out[i][d]);
-            //m_derivs[i][j][d] = basis.evalPolyDeriv(j, pts_out[i][d]);
+            m_derivs[i][j][d] = basis.evalPolyDeriv(j, pts_out[i][d]);
           }
     }
 
@@ -188,6 +190,7 @@ class LagrangeEvaluatorTPIn
         for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
           for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
             for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+              // TODO: precompute first two multiplications
               vals_out[i_out] += m_vals[i_out][i_in][0] *
                                  m_vals[i_out][j_in][1] *
                                  m_vals[i_out][k_in][2] *
@@ -195,10 +198,48 @@ class LagrangeEvaluatorTPIn
       }
     }
 
+    template <typename Array3D, typename Array2D>
+    void interpolateDerivs(const Array3D& vals_in, Array2D& vals_out)
+    {
+      assert(vals_in.num_dimensions()   == 3);
+      assert(vals_out.num_dimensions() == 2);
+      for (int i=0; i < 3; ++i)
+        assert(vals_in.shape()[i] == getNumPointsIn());
+
+      assert(vals_out.shape()[0] == getNumPointsOut());
+      assert(vals_out.shape()[1] == 3);
+
+      for (Index i_out =0; i_out < getNumPointsOut(); ++i_out)
+      {
+        vals_out[i_out][0] = 0; vals_out[i_out][1] = 0;
+        vals_out[i_out][2] = 0;
+        for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
+          for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
+            for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+            {
+              // TODO: precompute first two multiplications
+              vals_out[i_out][0] += m_derivs[i_out][i_in][0] *
+                                      m_vals[i_out][j_in][1] *
+                                      m_vals[i_out][k_in][2] *
+                                      vals_in[i_in][j_in][k_in];
+
+              vals_out[i_out][1] +=   m_vals[i_out][i_in][0] *
+                                    m_derivs[i_out][j_in][1] *
+                                      m_vals[i_out][k_in][2] *
+                                      vals_in[i_in][j_in][k_in];
+
+              vals_out[i_out][2] +=   m_vals[i_out][i_in][0] *
+                                      m_vals[i_out][j_in][1] *
+                                    m_derivs[i_out][k_in][2] *
+                                      vals_in[i_in][j_in][k_in];
+            }
+      }
+    }
+
 
   private:
-    ArrayType<double, 3> m_vals;
-    ArrayType<double, 3> m_derivs;
+    ArrayType<Real, 3> m_vals;
+    ArrayType<Real, 3> m_derivs;
 };
 
 

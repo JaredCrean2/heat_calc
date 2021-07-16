@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 class Quadrature
 {
@@ -32,6 +33,20 @@ class Quadrature
     int getNumPoints() const { return m_pts.size(); }
 
     std::pair<Real, Real> getDomain() const { return m_domain; }
+
+    void setDomain(const std::pair<Real, Real>& domain)
+    {
+      Real dx1 = m_domain.second - m_domain.first;
+      Real dx2 = domain.second - domain.first;
+
+      for (int i=0; i < getNumPoints(); ++i)
+        m_pts[i] = ((m_pts[i] - m_domain.first) * dx2/dx1) + domain.first;
+
+      for (int i=0; i < getNumPoints(); ++i)
+        m_weights[i] *= dx2/dx1;
+
+      m_domain = domain;
+    }
 
   private:
     std::vector<Real> m_pts;

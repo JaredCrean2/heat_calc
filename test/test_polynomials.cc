@@ -217,6 +217,21 @@ TEST(Polynomials, Quadrature)
 
       EXPECT_FLOAT_EQ(val, 2.0/(2*degree + 1));
     }
+
+    {
+      // test setDomain
+      quad.setDomain({1.0, 5.0});
+      Real val = 0;
+      for (int i=0; i < quad.getNumPoints(); ++i)
+      {
+        Real integrand = std::pow(quad.getPoint(i), degree_max);
+        val += quad.getWeight(i) * integrand;
+      }
+
+      Real val_ex = (std::pow(5.0, degree_max + 1) -
+                     std::pow(1.0, degree_max + 1)) / (degree_max + 1);
+      EXPECT_FLOAT_EQ(val, val_ex);
+    }
   }
 
 }
@@ -323,7 +338,7 @@ TEST(Polynomials, LagrangeTPIn)
   {
     ArrayType<Real, 3> vals_in(boost::extents[3][3][3]);
     ArrayType<Real, 1> vals_out(boost::extents[4]);
-    //ArrayType<Real, 4> derivs_out(boost::extents[4][3]);
+    ArrayType<Real, 2> derivs_out(boost::extents[4][3]);
 
     for (int i=0; i < 3; ++i)
       for (int j=0; j < 3; ++j)
@@ -332,10 +347,20 @@ TEST(Polynomials, LagrangeTPIn)
 
     // test interpolation functions
     basis.interpolateVals(vals_in, vals_out);
-    //basis.interpolateDerivs(vals_in, derivs_out);
+    basis.interpolateDerivs(vals_in, derivs_out);
 
     for (int i=0; i < 4; ++i)
+    {
       EXPECT_FLOAT_EQ(vals_out[i], testPoly(pts_out[i][0], pts_out[i][1],
                                             pts_out[i][2]));
+      EXPECT_FLOAT_EQ(derivs_out[i][0], testPoly_dx(pts_out[i][0], pts_out[i][1],
+                                            pts_out[i][2]));
+      EXPECT_FLOAT_EQ(derivs_out[i][1], testPoly_dy(pts_out[i][0], pts_out[i][1],
+                                            pts_out[i][2]));
+
+      EXPECT_FLOAT_EQ(derivs_out[i][2], testPoly_dz(pts_out[i][0], pts_out[i][1],
+                                            pts_out[i][2]));
+
+    }
   }
 }

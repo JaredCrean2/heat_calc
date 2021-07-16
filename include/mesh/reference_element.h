@@ -33,6 +33,10 @@ class ReferenceElement
 
     int getDegree() const { return degree;}
 
+    virtual int getNumFaces() const = 0;
+
+    virtual std::pair<Real, Real> getXiRange() const { return std::pair<Real, Real>(0, 1);}
+
   protected:
     int degree;    
 };
@@ -70,6 +74,8 @@ class HexReferenceElement : public ReferenceElementTensorProduct
     // given the xi coordinates on a face, computes the xi coordinates of
     // the same point in the elements xi coordinates
     void computeElementXi(const int face, const Real* xi_face, Real* xi_element) const;
+
+    int getNumFaces() const { return 6;}
 };
 
 
