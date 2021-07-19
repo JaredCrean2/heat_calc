@@ -10,8 +10,9 @@ TEST(VolDisc, dxidx)
   spec.nx = 4; spec.ny = 5, spec.nz = 6;
   auto mesh = makeStandardMesh(spec);
 
+  Quadrature quad = getGaussianQuadrature(1);
   Mesh::VolumeGroup& vol_group = mesh->getElements(0);
-  VolumeDiscretization vol_disc(vol_group);
+  VolumeDiscretization vol_disc(vol_group, quad);
 
   // xi is 0 to 1, the mesh is linear and axis aligned, to dxidx = 1/(xmax - xmin)/nx)
   

@@ -39,13 +39,13 @@ class TensorProductMapper
     {}
 
     const std::vector<Real> getXi() const { return m_xi;}
+    
+    const ArrayType<LocalIndex, 3>& getNodemap() const { return tp_nodemap;}
 
     boost::multi_array_types::extent_gen::gen_type<3>::type getTPShape() const
     {
       return boost::extents[tp_nodemap.shape()[0]][tp_nodemap.shape()[1]][tp_nodemap.shape()[2]];
     }
-
-    const ArrayType<LocalIndex, 3>& getNodemap() const { return tp_nodemap;}
 
     // map 1D to 3D (tensor product) representation
     template <typename Array1D, typename Array3D>
@@ -98,7 +98,7 @@ class TensorProductMapper
 class VolumeGroup
 {
   public:
-    VolumeGroup (ArrayType<Index, 2>& nodenums, ArrayType<Real, 3> coords,
+    VolumeGroup (ArrayType<Index, 2>& nodenums, ArrayType<Real, 3>& coords,
                  const TensorProductMapper& tp_mapper_coord,
                  const TensorProductMapper& tp_mapper_sol,
                  ReferenceElement* ref_el_coord,
@@ -130,7 +130,7 @@ class VolumeGroup
 
     int getNumSolPtsPerElement() const { return nodenums.shape()[1];}
 
-    int getNumCoordPtsPerElement() const { return coords.shape()[0];}
+    int getNumCoordPtsPerElement() const { return coords.shape()[1];}
 
     const TensorProductMapper& getTPMapperCoord() const { return m_tp_mapper_coord;}
 
@@ -149,17 +149,33 @@ class VolumeGroup
 
 struct FaceGroup
 {
-  FaceGroup(ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol) :
+  FaceGroup(ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol,
+            ArrayType<LocalIndex, 2> nodemap_coord,
+            ArrayType<LocalIndex, 2> nodemap_sol,
+            const ArrayType<LocalIndex, 2> face_tp_nodemap_coord) :
     ref_el_coord(ref_el_coord),
-    ref_el_sol(ref_el_sol)
+    ref_el_sol(ref_el_sol),
+    nodemap_coord(nodemap_coord),
+    nodemap_sol(nodemap_sol),
+    face_tp_nodemap_coord(face_tp_nodemap_coord)
   {}
 
   std::vector<FaceSpec> faces;
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
+                                //TODO: now that we have the nodemaps, we
+                                // don't need this large array anymore
   ReferenceElement* ref_el_coord;
   ReferenceElement* ref_el_sol;
+  // volume to face nodemap
+  ArrayType<LocalIndex, 2> nodemap_coord;
+  ArrayType<LocalIndex, 2> nodemap_sol;
+
+  // face tensor product nodemap
+  const ArrayType<LocalIndex, 2> face_tp_nodemap_coord;
 
   int getNumFaces() const { return nodenums.shape()[0];}
+
+  int getNumCoordPtsPerFace() const { return nodemap_coord.shape()[1]; }
 
   int getNumSolPtsPerFace() const { return nodenums.shape()[1];}
 };
@@ -256,6 +272,9 @@ class MeshCG
 
     // gets number of dofs, exluding dirichlet BC dofs
     Index getNumDofs() const {return m_dof_numbering.num_dofs;}
+
+    // returns true if dof appears in the linear system (ie. not Dirichlet)
+    bool isDofActive(const Index dof) const { return dof < getNumDofs();}
 
     // returns all the dofs connected to the given node (including self)
     void getDofConnectivity(const Index el, const Index node, std::vector<DofInt>);

@@ -2,6 +2,7 @@
 #define SURFACE_DISCRETIZATION_H
 
 #include "mesh/mesh.h"
+#include "utils/lagrange2d.h"
 #include "utils/quadrature.h"
 #include "discretization/volume_discretization.h"
 #include <memory>
@@ -10,9 +11,13 @@
 class SurfaceDiscretization
 {
   public:
-    SurfaceDiscretization(const Mesh::FaceGroup& face_group, const std::vector<std::shared_ptr<VolumeDiscretization>> volume_discs);
+    SurfaceDiscretization(const Mesh::FaceGroup& face_group,
+        const Quadrature& quad,
+        const std::vector<VolDiscPtr>& volume_discs);
 
     int getNumFaces() const {return face_group.getNumFaces();}
+
+    int getNumCoordPtsPerFace() const { return face_group.getNumCoordPtsPerFace(); }
 
     int getNumSolPtsPerFace() const { return face_group.getNumSolPtsPerFace();}
 
@@ -22,14 +27,23 @@ class SurfaceDiscretization
     const Mesh::FaceGroup& face_group;
     Quadrature quad;
     std::vector<std::shared_ptr<VolumeDiscretization>> volume_discs;
+
+    // volume coords to face quadrature
+    std::vector<LagrangeEvaluatorTPIn> interp_vcq_tp;
+
+    ArrayType<LocalIndex, 2> quad_tp_nodemap;
 };
 
 using SurfDiscPtr = std::shared_ptr<SurfaceDiscretization>;
 
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals);
 
+// gets xi coordinates of surface quadrature points in flat array
 void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3> face_points);
 
+// get tensor product nodemap associated with getFacePoints
+void getFaceTensorProductMap(const SurfaceDiscretization& disc,
+                             ArrayType<LocalIndex, 2>& nodemap);
 
 template <typename Array2D, typename ArrayNormalsXi, typename ArrayNormalsX>
 void computeNormalNode(const Array2D& dxidx,

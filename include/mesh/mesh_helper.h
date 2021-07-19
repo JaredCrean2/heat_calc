@@ -39,12 +39,12 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements_group,
                 ArrayType<Index, 2>& nodenums);
 
-const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree);
+//const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree);
 
 // get xi coordinates of coordinate nodes of 1D element
-const std::vector<Real>& getTensorProductXi(const int degree);
+//const std::vector<Real>& getTensorProductXi(const int degree);
 
-const ArrayType<Real, 2>& getNormals();
+//const ArrayType<Real, 2>& getNormals();
 
 void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements_group,
@@ -53,8 +53,11 @@ void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
 
 void setDirichletDofs(ApfData& apf_data, int& dof_start);
 
+// gives map relating nodes on the volume to the face .
+// Output is nfaces (on reference element) x nnodes per face
+ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data, apf::FieldShape* fshape);
 
-ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data);
+const ArrayType<LocalIndex, 2>& getFaceTensorProductMap(const int degree);
 
 }
 #endif

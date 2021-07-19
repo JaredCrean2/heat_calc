@@ -8,10 +8,6 @@
 namespace Mesh
 {
 
-using DofInt = int;      // for degrees of freedom
-using Index = int;       // for element/face numbers
-using LocalIndex = int;  // for local to the element numbering
-
 
 struct Point
 {

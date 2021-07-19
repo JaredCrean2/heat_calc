@@ -1,6 +1,15 @@
 message("Processing source directory")
 
-set(src_files EpwReader.cc utils/lagrange.cc utils/quadrature.cc utils/legendre.cc discretization/volume_discretization.cc discretization/surface_discretization.cc)
+set(src_files EpwReader.cc 
+              utils/lagrange.cc 
+              utils/quadrature.cc 
+              utils/legendre.cc 
+              discretization/volume_discretization.cc 
+              discretization/surface_discretization.cc
+              discretization/discretization.cc
+              discretization/disc_vector.cc
+              discretization/model.cc
+              )
 
 add_subdirectory(mesh)
 

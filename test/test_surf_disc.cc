@@ -11,14 +11,15 @@ TEST(SurfDisc, Normals)
   spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
   auto mesh = makeStandardMesh(spec);
 
+  Quadrature quad = getGaussianQuadrature(1);
   Mesh::VolumeGroup& vol_group = mesh->getElements(0);
-  auto vol_disc = std::make_shared<VolumeDiscretization>(vol_group);
+  auto vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
   std::vector<std::shared_ptr<VolumeDiscretization>> vol_discs{vol_disc};
 
   std::vector<std::shared_ptr<SurfaceDiscretization>> surf_discs;
-  for (Mesh::Index i=0; i < mesh->getNumSurfaces(); ++i)
+  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
   {
-    auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), vol_discs); 
+    auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i),quad, vol_discs); 
     surf_discs.push_back(surf_i);
   }
 
@@ -41,7 +42,7 @@ TEST(SurfDisc, Normals)
   face_areas[1] = dy*dz; face_areas[3] = dy*dz;
   face_areas[4] = dx*dy; face_areas[5] = dx*dy;
 
-  for (Mesh::Index i=0; i < mesh->getNumSurfaces(); ++i)
+  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
   {
     auto surf_i = surf_discs[i];
 

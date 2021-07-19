@@ -138,7 +138,9 @@ void MeshCG::createFaceGroups()
 {
 
   apf::Downward down;
-  ArrayType<LocalIndex, 2> nodemap = getFaceNodeMap(m_apf_data);
+  ArrayType<LocalIndex, 2> nodemap_coord = getFaceNodeMap(m_apf_data, m_apf_data.coord_shape);
+  ArrayType<LocalIndex, 2> nodemap_sol = getFaceNodeMap(m_apf_data, m_apf_data.sol_shape);
+  const auto& tp_nodemap = getFaceTensorProductMap(m_dof_numbering.coord_degree);
 
   ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
                                             m_dof_numbering.coord_degree);
@@ -147,7 +149,7 @@ void MeshCG::createFaceGroups()
 
   for (auto& surf : m_all_face_spec)
   {
-    m_all_faces.emplace_back(ref_el_coord, ref_el_sol);
+    m_all_faces.emplace_back(ref_el_coord, ref_el_sol, nodemap_coord, nodemap_sol, tp_nodemap);
     auto& face_group = m_all_faces.back();
 
     //TODO: consider doing adjacency based search (starting with min
@@ -198,7 +200,7 @@ void MeshCG::createFaceGroups()
 
     // get dofs
     auto nfaces = face_group.faces.size();
-    int num_nodes_per_face = nodemap.shape()[1];
+    int num_nodes_per_face = nodemap_sol.shape()[1];
     face_group.nodenums.resize(boost::extents[nfaces][num_nodes_per_face]);
     //face_group.nodenums = ArrayType<Index, 2>(boost::extents[nfaces][num_nodes_per_face]);
 
@@ -215,7 +217,7 @@ void MeshCG::createFaceGroups()
       int group_elnum = m_elnums_global_to_local[face_i.el];
       for (int node=0; node <  num_nodes_per_face; ++node)
         face_group.nodenums[i][node] =
-          parent_group.nodenums[group_elnum][nodemap[face_i.face][node]];
+          parent_group.nodenums[group_elnum][nodemap_sol[face_i.face][node]];
     }
   }
 }

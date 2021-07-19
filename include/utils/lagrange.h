@@ -2,6 +2,9 @@
 #include <cassert>
 #include "ProjectDefs.h"
 
+#ifndef LAGRANGE_H
+#define LAGRANGE_H
+
 // class for evaluating Lagrange polynomials and their derivatives
 class LagrangeBasis
 {
@@ -46,8 +49,8 @@ class LagrangeEvaluatorTP
 
     // interpolates the values (defined at pts_int) to pts_out
     // It is recommended that T have the BOOST_RESTRICT qualifier for best performance
-    template<typename Array>
-    void interpolateVals(Array& vals_in, Array& vals_out)
+    template<typename ArrayIn, typename ArrayOut>
+    void interpolateVals(ArrayIn& vals_in, ArrayOut& vals_out) const
     {
       assert(vals_in.num_dimensions()   == 3);
       assert(vals_out.num_dimensions() == 3);
@@ -75,7 +78,7 @@ class LagrangeEvaluatorTP
     // computes the derivatives of the values (defined at pts_in) at pts_out
     // vals_out is npts_out x npts_out x npts_out x 3
     template<typename Array3, typename Array4>
-    void interpolateDerivs(Array3& vals_in, Array4& vals_out)
+    void interpolateDerivs(Array3& vals_in, Array4& vals_out) const
     {
       assert(vals_in.num_dimensions()   == 3);
       assert(vals_out.num_dimensions() == 4);
@@ -175,7 +178,7 @@ class LagrangeEvaluatorTPIn
     Index getNumPointsOut() const {return m_vals.shape()[0];}
 
     template <typename Array3D, typename Array1D>
-    void interpolateVals(const Array3D& vals_in, Array1D& vals_out)
+    void interpolateVals(const Array3D& vals_in, Array1D& vals_out) const
     {
       assert(vals_in.num_dimensions()   == 3);
       assert(vals_out.num_dimensions() == 1);
@@ -199,7 +202,7 @@ class LagrangeEvaluatorTPIn
     }
 
     template <typename Array3D, typename Array2D>
-    void interpolateDerivs(const Array3D& vals_in, Array2D& vals_out)
+    void interpolateDerivs(const Array3D& vals_in, Array2D& vals_out) const
     {
       assert(vals_in.num_dimensions()   == 3);
       assert(vals_out.num_dimensions() == 2);
@@ -243,4 +246,113 @@ class LagrangeEvaluatorTPIn
 };
 
 
+// class that interpolates data that has tensor product structure, but
+// is given in a flat (1D) format
+class LagrangeEvaluatorTPFlat
+{
+  public:
+    using Index = LagrangeBasis::Index;
 
+    LagrangeEvaluatorTPFlat(const std::vector<double>& pts_in,
+                        const std::vector<double>& pts_out,
+                        const ArrayType<LocalIndex, 3>& nodemap_in,
+                        const ArrayType<LocalIndex, 3>& nodemap_out) :
+      m_vals(boost::extents[pts_out.size()][pts_in.size()]), 
+      m_derivs(boost::extents[pts_out.size()][pts_in.size()]),
+      m_nodemap_in(nodemap_in),
+      m_nodemap_out(nodemap_out)
+    {
+      LagrangeBasis basis(pts_in);
+      for (Index i=0; i < pts_out.size(); ++i)
+        for (Index j=0; j < pts_in.size(); ++j)
+        {
+          m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
+          m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
+        }
+    }
+
+    // interpolates the values (defined at pts_int) to pts_out
+    // It is recommended that T have the BOOST_RESTRICT qualifier for best performance
+    template<typename ArrayIn, typename ArrayOut>
+    void interpolateVals(ArrayIn& vals_in, ArrayOut& vals_out) const
+    {
+      assert(vals_in.num_dimensions()   == 1);
+      assert(vals_out.num_dimensions() == 1);
+      for (int i=0; i < 3; ++i)
+      {
+        assert(vals_in.shape()[i] == std::pow(getNumPointsIn(), 3));
+        assert(vals_out.shape()[i] == std::pow(getNumPointsOut(), 3));
+      }
+
+
+      for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
+        for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
+          for (Index k_out=0; k_out < getNumPointsOut(); ++k_out)
+          {
+            vals_out[i_out][j_out][k_out] = 0;
+            auto node_out = m_nodemap_out[i_out][j_out][k_out];
+            for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
+              for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
+                //TODO: precompute first two lagrange polynomials here
+                for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+                  vals_out[node_out] += m_vals[i_out][i_in]*
+                                 m_vals[j_out][j_in]*m_vals[k_out][k_in]*
+                                 vals_in[m_nodemap_in[i_in][j_in][k_in]];
+          }
+    }
+
+    // computes the derivatives of the values (defined at pts_in) at pts_out
+    // vals_out is npts_out x npts_out x npts_out x 3
+    template<typename Array1, typename Array2>
+    void interpolateDerivs(Array1& vals_in, Array2& vals_out) const
+    {
+      assert(vals_in.num_dimensions()   == 1);
+      assert(vals_out.num_dimensions() == 2);
+      assert(vals_out.shape()[2]       == 3);
+      for (int i=0; i < 3; ++i)
+      {
+        assert(vals_in.shape()[i] == std::pow(getNumPointsIn(), 3));
+        assert(vals_out.shape()[i] == std::pow(getNumPointsOut(), 3));
+      }
+
+
+      for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
+        for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
+          for (Index k_out=0; k_out < getNumPointsOut(); ++k_out)
+          {
+            auto node_out = m_nodemap_out[i_out][j_out][k_out];
+            vals_out[node_out][0] = 0;
+            vals_out[node_out][1] = 0;
+            vals_out[node_out][2] = 0;
+            for (Index i_in=0; i_in < getNumPointsIn(); ++i_in)
+              for (Index j_in=0; j_in < getNumPointsIn(); ++j_in)
+                // TODO: precompute first two multiplications
+                for (Index k_in=0; k_in < getNumPointsIn(); ++k_in)
+                {
+                  auto val = vals_in[m_nodemap_in[i_in][j_in][k_in]];
+                  vals_out[node_out][0] += 
+                    m_derivs[i_out][i_in]*m_vals[j_out][j_in]*m_vals[k_out][k_in]*val;
+                  vals_out[node_out][1] += 
+                    m_vals[i_out][i_in]*m_derivs[j_out][j_in]*m_vals[k_out][k_in]*val;
+                  vals_out[node_out][2] += 
+                    m_vals[i_out][i_in]*m_vals[j_out][j_in]*m_derivs[k_out][k_in]*val;
+
+                }
+          }
+    }
+
+    Index getNumPointsIn() const {return m_vals.shape()[1];}
+
+    Index getNumPointsOut() const {return m_vals.shape()[0];}
+
+
+  private:
+    // TODO use BOOST_RESTRICT
+    // basis function values and derivatives, npts_out x npts_in
+    ArrayType<Real, 2> m_vals;
+    ArrayType<Real, 2> m_derivs;
+    const ArrayType<LocalIndex, 3>& m_nodemap_in;
+    const ArrayType<LocalIndex, 3>& m_nodemap_out;
+};
+
+#endif

@@ -228,7 +228,7 @@ void setDirichletDofs(ApfData& apf_data, int& dof_start)
 }
 
 
-ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
+ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data, apf::FieldShape* fshape)
 {
   apf::Downward faces;
   apf::Downward face_entities;
@@ -270,7 +270,7 @@ ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
         n_face_entities = apf_data.m->getDownward(faces[face], dim, face_entities);
       }
 
-      int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(face_entities[0]));
+      int nnodes_dim = fshape->countNodesOn(apf_data.m->getType(face_entities[0]));
       for (int i=0; i < n_face_entities; ++i)
       {
         int foundidx = 0;
@@ -289,6 +289,36 @@ ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data)
   }
 
   return nodemap;
+}
+
+const ArrayType<LocalIndex, 2>& getFaceTensorProductMap(const int degree)
+{
+  // this has to be consistent with getFaceNodemap
+  // this only works for coordinate field
+  static ArrayType<LocalIndex, 2> degree1(boost::extents[2][2]);
+  static ArrayType<LocalIndex, 2> degree2(boost::extents[3][3]);
+
+  degree1[0][0] = 0;
+  degree1[1][0] = 1;
+  degree1[1][1] = 2;
+  degree1[0][1] = 3;
+
+  degree2[0][0] = 0;
+  degree2[2][0] = 1;
+  degree2[2][2] = 2;
+  degree2[0][2] = 3;
+  degree2[1][0] = 4;
+  degree2[2][1] = 5;
+  degree2[1][2] = 6;
+  degree2[0][1] = 7;
+  degree2[1][1] = 8;
+
+  if (degree == 1)
+    return degree1;
+  else if (degree == 2)
+    return degree2;
+  else
+    throw std::invalid_argument("unsupported degree");
 }
 
 } // namespace

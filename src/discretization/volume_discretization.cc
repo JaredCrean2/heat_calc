@@ -2,11 +2,17 @@
 #include "utils/lagrange.h"
 #include <iostream>
 
-VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& _vol_group) :
-  vol_group(_vol_group),
-  quad(getGaussianQuadrature(_vol_group.sol_degree)) //TODO: verify this
+VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, const Quadrature& quad) :
+  vol_group(vol_group),
+  quad(quad),
+  interp_cs_tp(vol_group.getTPMapperCoord().getXi(),
+               vol_group.getTPMapperSol().getXi()),
+  interp_cs_flat(vol_group.getTPMapperCoord().getXi(),
+                 vol_group.getTPMapperSol().getXi(),
+                 vol_group.getTPMapperCoord().getNodemap(),
+                 vol_group.getTPMapperSol().getNodemap())
 {
-  quad.setDomain(_vol_group.ref_el_coord->getXiRange());
+  this->quad.setDomain(vol_group.ref_el_coord->getXiRange());
   computeDxidx(*this, dxidx);
 }
 
@@ -16,7 +22,7 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
   dxidx.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumSolPtsPerElement()][3][3]);
   const auto& tp_mapper_coord = vol_disc.vol_group.getTPMapperCoord();
   const auto& tp_mapper_sol   = vol_disc.vol_group.getTPMapperSol();
-  LagrangeEvaluatorTP lag(tp_mapper_coord.getXi(), tp_mapper_sol.getXi());
+  //LagrangeEvaluatorTP lag(tp_mapper_coord.getXi(), tp_mapper_sol.getXi());
 
   
   ArrayType<Real, 3> coords_tp(tp_mapper_coord.getTPShape());
@@ -32,7 +38,7 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
       auto coords_d = vol_disc.vol_group.coords[boost::indices[i][range()][d]];
       tp_mapper_coord.mapToTP(coords_d, coords_tp);
 
-      lag.interpolateDerivs(coords_tp, dxdxi_tp);
+      vol_disc.interp_cs_tp.interpolateDerivs(coords_tp, dxdxi_tp);
 
       for (unsigned int k1=0; k1 < tp_map.shape()[0]; ++k1)
         for (unsigned int k2=0; k2 < tp_map.shape()[1]; ++k2)

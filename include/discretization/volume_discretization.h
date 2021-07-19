@@ -1,18 +1,22 @@
-#ifndef DISCRETIZATION_H
-#define DISCRETIZATION_H
+#ifndef VOLUME_DISCRETIZATION_H
+#define VOLUME_DISCRETIZATION_H
 
 #include "ProjectDefs.h"
 #include <cassert>
 #include "mesh/mesh.h"
+#include "utils/lagrange.h"
 #include "utils/quadrature.h"
 
 class VolumeDiscretization
 {
   public:
-    explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group);
+    explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group,
+                                  const Quadrature& quad);
     ArrayType<Real, 4> dxidx;
     const Mesh::VolumeGroup& vol_group;
     Quadrature quad;
+    LagrangeEvaluatorTP interp_cs_tp;       // coord to solution
+    LagrangeEvaluatorTPFlat interp_cs_flat; // coord to solution
 
     int getNumElems() const { return vol_group.getNumElems();}
 
@@ -21,6 +25,8 @@ class VolumeDiscretization
     int getNumCoordPtsPerElement() const { return vol_group.getNumCoordPtsPerElement();}
 
 };
+
+using VolDiscPtr = std::shared_ptr<VolumeDiscretization>;
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx); 
 
