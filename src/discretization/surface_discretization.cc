@@ -21,8 +21,6 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
 }
 
 
-
-
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals)
 {
   int npts = disc.quad.getNumPoints() * disc.quad.getNumPoints();

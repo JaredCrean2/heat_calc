@@ -29,7 +29,7 @@ class SurfaceDiscretization
     std::vector<std::shared_ptr<VolumeDiscretization>> volume_discs;
 
     // volume coords to face quadrature
-    std::vector<LagrangeEvaluatorTPIn> interp_vcq_tp;
+    std::vector<LagrangeEvaluatorTPToNonTP> interp_vcq_tp;
 
     ArrayType<LocalIndex, 2> quad_tp_nodemap;
 };

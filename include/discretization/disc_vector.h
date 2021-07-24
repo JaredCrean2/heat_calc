@@ -58,10 +58,11 @@ void DiscVector::setFunc(T func)
     VolDiscPtr disc = m_disc->getVolDisc(i);
     auto& array_i   = m_array[i];
     //TODO: use one stored in disc
-    LagrangeEvaluatorTPFlat mapper(disc->vol_group.getTPMapperCoord().getXi(),
-                            disc->vol_group.getTPMapperSol().getXi(),
-                            disc->vol_group.getTPMapperCoord().getNodemap(),
-                            disc->vol_group.getTPMapperSol().getNodemap());
+    LagrangeEvaluatorTPFlatToTPFlat mapper(
+                         disc->vol_group.getTPMapperCoord().getXi(),
+                         disc->vol_group.getTPMapperSol().getXi(),
+                         disc->vol_group.getTPMapperCoord().getNodemap(),
+                         disc->vol_group.getTPMapperSol().getNodemap());
     ArrayType<Real, 2> coords_sol(boost::extents[disc->getNumSolPtsPerElement()][3]);
     for (int el=0; el < disc->getNumElems(); ++el)
     {

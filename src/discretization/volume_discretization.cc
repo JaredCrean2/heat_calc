@@ -22,7 +22,7 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
   dxidx.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumSolPtsPerElement()][3][3]);
   const auto& tp_mapper_coord = vol_disc.vol_group.getTPMapperCoord();
   const auto& tp_mapper_sol   = vol_disc.vol_group.getTPMapperSol();
-  //LagrangeEvaluatorTP lag(tp_mapper_coord.getXi(), tp_mapper_sol.getXi());
+  //LagrangeEvaluatorTPToTP lag(tp_mapper_coord.getXi(), tp_mapper_sol.getXi());
 
   
   ArrayType<Real, 3> coords_tp(tp_mapper_coord.getTPShape());

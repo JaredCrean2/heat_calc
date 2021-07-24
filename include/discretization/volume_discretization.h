@@ -15,8 +15,8 @@ class VolumeDiscretization
     ArrayType<Real, 4> dxidx;
     const Mesh::VolumeGroup& vol_group;
     Quadrature quad;
-    LagrangeEvaluatorTP interp_cs_tp;       // coord to solution
-    LagrangeEvaluatorTPFlat interp_cs_flat; // coord to solution
+    LagrangeEvaluatorTPToTP interp_cs_tp;           // coord to solution
+    LagrangeEvaluatorTPFlatToTPFlat interp_cs_flat; // coord to solution
 
     int getNumElems() const { return vol_group.getNumElems();}
 
