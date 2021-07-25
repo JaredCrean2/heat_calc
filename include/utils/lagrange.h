@@ -1,31 +1,12 @@
+#ifndef LAGRANGE_H
+#define LAGRANGE_H
+
 #include <vector>
 #include <cassert>
 #include <iostream>
 
 #include "ProjectDefs.h"
-
-#ifndef LAGRANGE_H
-#define LAGRANGE_H
-
-// class for evaluating Lagrange polynomials and their derivatives
-class LagrangeBasis
-{
-  public: 
-    using Index = std::vector<double>::size_type;
-
-    LagrangeBasis(const std::vector<double>& pts);
-    // evaluate the pth polynomial at point x
-    double evalPoly(Index p, double x);
-
-    double evalPolyDeriv(Index p, double x);
-
-    Index getNumPoints() const { return m_pts.size();}
-
-  private:
-    std::vector<double> m_pts;
-    std::vector<double> m_denoms;
-
-};
+#include "lagrange_basis.h"
 
 
 // class that caches Lagrange polynomial values and derivatives for
@@ -35,19 +16,11 @@ class LagrangeEvaluatorTPToTP
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPToTP(const std::vector<double> pts_in,
-                        const std::vector<double> pts_out) :
-      m_vals(boost::extents[pts_out.size()][pts_in.size()]), 
-      m_derivs(boost::extents[pts_out.size()][pts_in.size()])
-    {
-      LagrangeBasis basis(pts_in);
-      for (Index i=0; i < pts_out.size(); ++i)
-        for (Index j=0; j < pts_in.size(); ++j)
-        {
-          m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
-          m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
-        }
-    }
+    LagrangeEvaluatorTPToTP(const std::vector<Real> pts_in,
+                            const std::vector<Real> pts_out) :
+      m_vals(lagrange_memoizer.getValues(pts_in, pts_out)),
+      m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out))
+    {}
 
     // interpolates the values (defined at pts_int) to pts_out
     // It is recommended that T have the BOOST_RESTRICT qualifier for best performance
@@ -61,7 +34,6 @@ class LagrangeEvaluatorTPToTP
         assert(vals_in.shape()[i] == getNumPointsIn());
         assert(vals_out.shape()[i] == getNumPointsOut());
       }
-
 
       for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
         for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
@@ -91,7 +63,6 @@ class LagrangeEvaluatorTPToTP
         assert(vals_out.shape()[i] == getNumPointsOut());
       }
 
-
       for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
         for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
           for (Index k_out=0; k_out < getNumPointsOut(); ++k_out)
@@ -114,32 +85,32 @@ class LagrangeEvaluatorTPToTP
                 }
           }
     }
-
+/*
     // TODO: check ordering of in vs out
-    double getInterpolantValue(const Index i_in,  const Index j_in,  const Index k_in,
+    Real getInterpolantValue(const Index i_in,  const Index j_in,  const Index k_in,
                                const Index i_out, const Index j_out, const Index k_out)
     {
       return m_vals[i_out][i_in] * m_vals[j_out][j_in] * m_vals[k_out][k_in];
     }
 
-    double getInterpolantDx(const Index i_in,  const Index j_in,  const Index k_in,
+    Real getInterpolantDx(const Index i_in,  const Index j_in,  const Index k_in,
                             const Index i_out, const Index j_out, const Index k_out)
     {
       return m_derivs[i_out][i_in] * m_vals[j_out][j_in] * m_vals[k_out][k_in];
     }
 
-    double getInterpolantDy(const Index i_in,  const Index j_in,  const Index k_in,
+    Real getInterpolantDy(const Index i_in,  const Index j_in,  const Index k_in,
                             const Index i_out, const Index j_out, const Index k_out)
     {
       return m_vals[i_out][i_in] * m_derivs[j_out][j_in] * m_vals[k_out][k_in];
     }
 
-    double getInterpolantDz(const Index i_in,  const Index j_in,  const Index k_in,
+    Real getInterpolantDz(const Index i_in,  const Index j_in,  const Index k_in,
                             const Index i_out, const Index j_out, const Index k_out)
     {
       return m_vals[i_out][i_in] * m_vals[j_out][j_in] * m_derivs[k_out][k_in];
     }
-
+*/
     Index getNumPointsIn() const {return m_vals.shape()[1];}
 
     Index getNumPointsOut() const {return m_vals.shape()[0];}
@@ -147,8 +118,8 @@ class LagrangeEvaluatorTPToTP
   private:
     // TODO use BOOST_RESTRICT
     // basis function values and derivatives, npts_out x npts_in
-    ArrayType<double, 2> m_vals;
-    ArrayType<double, 2> m_derivs;
+    LagrangeMemoizer::RetType m_vals;
+    LagrangeMemoizer::RetType m_derivs;
 };
 
 
@@ -158,20 +129,15 @@ class LagrangeEvaluatorTPFlatToTP
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPFlatToTP(const std::vector<double> pts_in,
-                                const std::vector<double> pts_out,
+    LagrangeEvaluatorTPFlatToTP(const std::vector<Real> pts_in,
+                                const std::vector<Real> pts_out,
                                 const ArrayType<LocalIndex, 3>& nodemap_in) :
-      m_vals(boost::extents[pts_out.size()][pts_in.size()]), 
-      m_derivs(boost::extents[pts_out.size()][pts_in.size()]),
+      m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
+      m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out)),
       m_nodemap_in(nodemap_in)
     {
-      LagrangeBasis basis(pts_in);
-      for (Index i=0; i < pts_out.size(); ++i)
-        for (Index j=0; j < pts_in.size(); ++j)
-        {
-          m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
-          m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
-        }
+      for (int i=0; i < 3; ++i)
+        assert(pts_in.size() == nodemap_in.shape()[i]);
     }
 
     // interpolates the values (defined at pts_int) to pts_out
@@ -249,8 +215,8 @@ class LagrangeEvaluatorTPFlatToTP
 
     // TODO use BOOST_RESTRICT
     // basis function values and derivatives, npts_out x npts_in
-    ArrayType<double, 2> m_vals;
-    ArrayType<double, 2> m_derivs;
+    LagrangeMemoizer::RetType m_vals;
+    LagrangeMemoizer::RetType m_derivs;
     const ArrayType<LocalIndex, 3>& m_nodemap_in;
 };
 
@@ -261,21 +227,16 @@ class LagrangeEvaluatorTPToTPFlat
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPToTPFlat(const std::vector<double> pts_in,
-                                const std::vector<double> pts_out,
+    LagrangeEvaluatorTPToTPFlat(const std::vector<Real> pts_in,
+                                const std::vector<Real> pts_out,
                                 const ArrayType<LocalIndex, 3>& nodemap_out
                                 ) :
-      m_vals(boost::extents[pts_out.size()][pts_in.size()]), 
-      m_derivs(boost::extents[pts_out.size()][pts_in.size()]),
+      m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
+      m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out)),
       m_nodemap_out(nodemap_out)
     {
-      LagrangeBasis basis(pts_in);
-      for (Index i=0; i < pts_out.size(); ++i)
-        for (Index j=0; j < pts_in.size(); ++j)
-        {
-          m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
-          m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
-        }
+      for (int i=0; i < 3; ++i)
+        assert(pts_out.size() == nodemap_out.shape()[i]);
     }
 
     // interpolates the values (defined at pts_in) to pts_out
@@ -352,8 +313,8 @@ class LagrangeEvaluatorTPToTPFlat
 
     // TODO use BOOST_RESTRICT
     // basis function values and derivatives, npts_out x npts_in
-    ArrayType<double, 2> m_vals;
-    ArrayType<double, 2> m_derivs;
+    LagrangeMemoizer::RetType m_vals;
+    LagrangeMemoizer::RetType m_derivs;
     const ArrayType<LocalIndex, 3>& m_nodemap_out;
 };
 
@@ -363,22 +324,20 @@ class LagrangeEvaluatorTPFlatToTPFlat
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPFlatToTPFlat(const std::vector<double>& pts_in,
-                        const std::vector<double>& pts_out,
+    LagrangeEvaluatorTPFlatToTPFlat(const std::vector<Real>& pts_in,
+                        const std::vector<Real>& pts_out,
                         const ArrayType<LocalIndex, 3>& nodemap_in,
                         const ArrayType<LocalIndex, 3>& nodemap_out) :
-      m_vals(boost::extents[pts_out.size()][pts_in.size()]), 
-      m_derivs(boost::extents[pts_out.size()][pts_in.size()]),
+      m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
+      m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out)),
       m_nodemap_in(nodemap_in),
       m_nodemap_out(nodemap_out)
     {
-      LagrangeBasis basis(pts_in);
-      for (Index i=0; i < pts_out.size(); ++i)
-        for (Index j=0; j < pts_in.size(); ++j)
-        {
-          m_vals[i][j] = basis.evalPoly(j, pts_out[i]);
-          m_derivs[i][j] = basis.evalPolyDeriv(j, pts_out[i]);
-        }
+      for (int i=0; i < 3; ++i)
+      {
+        assert(pts_in.size() == nodemap_in.shape()[i]);
+        assert(pts_out.size() == nodemap_out.shape()[i]);
+      }
     }
 
     // interpolates the values (defined at pts_int) to pts_out
@@ -455,8 +414,8 @@ class LagrangeEvaluatorTPFlatToTPFlat
 
     // TODO use BOOST_RESTRICT
     // basis function values and derivatives, npts_out x npts_in
-    ArrayType<Real, 2> m_vals;
-    ArrayType<Real, 2> m_derivs;
+    LagrangeMemoizer::RetType m_vals;
+    LagrangeMemoizer::RetType m_derivs;
     const ArrayType<LocalIndex, 3>& m_nodemap_in;
     const ArrayType<LocalIndex, 3>& m_nodemap_out;
 };
@@ -574,6 +533,9 @@ class LagrangeEvaluatorTPFlatToNonTP
       m_derivs(boost::extents[pts_out.shape()[0]][pts_in.size()][3]),
       m_nodemap_in(nodemap_in)
     {
+      for (int i=0; i < 3; ++i)
+        assert(pts_in.size() == nodemap_in.shape()[i]);
+
       assert(pts_out.num_dimensions() == 2);
       LagrangeBasis basis(pts_in);
       for (Index i=0; i < pts_out.size(); ++i)

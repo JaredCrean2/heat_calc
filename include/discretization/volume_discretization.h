@@ -15,8 +15,11 @@ class VolumeDiscretization
     ArrayType<Real, 4> dxidx;
     const Mesh::VolumeGroup& vol_group;
     Quadrature quad;
-    LagrangeEvaluatorTPToTP interp_cs_tp;           // coord to solution
-    LagrangeEvaluatorTPFlatToTPFlat interp_cs_flat; // coord to solution
+    // coordinate to solution interpolation
+    LagrangeEvaluatorTPToTP interp_cs_tp_to_tp;
+    LagrangeEvaluatorTPFlatToTP interp_cs_flat_to_tp;
+    LagrangeEvaluatorTPToTPFlat interp_cs_tp_to_flat;
+    LagrangeEvaluatorTPFlatToTPFlat interp_cs_flat_to_flat;
 
     int getNumElems() const { return vol_group.getNumElems();}
 

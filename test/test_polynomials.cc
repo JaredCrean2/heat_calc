@@ -236,6 +236,36 @@ TEST(Polynomials, Quadrature)
 
 }
 
+
+TEST(Polynomials, LagrangeMemoizer)
+{
+
+  std::vector<Real> pts_in1 = {-1, 0, 1};
+  std::vector<Real> pts_out1 = {0.5, 0, 0.5};
+
+  std::vector<Real> pts_in2 = {-0.75, 0, 0.75};
+  std::vector<Real> pts_out2 = {0.55, 0, 0.55};
+
+  const auto& vals1 = lagrange_memoizer.getValues(pts_in1, pts_out1);
+  const auto& vals1a = lagrange_memoizer.getValues(pts_in1, pts_out1);
+
+  EXPECT_EQ(&vals1, &vals1a);
+
+  const auto& vals2 = lagrange_memoizer.getValues(pts_in2, pts_out2);
+  const auto& vals2a = lagrange_memoizer.getValues(pts_in2, pts_out2);
+
+  EXPECT_EQ(&vals2, &vals2a);
+  EXPECT_NE(&vals1, &vals2);
+
+  // test mixed
+  const auto& vals3 = lagrange_memoizer.getValues(pts_in1, pts_out2);
+  const auto& vals3a = lagrange_memoizer.getValues(pts_in1, pts_out2);
+
+  EXPECT_EQ(&vals3, &vals3a);
+  EXPECT_NE(&vals1, &vals3);
+  EXPECT_NE(&vals2, &vals3);
+}
+
 Real testPoly(const Real x, const Real y, const Real z)
 {
   return x*x +  y*y + z*z + x*y + x*z + y*z;
@@ -392,7 +422,7 @@ TEST(Polynomials, LagrangeTP)
         }
 
 
-
+/*
     // test getting interpolant values
     for (int i_out=0; i_out < 4; ++i_out)
       for (int j_out=0; j_out < 4; ++j_out)
@@ -423,7 +453,7 @@ TEST(Polynomials, LagrangeTP)
           EXPECT_FLOAT_EQ(val_z, testPoly_dz(pts_out[i_out], pts_out[j_out], pts_out[k_out]));
         }
      
-
+*/
   }
 
 }
