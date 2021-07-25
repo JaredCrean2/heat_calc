@@ -2,6 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "utils/lagrange.h"
+#include "utils/lagrange2d.h"
 #include "utils/legendre.h"
 #include "utils/quadrature.h"
 
@@ -454,6 +455,134 @@ TEST(Polynomials, LagrangeTP)
         }
      
 */
+  }
+
+}
+
+TEST(Polynomials, LagrangeTP2D)
+{
+  std::vector<Real> pts_in = {-1.0, 0.0, 1.0};
+  std::vector<Real> pts_out = {-0.75, -0.25, 0.25, 0.75};
+  ArrayType<Real, 2> pts_nontp(boost::extents[16][3]);
+  ArrayType<LocalIndex, 2> nodemap_in(boost::extents[3][3]);
+  ArrayType<LocalIndex, 2> nodemap_out(boost::extents[4][4]);
+
+  {
+    ArrayType<Real, 2> vals_in_tp(boost::extents[3][3]);
+    ArrayType<Real, 2> vals_out_tp(boost::extents[4][4]);
+    ArrayType<Real, 3> derivs_out_tp(boost::extents[4][4][2]);
+
+    ArrayType<Real, 1> vals_in_flat(boost::extents[nodemap_in.num_elements()]);
+    ArrayType<Real, 1> vals_out_flat(boost::extents[nodemap_out.num_elements()]);
+    ArrayType<Real, 2> derivs_out_flat(boost::extents[nodemap_out.num_elements()][2]);
+
+    ArrayType<Real, 1> vals_out_nontp(boost::extents[16]);
+    ArrayType<Real, 2> derivs_out_nontp(boost::extents[16][2]);
+
+
+    int idx = 0;
+    for (int i=0; i < 3; ++i)
+      for (int j=0; j < 3; ++j)
+      {
+        nodemap_in[i][j] = idx++;
+        vals_in_tp[i][j] = testPoly(pts_in[i], pts_in[j], 1);
+        vals_in_flat[nodemap_in[i][j]] = vals_in_tp[i][j];
+      }
+
+    idx = 0;
+    for (int i=0; i < 4; ++i)
+      for (int j=0; j < 4; ++j)
+      {
+        nodemap_out[i][j] = idx;
+        pts_nontp[idx][0] = pts_out[i];
+        pts_nontp[idx][1] = pts_out[j];
+        ++idx;
+      }
+
+
+    LagrangeEvaluator2DTPToTP tp_to_tp(pts_in, pts_out);
+    LagrangeEvaluator2DTPFlatToTP flat_to_tp(pts_in, pts_out, nodemap_in);
+    LagrangeEvaluator2DTPToTPFlat tp_to_flat(pts_in, pts_out, nodemap_out);
+    LagrangeEvaluator2DTPFlatToTPFlat flat_to_flat(pts_in, pts_out, nodemap_in, nodemap_out);
+    LagrangeEvaluator2DTPToNonTP tp_to_nontp(pts_in, pts_nontp);
+    LagrangeEvaluator2DTPFlatToNonTP flat_to_nontp(pts_in, pts_nontp, nodemap_in);
+
+    // test sizes
+    EXPECT_EQ(static_cast<Index>(tp_to_tp.getNumPointsIn()), 3);
+    EXPECT_EQ(static_cast<Index>(tp_to_tp.getNumPointsOut()), 4);
+
+    EXPECT_EQ(static_cast<Index>(flat_to_tp.getNumPointsIn()), 9);
+    EXPECT_EQ(static_cast<Index>(flat_to_tp.getNumPointsOut()), 4);
+
+    EXPECT_EQ(static_cast<Index>(tp_to_flat.getNumPointsIn()), 3);
+    EXPECT_EQ(static_cast<Index>(tp_to_flat.getNumPointsOut()), 16);
+
+    EXPECT_EQ(static_cast<Index>(flat_to_flat.getNumPointsIn()), 9);
+    EXPECT_EQ(static_cast<Index>(flat_to_flat.getNumPointsOut()), 16);
+
+    EXPECT_EQ(static_cast<Index>(tp_to_nontp.getNumPointsIn()), 3);
+    EXPECT_EQ(static_cast<Index>(tp_to_nontp.getNumPointsOut()), 16);
+
+    EXPECT_EQ(static_cast<Index>(flat_to_nontp.getNumPointsIn()), 9);
+    EXPECT_EQ(static_cast<Index>(flat_to_nontp.getNumPointsOut()), 16);
+
+    // test interpolating from tensor product
+    tp_to_tp.interpolateVals(vals_in_tp, vals_out_tp);
+    tp_to_tp.interpolateDerivs(vals_in_tp, derivs_out_tp);
+
+    tp_to_flat.interpolateVals(vals_in_tp, vals_out_flat);
+    tp_to_flat.interpolateDerivs(vals_in_tp, derivs_out_flat);
+
+    tp_to_nontp.interpolateVals(vals_in_tp, vals_out_nontp);
+    tp_to_nontp.interpolateDerivs(vals_in_tp, derivs_out_nontp);
+
+
+
+    for (int i=0; i < 4; ++i)
+      for (int j=0; j < 4; ++j)
+      {
+        EXPECT_FLOAT_EQ(vals_out_tp[i][j], testPoly(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_tp[i][j][0], testPoly_dx(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_tp[i][j][1], testPoly_dy(pts_out[i], pts_out[j], 1));
+
+        auto node = nodemap_out[i][j];
+        EXPECT_FLOAT_EQ(vals_out_flat[node], testPoly(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_flat[node][0], testPoly_dx(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_flat[node][1], testPoly_dy(pts_out[i], pts_out[j], 1));
+
+        EXPECT_FLOAT_EQ(vals_out_nontp[node], testPoly(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_nontp[node][0], testPoly_dx(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_nontp[node][1], testPoly_dy(pts_out[i], pts_out[j], 1));
+      }
+
+    // test interpolating from flat
+    flat_to_tp.interpolateVals(vals_in_flat, vals_out_tp);
+    flat_to_tp.interpolateDerivs(vals_in_flat, derivs_out_tp);
+
+    flat_to_flat.interpolateVals(vals_in_flat, vals_out_flat);
+    flat_to_flat.interpolateDerivs(vals_in_flat, derivs_out_flat);
+
+    flat_to_nontp.interpolateVals(vals_in_flat, vals_out_nontp);
+    flat_to_nontp.interpolateDerivs(vals_in_flat, derivs_out_nontp);
+
+
+    for (int i=0; i < 4; ++i)
+      for (int j=0; j < 4; ++j)
+      {
+        EXPECT_FLOAT_EQ(vals_out_tp[i][j], testPoly(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_tp[i][j][0], testPoly_dx(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_tp[i][j][1], testPoly_dy(pts_out[i], pts_out[j], 1));
+
+        auto node = nodemap_out[i][j];
+        EXPECT_FLOAT_EQ(vals_out_flat[node], testPoly(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_flat[node][0], testPoly_dx(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_flat[node][1], testPoly_dy(pts_out[i], pts_out[j], 1));
+
+        EXPECT_FLOAT_EQ(vals_out_nontp[node], testPoly(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_nontp[node][0], testPoly_dx(pts_out[i], pts_out[j], 1));
+        EXPECT_FLOAT_EQ(derivs_out_nontp[node][1], testPoly_dy(pts_out[i], pts_out[j], 1));
+      }
+
   }
 
 }

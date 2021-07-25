@@ -16,8 +16,8 @@ class LagrangeEvaluatorTPToTP
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPToTP(const std::vector<Real> pts_in,
-                            const std::vector<Real> pts_out) :
+    LagrangeEvaluatorTPToTP(const std::vector<Real>& pts_in,
+                            const std::vector<Real>& pts_out) :
       m_vals(lagrange_memoizer.getValues(pts_in, pts_out)),
       m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out))
     {}
@@ -129,8 +129,8 @@ class LagrangeEvaluatorTPFlatToTP
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPFlatToTP(const std::vector<Real> pts_in,
-                                const std::vector<Real> pts_out,
+    LagrangeEvaluatorTPFlatToTP(const std::vector<Real>& pts_in,
+                                const std::vector<Real>& pts_out,
                                 const ArrayType<LocalIndex, 3>& nodemap_in) :
       m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
       m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out)),
@@ -227,8 +227,8 @@ class LagrangeEvaluatorTPToTPFlat
   public:
     using Index = LagrangeBasis::Index;
 
-    LagrangeEvaluatorTPToTPFlat(const std::vector<Real> pts_in,
-                                const std::vector<Real> pts_out,
+    LagrangeEvaluatorTPToTPFlat(const std::vector<Real>& pts_in,
+                                const std::vector<Real>& pts_out,
                                 const ArrayType<LocalIndex, 3>& nodemap_out
                                 ) :
       m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
@@ -528,7 +528,7 @@ class LagrangeEvaluatorTPFlatToNonTP
     template <typename Array2D>
     LagrangeEvaluatorTPFlatToNonTP(const std::vector<Real>& pts_in,
                                const Array2D& pts_out,
-                               const ArrayType<LocalIndex, 3> nodemap_in) :
+                               const ArrayType<LocalIndex, 3>& nodemap_in) :
       m_vals(boost::extents[pts_out.size()][pts_in.size()][3]), 
       m_derivs(boost::extents[pts_out.shape()[0]][pts_in.size()][3]),
       m_nodemap_in(nodemap_in)
@@ -617,7 +617,7 @@ class LagrangeEvaluatorTPFlatToNonTP
 
     ArrayType<Real, 3> m_vals;
     ArrayType<Real, 3> m_derivs;
-    const ArrayType<LocalIndex, 3> m_nodemap_in;
+    const ArrayType<LocalIndex, 3>& m_nodemap_in;
 };
 
 
