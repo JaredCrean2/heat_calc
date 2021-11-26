@@ -19,7 +19,7 @@ TEST(SurfDisc, Normals)
   std::vector<std::shared_ptr<SurfaceDiscretization>> surf_discs;
   for (Index i=0; i < mesh->getNumSurfaces(); ++i)
   {
-    auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i),quad, vol_discs); 
+    auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), quad, vol_discs); 
     surf_discs.push_back(surf_i);
   }
 

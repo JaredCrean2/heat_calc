@@ -150,7 +150,6 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements,
                 ArrayType<Index, 2>& nodenums)
 {
-
   apf::Downward down;
   int el_idx = 0;
   for( auto e : elements )

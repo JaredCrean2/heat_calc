@@ -7,21 +7,25 @@ template <typename T>
 class DirichletBCMMS : public DirichletBC
 {
   public:
-    DirichletBCMMS(SurfDiscPtr surf, T func) : m_func(func) {}
+    DirichletBCMMS(SurfDiscPtr surf, T func) :
+      DirichletBC(surf), 
+      m_func(func),
+      m_coords(boost::extents[surf->getNumQuadPtsPerFace()][3])
+  {}
 
 
     void getValue(const Index face, const Real t, Real* vals) const override
     {
       auto surf_disc = getSurfDisc();
-      ArrayType<Real, 2> coords(boost::extents[surf_disc->getNumQuadPointPtsPerFace()][3]); //TODO: store this
-      getNodeCoords(face, coords);
+      getNodeCoords(face, m_coords);
 
-      for (int i=0; i < getSurfDisc()->getNumCoordPtsPerFace(); ++i)
-        vals[i] = m_func(coords[i][0], coords[i][1], coords[i][2], t);
+      for (int i=0; i < surf_disc->getNumCoordPtsPerFace(); ++i)
+        vals[i] = m_func(m_coords[i][0], m_coords[i][1], m_coords[i][2], t);
     }
 
   private:
       T m_func;
+      ArrayType<Real, 2> m_coords;
 };
 
 template <typename T>

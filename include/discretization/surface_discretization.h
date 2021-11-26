@@ -23,6 +23,12 @@ class SurfaceDiscretization
 
     int getNumQuadPtsPerFace() const {return quad.getNumPoints() * quad.getNumPoints();}
 
+    VolDiscPtr getVolDisc(const int face) { return volume_discs[face_group.faces[face].vol_group]; }
+
+    // computes coordinates of face quadrature points in a flat array (num quad points per face x 3)
+    template <typename Array2D>
+    void getFaceQuadCoords(const Index face, Array2D& quad_coords);
+
     ArrayType<Real, 3> normals;
     const Mesh::FaceGroup& face_group;
     Quadrature quad;
@@ -30,16 +36,32 @@ class SurfaceDiscretization
 
     // volume coords to face quadrature
     std::vector<LagrangeEvaluatorTPToNonTP> interp_vcq_tp;
+    std::vector<LagrangeEvaluatorTPFlatToNonTP> interp_vcq_flat;
 
     ArrayType<LocalIndex, 2> quad_tp_nodemap;
 };
 
 using SurfDiscPtr = std::shared_ptr<SurfaceDiscretization>;
 
+template <typename Array2D>
+void SurfaceDiscretization::getFaceQuadCoords(const Index face, Array2D& quad_coords)
+{
+  auto& face_spec = face_group.faces[face];
+  auto vol_disc = getVolDisc(face);
+  for (int d=0; d < 3; ++d)
+  {
+    auto coords_vol = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][d]];
+    auto coords_face = quad_coords[boost::indices[range()][d]];
+    interp_vcq_flat[face_spec.face].interpolateVals(coords_vol, coords_face);
+  }
+}
+
+
+
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals);
 
 // gets xi coordinates of surface quadrature points in flat array
-void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3> face_points);
+void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points);
 
 // get tensor product nodemap associated with getFacePoints
 void getFaceTensorProductMap(const SurfaceDiscretization& disc,
@@ -72,8 +94,10 @@ typename Array::element integrateFaceScalar(SurfDiscPtr surf, const int face, co
       for (int d=0; d < 3; ++d)
         area += surf->normals[face][idx][d] * surf->normals[face][idx][d];
       area = std::sqrt(area);
+      auto weight = surf->quad.getWeight(i) * surf->quad.getWeight(j);
+      std::cout << "weight = " << weight << std::endl;
 
-      val += vals[idx] * area;
+      val += vals[idx] * weight * area;
     }
 
   return val;

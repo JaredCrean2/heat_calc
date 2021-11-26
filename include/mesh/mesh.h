@@ -21,9 +21,9 @@ struct FaceSpec
 {
   FaceSpec(Index el, Index el_group, LocalIndex face, LocalIndex vol_group)
     : el(el), el_group(el_group), face(face), vol_group(vol_group) {}
-  Index el;  // global element index
-  Index el_group;  // index within element VolumeGroup
-  LocalIndex face;  // local face id
+  Index el;             // global element index
+  Index el_group;       // index within element VolumeGroup
+  LocalIndex face;      // local face id
   LocalIndex vol_group; // volume group index
 };
 
@@ -34,8 +34,8 @@ class TensorProductMapper
   public:
     explicit TensorProductMapper(ReferenceElement* ref_el) :
       tp_nodemap(ref_el->getTensorProductMap()),
-      m_xi(ref_el->getTensorProductXi()),
-      m_ref_el(ref_el)
+      m_xi(ref_el->getTensorProductXi())
+      //m_ref_el(ref_el)
     {}
 
     const std::vector<Real> getXi() const { return m_xi;}
@@ -91,7 +91,7 @@ class TensorProductMapper
   private:
     const ArrayType<LocalIndex, 3>& tp_nodemap;
     const std::vector<Real> m_xi;
-    ReferenceElement* m_ref_el;
+    //ReferenceElement* m_ref_el;
 };
 
 
@@ -115,8 +115,8 @@ class VolumeGroup
       m_tp_mapper_sol(tp_mapper_sol)
     {}
 
-    ArrayType<Index, 2> nodenums;  // nelems x npts per element
-    ArrayType<Real, 3> coords;   // nelems x npts per element coord x 3
+    ArrayType<Index, 2> nodenums;   // nelems x npts per element
+    ArrayType<Real, 3> coords;      // nelems x npts per element coord x 3
     ArrayType<Real, 2> normals_xi;  // nfaces x 3
     ReferenceElement* ref_el_coord;
     ReferenceElement* ref_el_sol;
@@ -162,22 +162,22 @@ struct FaceGroup
 
   std::vector<FaceSpec> faces;
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
-                                //TODO: now that we have the nodemaps, we
+                                // TODO: now that we have the nodemaps, we
                                 // don't need this large array anymore
   ReferenceElement* ref_el_coord;
   ReferenceElement* ref_el_sol;
   // volume to face nodemap
-  ArrayType<LocalIndex, 2> nodemap_coord;
-  ArrayType<LocalIndex, 2> nodemap_sol;
+  ArrayType<LocalIndex, 2> nodemap_coord;  // nfaces_per_element x num coord pts per face
+  ArrayType<LocalIndex, 2> nodemap_sol;    // nfaces_per_element x num sol pts per face
 
   // face tensor product nodemap
   const ArrayType<LocalIndex, 2> face_tp_nodemap_coord;
 
-  int getNumFaces() const { return nodenums.shape()[0];}
+  int getNumFaces() const { return faces.size();}
 
   int getNumCoordPtsPerFace() const { return nodemap_coord.shape()[1]; }
 
-  int getNumSolPtsPerFace() const { return nodenums.shape()[1];}
+  int getNumSolPtsPerFace() const { return nodemap_sol.shape()[1];}
 };
 
 struct ApfData
@@ -240,6 +240,8 @@ class MeshCG
       for (SInt idx=0; idx < m_all_face_spec.size(); ++idx)
         if (m_all_face_spec[idx].getName() == name)
           return m_all_face_spec[idx];
+
+      throw std::invalid_argument(std::string("cannot find surface named ") + name);
     }
 
     // getting elements
@@ -260,6 +262,8 @@ class MeshCG
       for (SInt idx=0; idx < m_volume_spec.size(); ++idx)
         if (m_all_face_spec[idx].getName() == name)
           return m_volume_spec[idx];
+
+      throw std::invalid_argument(std::string("cannot find volume group named ") + name);
     }
 
     std::vector<apf::Vector3> normals_xi;

@@ -73,9 +73,9 @@ class HexReferenceElement : public ReferenceElementTensorProduct
 
     // given the xi coordinates on a face, computes the xi coordinates of
     // the same point in the elements xi coordinates
-    void computeElementXi(const int face, const Real* xi_face, Real* xi_element) const;
+    void computeElementXi(const int face, const Real* xi_face, Real* xi_element) const override;
 
-    int getNumFaces() const { return 6;}
+    int getNumFaces() const override { return 6;}
 };
 
 
