@@ -1,29 +1,48 @@
 #include "gtest/gtest.h"
 
+#include "mesh/mesh.h"
 #include "mesh_helper.h"
 #include "discretization/surface_discretization.h"
 #include "mesh/mesh_generator.h"
+#include "quadrature.h"
 
-TEST(SurfDisc, Normals)
+namespace {
+class SurfaceTester : public::testing::Test
 {
-  auto spec = getStandardMeshSpec();
-  spec.nx = 4; spec.ny = 5, spec.nz = 6;
-  spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
-  auto mesh = makeStandardMesh(spec);
+  protected:
+    SurfaceTester() :
+      quad(getGaussianQuadrature(3))
+    {
+      spec = getStandardMeshSpec();
+      //spec.nx = 4; spec.ny = 5, spec.nz = 6;
+      spec.nx = 1; spec.ny = 1, spec.nz = 1;
+      spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
+      mesh = makeStandardMesh(spec);
+ 
+      Mesh::VolumeGroup& vol_group = mesh->getElements(0);
+      auto vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
+      std::vector<std::shared_ptr<VolumeDiscretization>> vol_discs{vol_disc};
 
-  Quadrature quad = getGaussianQuadrature(1);
-  Mesh::VolumeGroup& vol_group = mesh->getElements(0);
-  auto vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
-  std::vector<std::shared_ptr<VolumeDiscretization>> vol_discs{vol_disc};
+      //std::vector<std::shared_ptr<SurfaceDiscretization>> surf_discs;
+      for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+      {
+        auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), quad, vol_discs); 
+        surf_discs.push_back(surf_i);
+      }
+    }
 
-  std::vector<std::shared_ptr<SurfaceDiscretization>> surf_discs;
-  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
-  {
-    auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), quad, vol_discs); 
-    surf_discs.push_back(surf_i);
-  }
+    Mesh::MeshSpec spec;
+    std::shared_ptr<Mesh::MeshCG> mesh;
+    Quadrature quad;
+    std::vector<SurfDiscPtr> surf_discs;
+};
 
 
+}
+
+
+TEST_F(SurfaceTester, Normals)
+{
   // exact normals for the standard mesh
   ArrayType<Real, 2> normals_ex(boost::extents[6][3]);
   normals_ex[0][0] =  0; normals_ex[0][1] = -1; normals_ex[0][2] =  0;
@@ -65,12 +84,74 @@ TEST(SurfDisc, Normals)
 
         EXPECT_FLOAT_EQ(val, mag1 * mag_ex);
 
-        
-
         // check magnitude (integrating normals gives face area)
         EXPECT_FLOAT_EQ(integrateFaceScalar(surf_i, j, ones), face_areas[i]);
 
 
+      }
+  }
+}
+
+namespace {
+  double poly(const double x, const int n)
+  {
+    assert(n >= 0);
+    return std::pow(x, n);
+  }
+
+  double poly_antideriv(const double x, const int n)
+  {
+    assert( n >= 0);      
+    return std::pow(x, n+1)/(n+1);
+  }
+}
+
+TEST_F(SurfaceTester, integrateFaceScalar)
+{
+  // the coordinates that vary over each geometric face
+  ArrayType<int, 2> active_coords(boost::extents[6][2]);
+  active_coords[0][0] = 0; active_coords[0][1] = 2;
+  active_coords[1][0] = 1; active_coords[1][1] = 2;
+  active_coords[2][0] = 0; active_coords[2][1] = 2;
+  active_coords[3][0] = 1; active_coords[3][1] = 2;
+  active_coords[4][0] = 0; active_coords[4][1] = 1;
+  active_coords[5][0] = 0; active_coords[5][1] = 1;
+
+  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+  {
+    std::cout << "\nsurface " << i << std::endl;
+    auto surf_i = surf_discs[i];
+    auto& quad = surf_i->quad;
+    ArrayType<double, 2> face_coords(boost::extents[surf_i->getNumQuadPtsPerFace()][3]);
+    ArrayType<double, 1> vals(boost::extents[surf_i->getNumQuadPtsPerFace()]);
+
+    for (int degree=0; degree < 2*quad.getNumPoints() - 1; ++degree)
+      for (int d=0; d < 2; ++d)
+      {
+        std::cout << "\ndegree " << degree << ", d = " << d << std::endl;
+        double val_sum = 0;
+        for (int j=0; j < surf_i->getNumFaces(); ++j)
+        {
+          std::cout << "face " << j << std::endl;
+          surf_i->getFaceQuadCoords(j, face_coords);
+          for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
+            std::cout << "point " << k << " coords = " << face_coords[k][0] << ", "
+                      << face_coords[k][1] << ", " << face_coords[k][2] << std::endl;
+                      
+          for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
+          {
+            //std::cout << "k = " << k << std::endl;
+            //std::cout << "active coord = " << active_coords[i][d] << std::endl;
+            std::cout << "face coords[k] = " << face_coords[k][active_coords[i][d]] << std::endl;
+            vals[k] = poly(face_coords[k][active_coords[i][d]], degree);
+            std::cout << "vals[k] = " << vals[k] << std::endl;
+          }
+
+          val_sum += integrateFaceScalar(surf_i, j, vals);
+        }
+
+        double val_exact = 1*(poly_antideriv(1.0, degree) - poly_antideriv(0.0, degree));
+        EXPECT_FLOAT_EQ(val_sum, val_exact);
       }
   }
 }

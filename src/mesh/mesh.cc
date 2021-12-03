@@ -196,6 +196,7 @@ void MeshCG::createFaceGroups()
         }
       }
     }
+    m_apf_data.m->end(it);
 
 
     // get dofs

@@ -168,6 +168,7 @@ ReferenceElement* getReferenceElement(apf::Mesh::Type type, const int degree)
 void HexReferenceElement::computeElementXi(const int face, const Real* xi_face, Real* xi_element) const
 {
   // for all faces, xi1 is from 1st to 2nd vertex, 1st to 4th vertex
+  // TODO: revise face definitions so they are oriented outwards
   switch (face)
   {
     case 0:
@@ -192,8 +193,8 @@ void HexReferenceElement::computeElementXi(const int face, const Real* xi_face, 
     {
       // oriented v1 - v5 - v6 - v2
       xi_element[0] = 1;
-      xi_element[1] = xi_face[2];
-      xi_element[2] = xi_face[1];
+      xi_element[1] = xi_face[1];
+      xi_element[2] = xi_face[0];
       break;
     }
 
@@ -220,7 +221,7 @@ void HexReferenceElement::computeElementXi(const int face, const Real* xi_face, 
       // oriented v4 - v5 - v6 - v7
       xi_element[0] = xi_face[0];
       xi_element[1] = xi_face[1];
-      xi_element[3] = 1;
+      xi_element[2] = 1;
       break;
     }
 

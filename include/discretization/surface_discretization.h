@@ -48,11 +48,19 @@ void SurfaceDiscretization::getFaceQuadCoords(const Index face, Array2D& quad_co
 {
   auto& face_spec = face_group.faces[face];
   auto vol_disc = getVolDisc(face);
+
+  auto coords_vol_tmp = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][range()]];
+  for (int i=0; i < vol_disc->vol_group.coords.shape()[1]; ++i)
+    std::cout << "vol point " << i << ": " << coords_vol_tmp[i][0] << ", " 
+              << coords_vol_tmp[i][1] << ", " << coords_vol_tmp[i][2] << std::endl;
+
+  std::cout << "face_spec.face = " << face_spec.face << std::endl;
+
   for (int d=0; d < 3; ++d)
   {
     auto coords_vol = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][d]];
     auto coords_face = quad_coords[boost::indices[range()][d]];
-    interp_vcq_flat[face_spec.face].interpolateVals(coords_vol, coords_face);
+    interp_vcq_flat[face_spec.face].interpolateVals(coords_vol, coords_face);    
   }
 }
 
@@ -78,7 +86,7 @@ void computeNormalNode(const Array2D& dxidx,
                    dxidx[2][i] * normals_xi[2];
 }
 
-// integrates a scalar quantity, given the values at the quadrature points
+// integrates a scalar quantity over a single face, given the values at the quadrature points
 template <typename Array>
 typename Array::element integrateFaceScalar(SurfDiscPtr surf, const int face, const Array& vals)
 {
@@ -95,9 +103,8 @@ typename Array::element integrateFaceScalar(SurfDiscPtr surf, const int face, co
         area += surf->normals[face][idx][d] * surf->normals[face][idx][d];
       area = std::sqrt(area);
       auto weight = surf->quad.getWeight(i) * surf->quad.getWeight(j);
-      std::cout << "weight = " << weight << std::endl;
 
-      val += vals[idx] * weight * area;
+      val += vals[idx++] * weight * area;
     }
 
   return val;

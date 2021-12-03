@@ -76,6 +76,8 @@ apf::MeshEntity* AdjacencyNumberer::getStartEntity(apf::Mesh2* m_local)
 
   }
 
+  m_local->end(it);
+
   assert(e_min);  // it shouldn't be possible to not find a an entity
   return e_min;
 }
@@ -155,7 +157,7 @@ void AdjacencyNumberer::numberdofs(int ndof, int comp)
     it = m_local->begin(i);
     e = m_local->deref(it);
     numNodes_typei = nodeCount(m_local,e);
-    it = m_local->begin(i);
+    //it = m_local->begin(i);
 
     if (numNodes_typei)  // if there are any dofs on this type of entity
       while ( (e = m_local->iterate(it)) )
@@ -167,6 +169,8 @@ void AdjacencyNumberer::numberdofs(int ndof, int comp)
           }
           apf::number(m_node_status, e, j, 0, UNSEEN);
         }
+
+    m_local->end(it);
   }
 }
 
@@ -202,6 +206,8 @@ void AdjacencyNumberer::numberElements(apf::Mesh2* m_local)
       apf::number(m_el_nums, e, 0, 0, k);
       ++k;
     }
+
+    m_local->end(it);
   }
 
 }
@@ -448,6 +454,8 @@ std::vector<apf::MeshEntity*> AdjacencyNumberer::getElements()
   apf::MeshEntity* e;
   while ( (e = m_local->iterate(it)) )
     elements[apf::getNumber(m_el_nums, e, 0, 0)] = e;
+
+  m_local->end(it);
 
   return elements;
 }

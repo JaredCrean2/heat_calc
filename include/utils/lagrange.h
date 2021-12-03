@@ -565,11 +565,13 @@ class LagrangeEvaluatorTPFlatToNonTP
         for (Index i_in=0; i_in < getNumTPPointsIn(); ++i_in)
           for (Index j_in=0; j_in < getNumTPPointsIn(); ++j_in)
             for (Index k_in=0; k_in < getNumTPPointsIn(); ++k_in)
+            {
               // TODO: precompute first two multiplications
               vals_out[i_out] += m_vals[i_out][i_in][0] *
                                  m_vals[i_out][j_in][1] *
                                  m_vals[i_out][k_in][2] *
                                  vals_in[m_nodemap_in[i_in][j_in][k_in]];
+            }
       }
     }
 

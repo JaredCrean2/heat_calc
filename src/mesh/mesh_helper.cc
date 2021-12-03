@@ -110,6 +110,8 @@ int countNumEls(ApfData& apf_data, const MeshEntityGroupSpec& vol_group)
       numel += 1;
   }
 
+  apf_data.m->end(it);
+
   return numel;
 }
 
@@ -128,6 +130,7 @@ void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpe
         break;
       }
   }
+  m->end(it);
 }
 
 void getGroupElements(ApfData apf_data, MeshEntityGroupSpec& volume_group,
@@ -167,7 +170,7 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
             apf::getNumber(apf_data.dof_nums, down[i], j, 0);
         }
 
-      offset += ndown * nnodes_dim;
+      offset = offset + ndown * nnodes_dim;
     }
     el_idx += 1;
   }
@@ -201,7 +204,7 @@ void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
           ++idx;
         }
 
-      offset += ndown * nnodes_dim;
+      offset = offset + ndown * nnodes_dim;
     }
     ++el_idx;
   }
@@ -223,6 +226,8 @@ void setDirichletDofs(ApfData& apf_data, int& dof_start)
           if (apf::getNumber(apf_data.is_dirichlet, e, i, 0))
             apf::number(apf_data.dof_nums, e, i, 0, dof_start++);
       }
+
+      apf_data.m->end(it);
     }
 }
 

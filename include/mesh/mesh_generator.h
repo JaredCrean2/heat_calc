@@ -17,6 +17,14 @@ namespace Mesh
 
 Point identity(const Point& point);
 
+// creates a mesh that can be mapped to a cube
+// face geometry classification:
+//    0 = yminus
+//    1 = xplus
+//    2 = yplus
+//    3 = xminus
+//    4 = zminus
+//    5 = zplus
 template <typename T>
 class MeshGenerator
 {
