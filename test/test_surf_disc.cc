@@ -7,38 +7,15 @@
 #include "quadrature.h"
 
 namespace {
-class SurfaceTester : public::testing::Test
+class SurfaceTester : public ::testing::Test,
+                      public StandardMeshSetup
+
 {
   protected:
-    SurfaceTester() :
-      quad(getGaussianQuadrature(3))
+    SurfaceTester()
     {
-      spec = getStandardMeshSpec();
-      spec.nx = 4; spec.ny = 5, spec.nz = 6;
-      //spec.nx = 1; spec.ny = 1, spec.nz = 1;
-      //spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
-      mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
-      mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};
-      mesh = makeStandardMesh(spec);
- 
-      Mesh::VolumeGroup& vol_group = mesh->getElements(0);
-      auto vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
-      std::vector<std::shared_ptr<VolumeDiscretization>> vol_discs{vol_disc};
-
-      //std::vector<std::shared_ptr<SurfaceDiscretization>> surf_discs;
-      for (Index i=0; i < mesh->getNumSurfaces(); ++i)
-      {
-        auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), quad, vol_discs); 
-        surf_discs.push_back(surf_i);
-      }
+      setup();
     }
-
-    Mesh::MeshSpec spec;
-    std::array<Real, 3> mesh_dim_mins;
-    std::array<Real, 3> mesh_dim_maxs;
-    std::shared_ptr<Mesh::MeshCG> mesh;
-    Quadrature quad;
-    std::vector<SurfDiscPtr> surf_discs;
 };
 
 
@@ -188,7 +165,7 @@ TEST_F(SurfaceTester, integrateFaceVector)
       // compute exact result
       double area = mesh_dim_maxs[other_variable_coord] - mesh_dim_mins[other_variable_coord];
       double val_exact = area*(poly_antideriv(mesh_dim_maxs[variable_coord], degree) -
-                               poly_antideriv(mesh_dim_mins[variable_coord], degree)) * face_sign[i];
+                                poly_antideriv(mesh_dim_mins[variable_coord], degree)) * face_sign[i];
       EXPECT_FLOAT_EQ(val_sum, val_exact);
     }
   }
