@@ -1,4 +1,5 @@
 #include "discretization/volume_discretization.h"
+#include "mesh/mesh.h"
 #include "utils/lagrange.h"
 #include <iostream>
 
@@ -19,22 +20,22 @@ VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, c
                          vol_group.getTPMapperSol().getNodemap())
 {
   this->quad.setDomain(vol_group.ref_el_coord->getXiRange());
+
+  tp_mapper_quad = Mesh::TensorProductMapper(quad.getPoints());
+  interp_cq_flat_to_flat = LagrangeEvaluatorTPFlatToTPFlat(vol_group.getTPMapperCoord().getXi(),
+                         tp_mapper_quad.getXi(),
+                         vol_group.getTPMapperCoord().getNodemap(),
+                         tp_mapper_quad.getNodemap());
+
   computeDxidx(*this, dxidx);
 }
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx)
 {
   using range = boost::multi_array_types::index_range;
-  dxidx.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumSolPtsPerElement()][3][3]);
-  const auto& tp_mapper_coord = vol_disc.vol_group.getTPMapperCoord();
-  const auto& tp_mapper_sol   = vol_disc.vol_group.getTPMapperSol();
-  //LagrangeEvaluatorTPToTP lag(tp_mapper_coord.getXi(), tp_mapper_sol.getXi());
+  dxidx.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumQuadPtsPerElement()][3][3]);
 
-  
-  ArrayType<Real, 3> coords_tp(tp_mapper_coord.getTPShape());
-  ArrayType<Real, 4> dxdxi_tp(tp_mapper_sol.getTPShape()[3]);
-  ArrayType<Real, 3> dxdxi_i(boost::extents[vol_disc.getNumSolPtsPerElement()][3][3]);
-  auto&& tp_map = tp_mapper_sol.getNodemap();
+  ArrayType<Real, 3> dxdxi_i(boost::extents[vol_disc.getNumQuadPtsPerElement()][3][3]);
 
   for (int i=0; i < vol_disc.getNumElems(); ++i)
   {
@@ -42,24 +43,51 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
     for (int d=0; d < 3; ++d)
     {
       auto coords_d = vol_disc.vol_group.coords[boost::indices[i][range()][d]];
-      tp_mapper_coord.mapToTP(coords_d, coords_tp);
-
-      vol_disc.interp_cs_tp_to_tp.interpolateDerivs(coords_tp, dxdxi_tp);
-
-      for (unsigned int k1=0; k1 < tp_map.shape()[0]; ++k1)
-        for (unsigned int k2=0; k2 < tp_map.shape()[1]; ++k2)
-          for (unsigned int k3=0; k3 < tp_map.shape()[2]; ++k3)
-            for (unsigned int d2=0; d2 < 3; ++d2)
-              dxdxi_i[tp_map[k1][k2][k3]][d][d2] = dxdxi_tp[k1][k2][k3][d2];
+      auto dxdxi_d = dxdxi_i[boost::indices[range()][d][range()]];
+      vol_disc.interp_cq_flat_to_flat.interpolateDerivs(coords_d, dxdxi_d);
     }
 
-    for (int j=0; j < vol_disc.getNumSolPtsPerElement(); ++j)
+    for (int j=0; j < vol_disc.getNumQuadPtsPerElement(); ++j)
     {
       auto dxdxi_j = dxdxi_i[boost::indices[j][range()][range()]];
       auto dxidx_j = dxidx[boost::indices[i][j][range()][range()]];
       computeInverse3x3(dxdxi_j, dxidx_j);
     }
-
   }
+
 }
+
+
+void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ)
+{
+  for (int i=0; i < vol_disc.getNumElems(); ++i)
+    for (int j=0; j < vol_disc.getNumSolPtsPerElement(); ++j)
+      detJ[i][j] = computeDet3x3(vol_disc.dxidx[boost::indices[i][j][range()][range()]]);
+}
+
+
+void getVolumePoints(const VolumeDiscretization& disc, ArrayType<Real, 2>& vol_points)
+{
+  int npts = disc.getNumQuadPtsPerElement();
+  vol_points.resize(boost::extents[npts][3]);
+
+  int idx = 0;
+  for (int i=0; i < disc.quad.getNumPoints(); ++i)
+    for (int j=0; j < disc.quad.getNumPoints(); ++j)
+      for (int k=0; k < disc.quad.getNumPoints(); ++k)
+      {
+        vol_points[idx][0] = disc.quad.getPoint(i);
+        vol_points[idx][1] = disc.quad.getPoint(j);
+        vol_points[idx][2] = disc.quad.getPoint(k);
+        idx++;
+      }
+
+}
+
+
+auto VolumeDiscretization::getVolumeQuadCoords(const Index el) -> const decltype(vol_group.coords[boost::indices[0][range()][range()]])
+{
+  return vol_group.coords[boost::indices[el][range()][range()]];
+}
+
 

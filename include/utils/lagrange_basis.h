@@ -32,11 +32,18 @@ class LagrangeMemoizer
   public:
     using SType   = ArrayType<Real, 2>;
     using RetType = const SType&;
+    using RetTypeP = SType*;
 
     RetType getValues(const std::vector<double>& pts_in,
                                         const std::vector<double>& pts_out)
     {
       return m_vals.at(getIdx(pts_in, pts_out));
+    }
+
+    RetTypeP getValuesP(const std::vector<double>& pts_in,
+                                        const std::vector<double>& pts_out)
+    {
+      return &(m_vals.at(getIdx(pts_in, pts_out)));
     }
 
     RetType getDerivs(const std::vector<double>& pts_in,
@@ -45,6 +52,11 @@ class LagrangeMemoizer
       return m_derivs.at(getIdx(pts_in, pts_out));
     }
 
+    RetTypeP getDerivsP(const std::vector<double>& pts_in,
+                                        const std::vector<double>& pts_out)
+    {
+      return &(m_derivs.at(getIdx(pts_in, pts_out)));
+    }
 
   private:
 

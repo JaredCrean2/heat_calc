@@ -22,7 +22,7 @@ TEST(VolDisc, dxidx)
   
 
   for (int i=0; i < vol_disc.getNumElems(); ++i)
-    for (int j=0; j < vol_disc.getNumSolPtsPerElement(); ++j)
+    for (int j=0; j < vol_disc.getNumQuadPtsPerElement(); ++j)
       for (int d1=0; d1 < 3; ++d1)
         for (int d2=0; d2 < 3; ++d2)
         {

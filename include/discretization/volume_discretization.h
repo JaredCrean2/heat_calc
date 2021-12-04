@@ -13,6 +13,7 @@ class VolumeDiscretization
     explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group,
                                   const Quadrature& quad);
     ArrayType<Real, 4> dxidx;
+    ArrayType<Real, 2> detJ; // determinant of dxi/dx
     const Mesh::VolumeGroup& vol_group;
     Quadrature quad;
     // coordinate to solution interpolation
@@ -21,20 +22,31 @@ class VolumeDiscretization
     LagrangeEvaluatorTPToTPFlat interp_cs_tp_to_flat;
     LagrangeEvaluatorTPFlatToTPFlat interp_cs_flat_to_flat;
 
+    // coordinate to quadrature interpolation
+    Mesh::TensorProductMapper tp_mapper_quad;
+    LagrangeEvaluatorTPFlatToTPFlat interp_cq_flat_to_flat;
+
+
     int getNumElems() const { return vol_group.getNumElems();}
 
     int getNumSolPtsPerElement() const { return vol_group.getNumSolPtsPerElement();}
 
     int getNumCoordPtsPerElement() const { return vol_group.getNumCoordPtsPerElement();}
 
+    int getNumQuadPtsPerElement() const { return quad.getNumPoints() * quad.getNumPoints() * quad.getNumPoints(); }
+
+    // computes coordinates of volume quadrature points in a flat array (num quad points per face x 3)
+    auto getVolumeQuadCoords(const Index el) -> const decltype(vol_group.coords[boost::indices[0][range()][range()]]);
 };
 
 using VolDiscPtr = std::shared_ptr<VolumeDiscretization>;
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx); 
 
+void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ);
+
 template <typename Array>
-typename Array::element computeDet3x3(Array& A)
+typename Array::element computeDet3x3(const Array& A)
 {
   assert(A.num_dimensions() == 2);
   assert(A.shape()[0] == 3);
@@ -94,6 +106,33 @@ void computeInverse3x3(ArrayIn& A, ArrayOut& B)
   B[1][2] = B[2][1]/detA;
   B[2][1] = tmp/detA;
 }
+
+
+// gets xi coordinates of the volume quadrature points in flat array
+void getVolumePoints(const VolumeDiscretization& disc, ArrayType<Real, 2>& face_points);
+
+
+// integrates a scalar quantity over a single face, given the values at the quadrature points
+template <typename Array>
+typename Array::element integrateVolumeScalar(VolDiscPtr vol, const int el, const Array& vals)
+{
+  assert(vals.num_dimensions() == 1);
+  assert(vals.shape()[0] == static_cast<unsigned int>(vol->getNumQuadPtsPerElement()));
+
+  typename Array::element val = 0;
+  int idx = 0;
+  for (int i=0; i < vol->quad.getNumPoints(); ++i)
+    for (int j=0; j < vol->quad.getNumPoints(); ++j)
+      for (int k=0; k < vol->quad.getNumPoints(); ++k)
+      {
+        auto weight = vol->quad.getWeight(i) * vol->quad.getWeight(j) * vol->quad.getWeight(k);
+        val += vals[idx] * weight * vol->detJ[el][idx];
+        idx++;
+      }
+
+  return val;
+}
+
 
 
 #endif

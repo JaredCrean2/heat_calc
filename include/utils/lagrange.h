@@ -324,12 +324,14 @@ class LagrangeEvaluatorTPFlatToTPFlat
   public:
     using Index = LagrangeBasis::Index;
 
+    LagrangeEvaluatorTPFlatToTPFlat() {}
+
     LagrangeEvaluatorTPFlatToTPFlat(const std::vector<Real>& pts_in,
                         const std::vector<Real>& pts_out,
                         const ArrayType<LocalIndex, 3>& nodemap_in,
                         const ArrayType<LocalIndex, 3>& nodemap_out) :
-      m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
-      m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out)),
+      m_vals(lagrange_memoizer.getValuesP(pts_in, pts_out)), 
+      m_derivs(lagrange_memoizer.getDerivsP(pts_in, pts_out)),
       m_nodemap_in(nodemap_in),
       m_nodemap_out(nodemap_out)
     {
@@ -349,6 +351,7 @@ class LagrangeEvaluatorTPFlatToTPFlat
       assert(vals_out.num_dimensions() == 1);
       assert(vals_in.shape()[0]        == getNumPointsIn());
       assert(vals_out.shape()[0]       == getNumPointsOut());
+      const auto& vals = *m_vals;
 
 
       for (Index i_out=0; i_out < getNumTPPointsOut(); ++i_out)
@@ -361,8 +364,8 @@ class LagrangeEvaluatorTPFlatToTPFlat
               for (Index j_in=0; j_in < getNumTPPointsIn(); ++j_in)
                 //TODO: precompute first two lagrange polynomials here
                 for (Index k_in=0; k_in < getNumTPPointsIn(); ++k_in)
-                  vals_out[node_out] += m_vals[i_out][i_in]*
-                                 m_vals[j_out][j_in]*m_vals[k_out][k_in]*
+                  vals_out[node_out] += vals[i_out][i_in]*
+                                 vals[j_out][j_in]*vals[k_out][k_in]*
                                  vals_in[m_nodemap_in[i_in][j_in][k_in]];
           }
     }
@@ -376,6 +379,8 @@ class LagrangeEvaluatorTPFlatToTPFlat
       assert(vals_in.shape()[0]        == getNumPointsIn());
       assert(vals_out.shape()[0]       == getNumPointsOut());
       assert(vals_out.shape()[1]       == 3);
+      const auto& vals   = *m_vals;
+      const auto& derivs = *m_derivs;
 
 
       for (Index i_out=0; i_out < getNumTPPointsOut(); ++i_out)
@@ -393,14 +398,27 @@ class LagrangeEvaluatorTPFlatToTPFlat
                 {
                   auto val = vals_in[m_nodemap_in[i_in][j_in][k_in]];
                   vals_out[node_out][0] += 
-                    m_derivs[i_out][i_in]*m_vals[j_out][j_in]*m_vals[k_out][k_in]*val;
+                    derivs[i_out][i_in]*vals[j_out][j_in]*vals[k_out][k_in]*val;
                   vals_out[node_out][1] += 
-                    m_vals[i_out][i_in]*m_derivs[j_out][j_in]*m_vals[k_out][k_in]*val;
+                    vals[i_out][i_in]*derivs[j_out][j_in]*vals[k_out][k_in]*val;
                   vals_out[node_out][2] += 
-                    m_vals[i_out][i_in]*m_vals[j_out][j_in]*m_derivs[k_out][k_in]*val;
+                    vals[i_out][i_in]*vals[j_out][j_in]*derivs[k_out][k_in]*val;
 
                 }
           }
+    }
+
+    LagrangeEvaluatorTPFlatToTPFlat& operator=(const LagrangeEvaluatorTPFlatToTPFlat& other)
+    {
+      m_nodemap_in.resize(boost::extents[other.m_nodemap_in.shape()[0]][other.m_nodemap_in.shape()[1]][other.m_nodemap_in.shape()[2]]);
+      m_nodemap_out.resize(boost::extents[other.m_nodemap_out.shape()[0]][other.m_nodemap_out.shape()[1]][other.m_nodemap_out.shape()[2]]);
+
+      m_vals = other.m_vals;
+      m_derivs = other.m_derivs;
+      m_nodemap_in = other.m_nodemap_in;
+      m_nodemap_out = other.m_nodemap_out;
+
+      return *this;
     }
 
     Index getNumPointsIn() const {return m_nodemap_in.num_elements();}
@@ -408,16 +426,19 @@ class LagrangeEvaluatorTPFlatToTPFlat
     Index getNumPointsOut() const {return m_nodemap_out.num_elements();}
 
   private:
-    Index getNumTPPointsIn() const {return m_vals.shape()[1];}
+    Index getNumTPPointsIn() const {return m_vals->shape()[1];}
 
-    Index getNumTPPointsOut() const {return m_vals.shape()[0];}
+    Index getNumTPPointsOut() const {return m_vals->shape()[0];}
 
     // TODO use BOOST_RESTRICT
     // basis function values and derivatives, npts_out x npts_in
-    LagrangeMemoizer::RetType m_vals;
-    LagrangeMemoizer::RetType m_derivs;
-    const ArrayType<LocalIndex, 3>& m_nodemap_in;
-    const ArrayType<LocalIndex, 3>& m_nodemap_out;
+    //TODO: these used to be const references, but that disabled the
+    //      copy assignment operator
+    //      If arrays had reference semantics, this wouldn't be an issue,
+    LagrangeMemoizer::RetTypeP m_vals;
+    LagrangeMemoizer::RetTypeP m_derivs;
+    ArrayType<LocalIndex, 3> m_nodemap_in;
+    ArrayType<LocalIndex, 3> m_nodemap_out;
 };
 
 

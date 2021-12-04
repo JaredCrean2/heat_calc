@@ -32,11 +32,35 @@ struct FaceSpec
 class TensorProductMapper
 {
   public:
+  // TODO: maybe ReferenceElement should not be responsible for tensor product mapping
+  //       and this class should be moved into utils
     explicit TensorProductMapper(ReferenceElement* ref_el) :
       tp_nodemap(ref_el->getTensorProductMap()),
       m_xi(ref_el->getTensorProductXi())
       //m_ref_el(ref_el)
     {}
+
+    explicit TensorProductMapper(const std::vector<Real>& xi = {}) :
+      tp_nodemap(boost::extents[xi.size()][xi.size()][xi.size()]),
+      m_xi(xi)
+    {
+      int idx = 0;
+      for (unsigned int i=0; i < xi.size(); ++i)
+        for (unsigned int j=0; j < xi.size(); ++j)
+          for (unsigned int k=0; k < xi.size(); ++k)
+            tp_nodemap[i][j][k] = idx++;
+    }
+
+    TensorProductMapper& operator=(const TensorProductMapper& other)
+    {
+      tp_nodemap.resize(
+        boost::extents[other.tp_nodemap.shape()[0]][other.tp_nodemap.shape()[1]][other.tp_nodemap.shape()[2]]);
+
+      tp_nodemap = other.tp_nodemap;
+      m_xi = other.m_xi;
+
+      return *this;
+    }
 
     const std::vector<Real> getXi() const { return m_xi;}
     
@@ -89,8 +113,8 @@ class TensorProductMapper
 
 
   private:
-    const ArrayType<LocalIndex, 3>& tp_nodemap;
-    const std::vector<Real> m_xi;
+    ArrayType<LocalIndex, 3> tp_nodemap;
+    std::vector<Real> m_xi;
     //ReferenceElement* m_ref_el;
 };
 
