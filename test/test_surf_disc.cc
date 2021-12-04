@@ -14,9 +14,11 @@ class SurfaceTester : public::testing::Test
       quad(getGaussianQuadrature(3))
     {
       spec = getStandardMeshSpec();
-      //spec.nx = 4; spec.ny = 5, spec.nz = 6;
-      spec.nx = 1; spec.ny = 1, spec.nz = 1;
-      spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
+      spec.nx = 4; spec.ny = 5, spec.nz = 6;
+      //spec.nx = 1; spec.ny = 1, spec.nz = 1;
+      //spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
+      mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
+      mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};
       mesh = makeStandardMesh(spec);
  
       Mesh::VolumeGroup& vol_group = mesh->getElements(0);
@@ -32,6 +34,8 @@ class SurfaceTester : public::testing::Test
     }
 
     Mesh::MeshSpec spec;
+    std::array<Real, 3> mesh_dim_mins;
+    std::array<Real, 3> mesh_dim_maxs;
     std::shared_ptr<Mesh::MeshCG> mesh;
     Quadrature quad;
     std::vector<SurfDiscPtr> surf_discs;
@@ -138,7 +142,11 @@ TEST_F(SurfaceTester, integrateFaceScalar)
           val_sum += integrateFaceScalar(surf_i, j, vals);
         }
 
-        double val_exact = 1*(poly_antideriv(1.0, degree) - poly_antideriv(0.0, degree));
+        // compute exact result
+        int other_active_dim = (active_coords[i][d] + 1) % 2;
+        double area = mesh_dim_maxs[other_active_dim] - mesh_dim_mins[other_active_dim];
+
+        double val_exact = area*(poly_antideriv(mesh_dim_maxs[d], degree) - poly_antideriv(mesh_dim_mins[d], degree));
         EXPECT_FLOAT_EQ(val_sum, val_exact);
       }
   }
@@ -155,6 +163,7 @@ TEST_F(SurfaceTester, integrateFaceVector)
     auto& quad = surf_i->quad;
     auto active_coord = active_coords[i];  // normal vector component that is non-zero
     auto variable_coord = (active_coord + 1) % 3;  // coordinate that varies over the face
+    auto other_variable_coord = (active_coord + 2) % 3;
     ArrayType<double, 2> face_coords(boost::extents[surf_i->getNumQuadPtsPerFace()][3]);
     ArrayType<double, 2> vals(boost::extents[surf_i->getNumQuadPtsPerFace()][3]);
 
@@ -175,8 +184,11 @@ TEST_F(SurfaceTester, integrateFaceVector)
 
         val_sum += integrateFaceVector(surf_i, j, vals); 
       }
-
-      double val_exact = 1*(poly_antideriv(1.0, degree) - poly_antideriv(0.0, degree)) * face_sign[i];
+        
+      // compute exact result
+      double area = mesh_dim_maxs[other_variable_coord] - mesh_dim_mins[other_variable_coord];
+      double val_exact = area*(poly_antideriv(mesh_dim_maxs[variable_coord], degree) -
+                               poly_antideriv(mesh_dim_mins[variable_coord], degree)) * face_sign[i];
       EXPECT_FLOAT_EQ(val_sum, val_exact);
     }
   }

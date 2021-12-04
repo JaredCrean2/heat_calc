@@ -112,7 +112,7 @@ void computeInverse3x3(ArrayIn& A, ArrayOut& B)
 void getVolumePoints(const VolumeDiscretization& disc, ArrayType<Real, 2>& face_points);
 
 
-// integrates a scalar quantity over a single face, given the values at the quadrature points
+// integrates a scalar quantity over a single element, given the values at the quadrature points
 template <typename Array>
 typename Array::element integrateVolumeScalar(VolDiscPtr vol, const int el, const Array& vals)
 {
