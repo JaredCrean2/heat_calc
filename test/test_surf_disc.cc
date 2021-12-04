@@ -119,7 +119,6 @@ TEST_F(SurfaceTester, integrateFaceScalar)
 
   for (Index i=0; i < mesh->getNumSurfaces(); ++i)
   {
-    std::cout << "\nsurface " << i << std::endl;
     auto surf_i = surf_discs[i];
     auto& quad = surf_i->quad;
     ArrayType<double, 2> face_coords(boost::extents[surf_i->getNumQuadPtsPerFace()][3]);
@@ -128,24 +127,13 @@ TEST_F(SurfaceTester, integrateFaceScalar)
     for (int degree=0; degree < 2*quad.getNumPoints() - 1; ++degree)
       for (int d=0; d < 2; ++d)
       {
-        std::cout << "\ndegree " << degree << ", d = " << d << std::endl;
         double val_sum = 0;
         for (int j=0; j < surf_i->getNumFaces(); ++j)
         {
-          std::cout << "face " << j << std::endl;
           surf_i->getFaceQuadCoords(j, face_coords);
-          for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
-            std::cout << "point " << k << " coords = " << face_coords[k][0] << ", "
-                      << face_coords[k][1] << ", " << face_coords[k][2] << std::endl;
                       
           for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
-          {
-            //std::cout << "k = " << k << std::endl;
-            //std::cout << "active coord = " << active_coords[i][d] << std::endl;
-            std::cout << "face coords[k] = " << face_coords[k][active_coords[i][d]] << std::endl;
             vals[k] = poly(face_coords[k][active_coords[i][d]], degree);
-            std::cout << "vals[k] = " << vals[k] << std::endl;
-          }
 
           val_sum += integrateFaceScalar(surf_i, j, vals);
         }
@@ -153,6 +141,44 @@ TEST_F(SurfaceTester, integrateFaceScalar)
         double val_exact = 1*(poly_antideriv(1.0, degree) - poly_antideriv(0.0, degree));
         EXPECT_FLOAT_EQ(val_sum, val_exact);
       }
+  }
+}
+
+TEST_F(SurfaceTester, integrateFaceVector)
+{
+  std::vector<int> active_coords{1, 0, 1, 0, 2, 2};
+  std::vector<int> face_sign{-1, 1, 1, -1, -1, 1};
+
+  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+  {
+    auto surf_i = surf_discs[i];
+    auto& quad = surf_i->quad;
+    auto active_coord = active_coords[i];  // normal vector component that is non-zero
+    auto variable_coord = (active_coord + 1) % 3;  // coordinate that varies over the face
+    ArrayType<double, 2> face_coords(boost::extents[surf_i->getNumQuadPtsPerFace()][3]);
+    ArrayType<double, 2> vals(boost::extents[surf_i->getNumQuadPtsPerFace()][3]);
+
+    for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
+      for (int d=0; d < 3; ++d)
+        if (d != active_coord)
+          vals[k][d] = 666; // random data;
+
+    for (int degree=0; degree < 2*quad.getNumPoints() - 1; ++degree)
+    {
+      double val_sum = 0.0;
+      for (int j=0; j < surf_i->getNumFaces(); ++j)
+      {
+        surf_i->getFaceQuadCoords(j, face_coords);
+
+        for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
+          vals[k][active_coord] = poly(face_coords[k][variable_coord], degree);
+
+        val_sum += integrateFaceVector(surf_i, j, vals); 
+      }
+
+      double val_exact = 1*(poly_antideriv(1.0, degree) - poly_antideriv(0.0, degree)) * face_sign[i];
+      EXPECT_FLOAT_EQ(val_sum, val_exact);
+    }
   }
 }
 

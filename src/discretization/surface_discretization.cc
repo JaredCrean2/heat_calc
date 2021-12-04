@@ -15,11 +15,6 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
   auto& tp_mapper = volume_discs[0]->vol_group.getTPMapperCoord();
   for (int i=0; i < face_group.ref_el_coord->getNumFaces(); ++i)
   {
-    std::cout << "constructing interpolators for face " << i << std::endl;
-    for (int j=0; j < face_points.shape()[1]; ++j)
-      std::cout << "face point " << j << " xi = " << face_points[i][j][0] << ", "
-               << face_points[i][j][1] << ", " << face_points[i][j][2] << std::endl;
-
     interp_vcq_tp.emplace_back(tp_mapper.getXi(),
                        face_points[boost::indices[i][range()][range()]]);
     interp_vcq_flat.emplace_back(tp_mapper.getXi(),
@@ -79,23 +74,19 @@ void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& norma
 
 void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points)
 {
-  std::cout << "\nEntered getFacePoints" << std::endl;
   int npts = disc.quad.getNumPoints() * disc.quad.getNumPoints();
   face_points.resize(boost::extents[disc.face_group.ref_el_coord->getNumFaces()][npts][3]);
   Real xi_face[3], xi_element[3];
 
   for (int face=0; face < disc.face_group.ref_el_coord->getNumFaces(); ++face)
   {
-    std::cout << "face = " << face << std::endl;
     int idx = 0;
     for (int i=0; i < disc.quad.getNumPoints(); ++i)
       for (int j=0; j < disc.quad.getNumPoints(); ++j)
       {
         xi_face[0] = disc.quad.getPoint(i);
         xi_face[1] = disc.quad.getPoint(j);
-        std::cout << "face xi = " << xi_face[0] << ", " << xi_face[1] << std::endl;
         disc.face_group.ref_el_coord->computeElementXi(face, xi_face, xi_element);
-        std::cout << "xi_element = " << xi_element[0] << ", " << xi_element[1] << ", " << xi_element[2] << std::endl;
         for (int d=0; d < 3; ++d)
           face_points[face][idx][d] = xi_element[d];
         idx++;

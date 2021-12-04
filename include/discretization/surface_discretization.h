@@ -49,13 +49,6 @@ void SurfaceDiscretization::getFaceQuadCoords(const Index face, Array2D& quad_co
   auto& face_spec = face_group.faces[face];
   auto vol_disc = getVolDisc(face);
 
-  auto coords_vol_tmp = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][range()]];
-  for (int i=0; i < vol_disc->vol_group.coords.shape()[1]; ++i)
-    std::cout << "vol point " << i << ": " << coords_vol_tmp[i][0] << ", " 
-              << coords_vol_tmp[i][1] << ", " << coords_vol_tmp[i][2] << std::endl;
-
-  std::cout << "face_spec.face = " << face_spec.face << std::endl;
-
   for (int d=0; d < 3; ++d)
   {
     auto coords_vol = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][d]];
@@ -105,6 +98,34 @@ typename Array::element integrateFaceScalar(SurfDiscPtr surf, const int face, co
       auto weight = surf->quad.getWeight(i) * surf->quad.getWeight(j);
 
       val += vals[idx++] * weight * area;
+    }
+
+  return val;
+}
+
+// integrates a vector quantity over a single face, computing v dot n, given the values at the quadrature points
+template <typename Array>
+typename Array::element integrateFaceVector(SurfDiscPtr surf, const int face, const Array& vals)
+{
+  using Element = typename Array::element;
+  assert(vals.num_dimensions() == 2);
+  assert(vals.shape()[0] == static_cast<unsigned int>(surf->getNumQuadPtsPerFace()));
+  assert(vals.shape()[1] == 3);
+
+  Element val = 0;
+  int idx = 0;
+  for (int i=0; i < surf->quad.getNumPoints(); ++i)
+    for (int j=0; j < surf->quad.getNumPoints(); ++j)
+    {
+      Element val_j = 0;
+      for (int d=0; d < 3; ++d)
+      {
+        val_j += vals[idx][d] * surf->normals[face][idx][d];
+      }
+      auto weight = surf->quad.getWeight(i) * surf->quad.getWeight(j);
+
+      val += weight * val_j;
+      idx++;
     }
 
   return val;

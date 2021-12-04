@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ASAN flags
-ASAN_FLAGS="-fsanitize=address"
+#ASAN_FLAGS="-fsanitize=address"
 
 cmake \
 -D CMAKE_C_COMPILER=`which mpicc` \
