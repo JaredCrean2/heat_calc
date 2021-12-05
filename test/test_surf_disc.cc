@@ -18,7 +18,6 @@ class SurfaceTester : public ::testing::Test,
     }
 };
 
-
 }
 
 

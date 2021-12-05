@@ -36,10 +36,27 @@ class VolumeDiscretization
     int getNumQuadPtsPerElement() const { return quad.getNumPoints() * quad.getNumPoints() * quad.getNumPoints(); }
 
     // computes coordinates of volume quadrature points in a flat array (num quad points per face x 3)
-    auto getVolumeQuadCoords(const Index el) -> const decltype(vol_group.coords[boost::indices[0][range()][range()]]);
+    template <typename Array2D>
+    void getVolumeQuadCoords(const Index el, Array2D& quad_coords);
 };
 
 using VolDiscPtr = std::shared_ptr<VolumeDiscretization>;
+
+
+template <typename Array2D>
+void VolumeDiscretization::getVolumeQuadCoords(const Index el, Array2D& quad_coords)
+{
+  assert(quad_coords.num_dimensions() == 2);
+  assert(quad_coords.shape()[0] == getNumQuadPtsPerElement());
+  assert(quad_coords.shape()[1] == 3);
+
+  for (int d=0; d < 3; ++d)
+  {
+    auto coords_d = vol_group.coords[boost::indices[el][range()][d]];
+    auto quad_coords_d = quad_coords[boost::indices[range()][d]];
+    interp_cq_flat_to_flat.interpolateVals(coords_d, quad_coords_d);
+  }
+}
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx); 
 
@@ -126,7 +143,7 @@ typename Array::element integrateVolumeScalar(VolDiscPtr vol, const int el, cons
       for (int k=0; k < vol->quad.getNumPoints(); ++k)
       {
         auto weight = vol->quad.getWeight(i) * vol->quad.getWeight(j) * vol->quad.getWeight(k);
-        val += vals[idx] * weight * vol->detJ[el][idx];
+        val += vals[idx] * weight / vol->detJ[el][idx];
         idx++;
       }
 

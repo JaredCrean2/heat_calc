@@ -3,9 +3,9 @@
 #include "utils/lagrange.h"
 #include <iostream>
 
-VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, const Quadrature& quad) :
+VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, const Quadrature& _quad) :
   vol_group(vol_group),
-  quad(quad),
+  quad(_quad),
   interp_cs_tp_to_tp(vol_group.getTPMapperCoord().getXi(),
                      vol_group.getTPMapperSol().getXi()),
   interp_cs_flat_to_tp(vol_group.getTPMapperCoord().getXi(),
@@ -28,6 +28,7 @@ VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, c
                          tp_mapper_quad.getNodemap());
 
   computeDxidx(*this, dxidx);
+  computeDetJ(*this, detJ);
 }
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx)
@@ -60,8 +61,10 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
 
 void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ)
 {
+  detJ.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumQuadPtsPerElement()]);
+
   for (int i=0; i < vol_disc.getNumElems(); ++i)
-    for (int j=0; j < vol_disc.getNumSolPtsPerElement(); ++j)
+    for (int j=0; j < vol_disc.getNumQuadPtsPerElement(); ++j)
       detJ[i][j] = computeDet3x3(vol_disc.dxidx[boost::indices[i][j][range()][range()]]);
 }
 
@@ -83,11 +86,3 @@ void getVolumePoints(const VolumeDiscretization& disc, ArrayType<Real, 2>& vol_p
       }
 
 }
-
-
-auto VolumeDiscretization::getVolumeQuadCoords(const Index el) -> const decltype(vol_group.coords[boost::indices[0][range()][range()]])
-{
-  return vol_group.coords[boost::indices[el][range()][range()]];
-}
-
-

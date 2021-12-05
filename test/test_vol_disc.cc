@@ -71,3 +71,61 @@ TEST(VolDisc, MatFuncs)
     for (int j=0; j < 3; ++j)
       EXPECT_FLOAT_EQ(Ainv[i][j], C[i][j]);
 }
+
+
+namespace {
+
+class VolumeTester : public ::testing::Test,
+                     public StandardMeshSetup
+
+{
+  protected:
+    VolumeTester()
+    {
+      setup();
+    }
+};
+
+  double poly(const double x, const int n)
+  {
+    assert(n >= 0);
+    return std::pow(x, n);
+  }
+
+  double poly_antideriv(const double x, const int n)
+  {
+    assert( n >= 0);      
+    return std::pow(x, n+1)/(n+1);
+  }
+
+}
+
+
+TEST_F(VolumeTester, integrateVolumeScalar)
+{
+  ArrayType<Real, 2> quad_coords(boost::extents[vol_disc->getNumQuadPtsPerElement()][3]);
+  ArrayType<Real, 1> vals(boost::extents[vol_disc->getNumQuadPtsPerElement()]);
+  for (int degree=0; degree < 2*quad.getNumPoints() - 1; ++degree)
+    for (int d=0; d < 3; ++d)
+    {
+      Real val = 0.0;
+      for (int i=0; i < vol_disc->getNumElems(); ++i)
+      {
+        vol_disc->getVolumeQuadCoords(i, quad_coords);
+        for (int j=0; j < vol_disc->getNumQuadPtsPerElement(); ++j)
+          vals[j] = poly(quad_coords[j][d], degree);
+
+        val += integrateVolumeScalar(vol_disc, i, vals);
+      }
+
+      // compute exact value
+      Real area = 1;
+      for (int d2=0; d2 < 3; ++d2)
+        if (d2 != d)
+          area *= mesh_dim_maxs[d2] - mesh_dim_mins[d2];
+
+      Real val_exact = area*(poly_antideriv(mesh_dim_maxs[d], degree) - poly_antideriv(mesh_dim_mins[d], degree));
+      EXPECT_FLOAT_EQ(val, val_exact);
+    }
+}
+
