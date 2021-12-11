@@ -39,6 +39,9 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements_group,
                 ArrayType<Index, 2>& nodenums);
 
+void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_nums);
+
+
 //const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree);
 
 // get xi coordinates of coordinate nodes of 1D element

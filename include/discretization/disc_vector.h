@@ -4,7 +4,6 @@
 #include "ProjectDefs.h"
 #include "discretization/discretization.h"
 
-
 #include <stdexcept>
 
 class DiscVector

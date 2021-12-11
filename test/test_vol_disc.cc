@@ -28,10 +28,10 @@ TEST(VolDisc, dxidx)
         {
           if (d1 == d2)
           {
-            EXPECT_FLOAT_EQ(vol_disc.dxidx[i][j][d1][d2], dxidx_ex[d1]);
+            EXPECT_NEAR(vol_disc.dxidx[i][j][d1][d2], dxidx_ex[d1], 1e-13);
           } else
           {
-            EXPECT_FLOAT_EQ(vol_disc.dxidx[i][j][d1][d2], 0);
+            EXPECT_NEAR(vol_disc.dxidx[i][j][d1][d2], 0, 1e-13);
           }
           
         }

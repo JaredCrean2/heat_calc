@@ -36,7 +36,6 @@ class StandardMeshSetup
     {
       quad = getGaussianQuadrature(quad_degree);
 
-
       mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
       mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};
       mesh = makeStandardMesh(spec);

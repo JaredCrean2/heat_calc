@@ -2,13 +2,19 @@
 
 # ASAN flags
 #ASAN_FLAGS="-fsanitize=address"
+#CXXFLAGS="-O0 -Wall -g"
+#BUILDTYPE="Debug"
+
+CXXFLAGS="-O3 -Wall"
+BUILDTYPE="Release"
+
 
 cmake \
 -D CMAKE_C_COMPILER=`which mpicc` \
 -D CMAKE_EXPORT_COMPILE_COMMANDS=1 \
 -D CMAKE_CXX_COMPILER=`which mpicxx` \
--D CMAKE_BUILD_TYPE=Debug \
--D CMAKE_CXX_FLAGS="-O0 -Wall -g $ASAN_FLAGS" \
+-D CMAKE_BUILD_TYPE=$BUILDTYPE \
+-D CMAKE_CXX_FLAGS="$CXXFLAGS $ASAN_FLAGS" \
 ..
 
 

@@ -123,13 +123,17 @@ void MeshCG::createVolumeGroups()
     getDofNums(m_apf_data, m_volume_spec[i], elements_group, dof_nums);
     getCoords(m_apf_data,  m_volume_spec[i], elements_group, coords);
 
-    //TODO: use emplace
-    m_vol_group.push_back(VolumeGroup(dof_nums, coords,
+    m_vol_group.emplace_back(VolumeGroup(m_volume_spec[i].getIdx(), dof_nums, coords,
       m_tensor_product_coord_map, m_tensor_product_sol_map, 
       ref_el_coord, ref_el_sol, elements_group));
 
+    m_elnums_local_to_global[i].resize(elements_group.size());
     for (SInt j=0; j < elements_group.size(); ++j)
-      m_elnums_global_to_local[apf::getNumber(m_apf_data.el_nums, elements_group[j], 0, 0)] = j;
+    {
+      Index elnum_global = apf::getNumber(m_apf_data.el_nums, elements_group[j], 0, 0);
+      m_elnums_global_to_local[elnum_global] = j;
+      m_elnums_local_to_global[i][j] = elnum_global;
+    }
   }
 
 }
@@ -149,7 +153,7 @@ void MeshCG::createFaceGroups()
 
   for (auto& surf : m_all_face_spec)
   {
-    m_all_faces.emplace_back(ref_el_coord, ref_el_sol, nodemap_coord, nodemap_sol, tp_nodemap);
+    m_all_faces.emplace_back(surf.getIdx(), ref_el_coord, ref_el_sol, nodemap_coord, nodemap_sol, tp_nodemap);
     auto& face_group = m_all_faces.back();
 
     //TODO: consider doing adjacency based search (starting with min
@@ -221,6 +225,13 @@ void MeshCG::createFaceGroups()
           parent_group.nodenums[group_elnum][nodemap_sol[face_i.face][node]];
     }
   }
+}
+
+
+void MeshCG::getElementDofs(const VolumeGroup& vol_group, int el_idx, std::vector<Index>& nodenums)
+{
+  int elnum_global = m_elnums_local_to_global[vol_group.getIdx()].at(el_idx);
+  getDofNums(m_apf_data, m_elements[elnum_global], nodenums);
 }
 
 } // namespace

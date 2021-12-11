@@ -122,7 +122,7 @@ class TensorProductMapper
 class VolumeGroup
 {
   public:
-    VolumeGroup (ArrayType<Index, 2>& nodenums, ArrayType<Real, 3>& coords,
+    VolumeGroup (const int idx, ArrayType<Index, 2>& nodenums, ArrayType<Real, 3>& coords,
                  const TensorProductMapper& tp_mapper_coord,
                  const TensorProductMapper& tp_mapper_sol,
                  ReferenceElement* ref_el_coord,
@@ -135,6 +135,7 @@ class VolumeGroup
       ref_el_sol(ref_el_sol),
       sol_degree(ref_el_sol->getDegree()),
       m_elements(elements),
+      m_idx(idx),
       m_tp_mapper_coord(tp_mapper_coord),
       m_tp_mapper_sol(tp_mapper_sol)
     {}
@@ -149,6 +150,7 @@ class VolumeGroup
     int sol_degree;
 
     std::vector<apf::MeshEntity*> m_elements;
+    int getIdx() const {return m_idx;}
 
     int getNumElems() const { return nodenums.shape()[0];}
 
@@ -167,13 +169,14 @@ class VolumeGroup
     void rotateDerivative(ArrayType<T, 2> deriv_xi, ArrayType<T, 2> deriv_x);
 
   private:
+    const int m_idx;
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;
 };
 
 struct FaceGroup
 {
-  FaceGroup(ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol,
+  FaceGroup(const int idx, ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol,
             ArrayType<LocalIndex, 2> nodemap_coord,
             ArrayType<LocalIndex, 2> nodemap_sol,
             const ArrayType<LocalIndex, 2> face_tp_nodemap_coord) :
@@ -181,7 +184,8 @@ struct FaceGroup
     ref_el_sol(ref_el_sol),
     nodemap_coord(nodemap_coord),
     nodemap_sol(nodemap_sol),
-    face_tp_nodemap_coord(face_tp_nodemap_coord)
+    face_tp_nodemap_coord(face_tp_nodemap_coord),
+    m_idx(idx)
   {}
 
   std::vector<FaceSpec> faces;
@@ -197,11 +201,16 @@ struct FaceGroup
   // face tensor product nodemap
   const ArrayType<LocalIndex, 2> face_tp_nodemap_coord;
 
+  int getIdx() const { return m_idx; }
+
   int getNumFaces() const { return faces.size();}
 
   int getNumCoordPtsPerFace() const { return nodemap_coord.shape()[1]; }
 
   int getNumSolPtsPerFace() const { return nodemap_sol.shape()[1];}
+
+  private:
+    const int m_idx;
 };
 
 struct ApfData
@@ -304,6 +313,8 @@ class MeshCG
     // returns true if dof appears in the linear system (ie. not Dirichlet)
     bool isDofActive(const Index dof) const { return dof < getNumDofs();}
 
+    void getElementDofs(const VolumeGroup& vol_group, int el_idx, std::vector<Index>& nodenums);
+
     // returns all the dofs connected to the given node (including self)
     void getDofConnectivity(const Index el, const Index node, std::vector<DofInt>);
 
@@ -332,6 +343,7 @@ class MeshCG
     std::vector<FaceGroup> m_all_faces;
     std::vector<apf::MeshEntity*> m_elements;
     std::vector<Index> m_elnums_global_to_local;  // element numbers to group element numbers
+    std::vector< std::vector<Index> > m_elnums_local_to_global; // (group, local element number) -> global element number
     TensorProductMapper m_tensor_product_coord_map;
     TensorProductMapper m_tensor_product_sol_map;
 

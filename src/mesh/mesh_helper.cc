@@ -153,26 +153,31 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements,
                 ArrayType<Index, 2>& nodenums)
 {
-  apf::Downward down;
+  std::vector<int> nodenums_tmp;
   int el_idx = 0;
   for( auto e : elements )
   {
-    int idx=0, offset=0;
-    for (int dim=0; dim <= 3; ++dim)
-    {
-      int ndown = apf_data.m->getDownward(e, dim, down);
+    getDofNums(apf_data, e, nodenums_tmp);
+    for (unsigned int j=0; j < nodenums_tmp.size(); ++j)
+      nodenums[el_idx][j] = nodenums_tmp[j];
 
-      int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(down[0]));
-      for (int i=0; i < ndown; ++i)
-        for (int j=0; j < nnodes_dim; ++j)
-        {
-          nodenums[el_idx][idx++] =
-            apf::getNumber(apf_data.dof_nums, down[i], j, 0);
-        }
-
-      offset = offset + ndown * nnodes_dim;
-    }
     el_idx += 1;
+  }
+}
+
+void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_nums)
+{
+  node_nums.resize(0);
+  apf::Downward down;
+  int idx=0;
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    int ndown = apf_data.m->getDownward(e, dim, down);
+
+    int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(down[0]));
+    for (int i=0; i < ndown; ++i)
+      for (int j=0; j < nnodes_dim; ++j)
+        node_nums.push_back(apf::getNumber(apf_data.dof_nums, down[i], j, 0));
   }
 }
 

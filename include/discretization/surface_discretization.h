@@ -15,7 +15,9 @@ class SurfaceDiscretization
         const Quadrature& quad,
         const std::vector<VolDiscPtr>& volume_discs);
 
-    int getNumFaces() const {return face_group.getNumFaces();}
+    int getIdx() const { return face_group.getIdx(); }
+
+    int getNumFaces() const { return face_group.getNumFaces();}
 
     int getNumCoordPtsPerFace() const { return face_group.getNumCoordPtsPerFace(); }
 
