@@ -169,7 +169,6 @@ void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_num
 {
   node_nums.resize(0);
   apf::Downward down;
-  int idx=0;
   for (int dim=0; dim <= 3; ++dim)
   {
     int ndown = apf_data.m->getDownward(e, dim, down);

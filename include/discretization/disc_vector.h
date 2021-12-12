@@ -3,6 +3,7 @@
 
 #include "ProjectDefs.h"
 #include "discretization/discretization.h"
+#include "discretization/dof_numbering.h"
 
 #include <stdexcept>
 
@@ -43,18 +44,21 @@ class DiscVector
     DiscPtr m_disc;
     ArrayType<Real, 1> m_vec;    // length numdofs
     std::vector<ArrayType<Real, 2>> m_array;  // vector length num volume
-                                // groups,
-                                // inner array nelem per group x numSolNodesPerElement
+                                              // groups,
+                                              // inner array nelem per group x numSolNodesPerElement
     bool m_is_vec_modified   = false;
     bool m_is_array_modified = false;
 };
 
+
 template <typename T>
 void DiscVector::setFunc(T func)
 {
+  auto dof_numbering = m_disc->getDofNumbering();
   for (int i=0; i < m_disc->getNumVolDiscs(); ++i)
   {
     VolDiscPtr disc = m_disc->getVolDisc(i);
+    const auto& dof_nums = dof_numbering->getDofs(i);
     auto& array_i   = m_array[i];
     //TODO: use one stored in disc
     LagrangeEvaluatorTPFlatToTPFlat mapper(
@@ -76,9 +80,9 @@ void DiscVector::setFunc(T func)
       {
         auto val = func(coords_sol[node][0], coords_sol[node][1],
                         coords_sol[node][2]);
-        auto dof = disc->vol_group.nodenums[el][node];
+        auto dof = dof_nums[el][node];
         array_i[el][node] = val;
-        if (m_disc->getMesh()->isDofActive(dof))
+        if (dof_numbering->isDofActive(dof))
           m_vec[dof] = val;
       }
     }
@@ -89,5 +93,7 @@ void DiscVector::setFunc(T func)
 };
 
 using DiscVectorPtr = std::shared_ptr<DiscVector>;
+
+DiscVectorPtr makeDiscVector(DiscPtr disc);
 
 #endif

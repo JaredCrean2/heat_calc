@@ -26,28 +26,28 @@ class DofNumbering
     }
 
 
-    const ArrayType<Index, 2>& getDofs(const int idx)
+    const ArrayType<Index, 2>& getDofs(const int idx) const
     {
       return m_dof_nums.at(idx);
     }
 
-    const ArrayType<Index, 2>& getDofs(const VolDiscPtr vol_disc)
+    const ArrayType<Index, 2>& getDofs(const VolDiscPtr vol_disc) const
     {
       return getDofs(vol_disc->getIdx());
     }
 
-    const std::vector<ElementNode>& getDirichletNodes(const int idx)
+    const std::vector<ElementNode>& getDirichletNodes(const int idx) const
     {
       return m_dirichlet_node_nums.at(idx);
     }
 
-    const std::vector<ElementNode>& getDirichletNodes(const VolDiscPtr vol_disc)
+    const std::vector<ElementNode>& getDirichletNodes(const VolDiscPtr vol_disc) const
     {
       return getDirichletNodes(vol_disc->getIdx());
     }
 
 
-    bool isDofACtive(Index dof)
+    bool isDofActive(Index dof) const
     {
       return dof < m_num_dofs;
     }
@@ -61,6 +61,8 @@ class DofNumbering
     int m_num_dofs;
 
 };
+
+using DofNumberingPtr = std::shared_ptr<DofNumbering>;
 
 
 #endif

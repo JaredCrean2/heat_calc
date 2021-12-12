@@ -7,6 +7,7 @@ set(src_files EpwReader.cc
               discretization/volume_discretization.cc 
               discretization/surface_discretization.cc
               discretization/discretization.cc
+              discretization/dof_numbering.cc
               discretization/disc_vector.cc
               discretization/model.cc
               )

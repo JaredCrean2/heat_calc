@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 
+#include "discretization/dof_numbering.h"
 #include "mesh/mesh.h"
 #include "discretization/surface_discretization.h"
 #include "discretization/volume_discretization.h"
@@ -27,11 +28,13 @@ class Discretization
 
     std::shared_ptr<Mesh::MeshCG> getMesh() const { return m_mesh; }
 
+    DofNumberingPtr getDofNumbering() const {return m_dof_numbering; }
 
   private:
     std::shared_ptr<Mesh::MeshCG> m_mesh;
     std::vector<VolDiscPtr> m_vol_discs;
     std::vector<SurfDiscPtr> m_surf_discs;
+    DofNumberingPtr m_dof_numbering;
 };
 
 using DiscPtr = std::shared_ptr<Discretization>;

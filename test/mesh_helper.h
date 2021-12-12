@@ -5,6 +5,7 @@
 #include "mesh/mesh.h"
 #include "mesh/mesh_input.h"
 #include "discretization/surface_discretization.h"
+#include "discretization/discretization.h"
 #include "mesh/mesh_generator.h"
 #include "quadrature.h"
 
@@ -13,14 +14,14 @@ Mesh::MeshSpec getStandardMeshSpec();
 
 std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& spec = getStandardMeshSpec());
 
-
-class StandardMeshSetup
+// creates a single block mesh with all dirichlet BCs
+class StandardMeshBase
 {
   public:
-    virtual ~StandardMeshSetup() {}
+    virtual ~StandardMeshBase() {}
 
     // function must be called before first usage of any fields
-    void setup(const int quad_degree = 5)
+    virtual void setup(const int quad_degree=5)
     {
       spec = getStandardMeshSpec();
       spec.nx = 4; spec.ny = 5, spec.nz = 6;
@@ -32,13 +33,36 @@ class StandardMeshSetup
     }
 
 
-    void setup(const int quad_degree, const Mesh::MeshSpec& spec)
+    virtual void setup(const int quad_degree, const Mesh::MeshSpec& spec)
     {
       quad = getGaussianQuadrature(quad_degree);
 
       mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
       mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};
       mesh = makeStandardMesh(spec);
+
+    }
+
+    Mesh::MeshSpec spec;
+    std::array<Real, 3> mesh_dim_mins;
+    std::array<Real, 3> mesh_dim_maxs;
+    std::shared_ptr<Mesh::MeshCG> mesh;
+    Quadrature quad{getGaussianQuadrature(0)};
+};
+
+
+// creates mesh + volume disc and 1 surface disc for each face of the cube
+class StandardMeshSetup : public StandardMeshBase
+{
+  public:
+    virtual ~StandardMeshSetup() {}
+
+    using StandardMeshBase::setup;
+
+    virtual void setup(const int quad_degree, const Mesh::MeshSpec& spec) override
+    {
+
+      StandardMeshBase::setup(quad_degree, spec);
  
       Mesh::VolumeGroup& vol_group = mesh->getElements(0);
       vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
@@ -51,13 +75,27 @@ class StandardMeshSetup
       }
     }
 
-    Mesh::MeshSpec spec;
-    std::array<Real, 3> mesh_dim_mins;
-    std::array<Real, 3> mesh_dim_maxs;
-    std::shared_ptr<Mesh::MeshCG> mesh;
-    Quadrature quad{getGaussianQuadrature(0)};
     VolDiscPtr vol_disc;
     std::vector<SurfDiscPtr> surf_discs;
+};
+
+// creates mesh and a Discretization
+class StandardDiscSetup : public StandardMeshBase
+{
+  public:
+    virtual ~StandardDiscSetup() {}
+
+    using StandardMeshBase::setup;
+
+    virtual void setup(const int quad_degree, const Mesh::MeshSpec& spec) override
+    {
+
+      StandardMeshBase::setup(quad_degree, spec);
+
+      disc = std::make_shared<Discretization>(mesh, quad_degree, quad_degree);
+    }
+
+  DiscPtr disc;
 };
 
 #endif

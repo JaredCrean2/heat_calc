@@ -37,17 +37,20 @@ void DiscVector::markArrayModified()
 // Dirichlet values are not present in the vector
 void DiscVector::syncVectorToArray()
 {
+  auto dof_numbering = m_disc->getDofNumbering();
+
   for (int i=0; i < m_disc->getNumVolDiscs(); ++i)
   {
     VolDiscPtr vol_disc = m_disc->getVolDisc(i);
+    const auto& dof_nums = dof_numbering->getDofs(i);
     auto& array_i = m_array[i];
+
     for (int el=0; el < vol_disc->getNumElems(); ++el)
       for (int node=0; node < vol_disc->getNumSolPtsPerElement(); ++node)
       {
-        auto dof = vol_disc->vol_group.nodenums[el][node];
-        if (m_disc->getMesh()->isDofActive(dof))
+        auto dof = dof_nums[el][node];
+        if (dof_numbering->isDofActive(dof))
           array_i[el][node] = m_vec[dof];
-
       }
   }
 
@@ -64,17 +67,19 @@ void DiscVector::syncArrayToVector(const bool zero_vec)
     for( auto& val : m_vec)
       val = 0;
 
+  auto dof_numbering = m_disc->getDofNumbering();
   for (int i=0; i < m_disc->getNumVolDiscs(); ++i)
   {
     VolDiscPtr vol_disc = m_disc->getVolDisc(i);
+    const auto& dof_nums = dof_numbering->getDofs(i);
     auto& array_i = m_array[i];
+
     for (int el=0; el < vol_disc->getNumElems(); ++el)
       for (int node=0; node < vol_disc->getNumSolPtsPerElement(); ++node)
       {
-        auto dof = vol_disc->vol_group.nodenums[el][node];
-        if (m_disc->getMesh()->isDofActive(dof))
+        auto dof = dof_nums[el][node];
+        if (dof_numbering->isDofActive(dof))
           m_vec[dof] += array_i[el][node];
-
       }
   }
 
@@ -118,6 +123,12 @@ void DiscVector::set(const Real val)
 
   m_is_vec_modified   = false;
   m_is_array_modified = false;
+}
+
+
+DiscVectorPtr makeDiscVector(DiscPtr disc)
+{
+  return std::make_shared<DiscVector>(disc);
 }
 
 

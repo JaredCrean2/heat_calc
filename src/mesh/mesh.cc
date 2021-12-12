@@ -104,6 +104,7 @@ void MeshCG::createVolumeGroups()
 
   m_elements = reorderer.getElements();
   m_elnums_global_to_local.resize(m_elements.size());
+  m_elnums_local_to_global.resize(m_volume_spec.size());
 
   ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
                                             m_dof_numbering.coord_degree);
