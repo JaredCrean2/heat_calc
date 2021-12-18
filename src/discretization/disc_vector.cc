@@ -59,38 +59,15 @@ void DiscVector::syncVectorToArray()
 }
 
 
-// sums array entries into vector.
-//   zero_vec: if true (default) zeros the vector first
-void DiscVector::syncArrayToVector(const bool zero_vec)
+ArrayType<Real, 1>& DiscVector::getVector()
 {
-  if (zero_vec)
-    for( auto& val : m_vec)
-      val = 0;
+  if (m_is_array_modified)
+    throw std::runtime_error("cannot get vector when array is already modified");
 
-  auto dof_numbering = m_disc->getDofNumbering();
-  for (int i=0; i < m_disc->getNumVolDiscs(); ++i)
-  {
-    VolDiscPtr vol_disc = m_disc->getVolDisc(i);
-    const auto& dof_nums = dof_numbering->getDofs(i);
-    auto& array_i = m_array[i];
-
-    for (int el=0; el < vol_disc->getNumElems(); ++el)
-      for (int node=0; node < vol_disc->getNumSolPtsPerElement(); ++node)
-      {
-        auto dof = dof_nums[el][node];
-        if (dof_numbering->isDofActive(dof))
-          m_vec[dof] += array_i[el][node];
-      }
-  }
-
-  m_is_vec_modified   = false;
-  m_is_array_modified = false;
+  return m_vec;
 }
 
-
-
-
-ArrayType<Real, 1>& DiscVector::getVector()
+const ArrayType<Real, 1>& DiscVector::getVector() const
 {
   if (m_is_array_modified)
     throw std::runtime_error("cannot get vector when array is already modified");
@@ -100,6 +77,14 @@ ArrayType<Real, 1>& DiscVector::getVector()
 
 
 ArrayType<Real, 2>& DiscVector::getArray(const Index idx)
+{
+  if (m_is_vec_modified)
+    throw std::runtime_error("cannot get array when vector is already modified");
+
+  return m_array.at(idx);
+}
+
+const ArrayType<Real, 2>& DiscVector::getArray(const Index idx) const
 {
   if (m_is_vec_modified)
     throw std::runtime_error("cannot get array when vector is already modified");

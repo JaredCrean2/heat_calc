@@ -6,6 +6,7 @@
 #include "discretization/dof_numbering.h"
 
 #include <stdexcept>
+#include <functional>
 
 class DiscVector
 {
@@ -21,12 +22,22 @@ class DiscVector
     void syncVectorToArray();
 
     // sums array entries into vector.
+    //   func: a binary function z = func(x, y).  x is always the value currently
+    //         in the vector (at that point in the algorithm), y is the value in
+    //         the array
     //   zero_vec: if true (default) zeros the vector first
-    void syncArrayToVector(const bool zero_vec = true);
+    template <typename Func=std::plus<Real>>
+    void syncArrayToVector(const Func func = std::plus<Real>(), const bool zero_vec = true);
 
     ArrayType<Real, 1>& getVector();
 
+    const ArrayType<Real, 1>& getVector() const;
+
+    int getNumArrays() const { return m_array.size(); }
+
     ArrayType<Real, 2>& getArray(const Index idx);
+
+    const ArrayType<Real, 2>& getArray(const Index idx) const;
 
     // sets both vector and array (including dirchlet values) to a
     // constant value
@@ -49,6 +60,36 @@ class DiscVector
     bool m_is_vec_modified   = false;
     bool m_is_array_modified = false;
 };
+
+
+// sums array entries into vector.
+//   zero_vec: if true (default) zeros the vector first
+template <typename Func>
+void DiscVector::syncArrayToVector(Func func, const bool zero_vec)
+{
+  if (zero_vec)
+    for( auto& val : m_vec)
+      val = 0;
+
+  auto dof_numbering = m_disc->getDofNumbering();
+  for (int i=0; i < m_disc->getNumVolDiscs(); ++i)
+  {
+    VolDiscPtr vol_disc = m_disc->getVolDisc(i);
+    const auto& dof_nums = dof_numbering->getDofs(i);
+    auto& array_i = m_array[i];
+
+    for (int el=0; el < vol_disc->getNumElems(); ++el)
+      for (int node=0; node < vol_disc->getNumSolPtsPerElement(); ++node)
+      {
+        auto dof = dof_nums[el][node];
+        if (dof_numbering->isDofActive(dof))
+          m_vec[dof] = func(m_vec[dof], array_i[el][node]);
+      }
+  }
+
+  m_is_vec_modified   = false;
+  m_is_array_modified = false;
+}
 
 
 template <typename T>

@@ -15,6 +15,12 @@ struct ElementNode
   LocalIndex node;  // local node number
 };
 
+template <typename T>
+struct Assign2
+{
+  T operator()(const T first, const T second) { return second;}
+};
+
 class DofNumbering
 {
   public:
