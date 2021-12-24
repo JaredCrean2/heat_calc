@@ -21,8 +21,6 @@ class BoundaryCondition
       auto& face_spec = surf_group.faces[face];
       auto& vol_disc = getSurfDisc()->volume_discs[face_spec.vol_group];
       //auto& localidx = vol_disc.nodemap_coord[face][node];
-      std::cout << "face = " << face_spec.face << std::endl;
-      std::cout << "number of interpolators = " << getSurfDisc()->interp_vcs_flat.size() << std::endl;
       for (int d=0; d < 3; ++d)
       {
         auto coords_d = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][d]];

@@ -66,6 +66,9 @@ void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs);
 void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
                        ArrayType<Real, 2>& rhs_arr);
 
+void printArray(DiscVectorPtr vec);
+
+
 } // namespace
 
 #endif

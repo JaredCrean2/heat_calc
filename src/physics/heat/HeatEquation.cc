@@ -1,4 +1,5 @@
 #include "physics/heat/HeatEquation.h"
+#include "discretization/disc_vector.h"
 #include "physics/heat/basis_vals.h"
 #include "mesh/mesh.h"
 
@@ -16,6 +17,9 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
+
+  std::cout << "after volume term " << std::endl;
+  printArray(rhs);
 
   // compute Neumann BC terms
   if (getNeumannBCs().size() != 0)
@@ -52,10 +56,9 @@ void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorP
     auto vol_disc = disc->getVolDisc(i);
     auto& params  = physics.getVolumeGroupParams(i);
     auto& u_arr   = u->getArray(i);
-    auto& rhs_arr = u->getArray(i);
+    auto& rhs_arr = rhs->getArray(i);
 
     computeVolumeTerm(vol_disc, params, u_arr, rhs_arr);
-
   }
 
   rhs->markArrayModified();
@@ -97,9 +100,13 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
           int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
           Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
           for (int d=0; d < 3; ++d)
+          {
+            //std::cout << "assembling value " << alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k] << std::endl;
             rhs_arr[el][i] += alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k];
+          }
         }
 }
+
 
 //-----------------------------------------------------------------------------
 // source term
@@ -138,6 +145,20 @@ void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
       for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
         rhs_arr[el][i] -= basis_vals.getValue(i, q) * weight * src_vals[q] / detJ[el][q];
     }
+  }
+}
+
+void printArray(DiscVectorPtr vec)
+{
+  auto disc = vec->getDisc();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    std::cout << "Block " << i << std::endl;
+    auto& arr_i = vec->getArray(i);
+
+    for (unsigned int el=0; el < arr_i.shape()[0]; ++el)
+      for (unsigned int j=0; j < arr_i.shape()[1]; ++j)
+        std::cout << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
   }
 }
 

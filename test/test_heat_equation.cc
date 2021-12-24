@@ -64,5 +64,8 @@ TEST_F(HeatMMSTester, Constant)
 
   auto& vec = res_vec->getVector();
   for (int i=0; i < vec.shape()[0]; ++i)
+  {
+    std::cout << "vec " << i << " = " << vec[i] << std::endl;
     EXPECT_LE(std::abs(vec[i]), 1e-13);
+  }
 }
