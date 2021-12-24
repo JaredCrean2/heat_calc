@@ -179,13 +179,15 @@ struct FaceGroup
   FaceGroup(const int idx, ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol,
             ArrayType<LocalIndex, 2> nodemap_coord,
             ArrayType<LocalIndex, 2> nodemap_sol,
-            const ArrayType<LocalIndex, 2> face_tp_nodemap_coord) :
+            const ArrayType<LocalIndex, 2> face_tp_nodemap_coord,
+            bool is_dirichlet) :
     ref_el_coord(ref_el_coord),
     ref_el_sol(ref_el_sol),
     nodemap_coord(nodemap_coord),
     nodemap_sol(nodemap_sol),
     face_tp_nodemap_coord(face_tp_nodemap_coord),
-    m_idx(idx)
+    m_idx(idx),
+    m_is_dirichlet(is_dirichlet)
   {}
 
   std::vector<FaceSpec> faces;
@@ -203,6 +205,8 @@ struct FaceGroup
 
   int getIdx() const { return m_idx; }
 
+  bool getIsDirichlet() const { return m_is_dirichlet; }
+
   int getNumFaces() const { return faces.size();}
 
   int getNumCoordPtsPerFace() const { return nodemap_coord.shape()[1]; }
@@ -211,6 +215,7 @@ struct FaceGroup
 
   private:
     const int m_idx;
+    const bool m_is_dirichlet;
 };
 
 struct ApfData

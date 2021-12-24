@@ -63,7 +63,7 @@ class DofNumbering
     void setDofs(std::shared_ptr<Mesh::MeshCG> mesh, int vol_idx);
 
     std::vector<ArrayType<Index, 2>> m_dof_nums;
-    std::vector<std::vector<ElementNode>> m_dirichlet_node_nums;
+    std::vector<std::vector<ElementNode>> m_dirichlet_node_nums;  //TODO: unused?
     int m_num_dofs;
 
 };

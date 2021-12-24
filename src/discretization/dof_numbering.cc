@@ -3,8 +3,6 @@
 
 void DofNumbering::setDofs(std::shared_ptr<Mesh::MeshCG> mesh, int vol_idx)
 {
-  assert(m_dof_nums.size() < vol_idx);
-
   auto& vol_group = mesh->getElements(vol_idx);
   m_dof_nums.emplace_back(boost::extents[vol_group.getNumElems()][vol_group.getNumSolPtsPerElement()]);
   m_dirichlet_node_nums.emplace_back();

@@ -17,6 +17,12 @@ class DiscVector
 
     void markArrayModified();
 
+    // returns true if the most current data is in the vector
+    bool isVectorCurrent() const { return !m_is_array_modified;}
+
+    // returns true if the most current data is in the array
+    bool isArrayCurrent() const { return !m_is_vec_modified;}
+
     // overwrites array with vector.  Does not overwrite all values because
     // Dirichlet values are not present in the vector
     void syncVectorToArray();
@@ -67,6 +73,12 @@ class DiscVector
 template <typename Func>
 void DiscVector::syncArrayToVector(Func func, const bool zero_vec)
 {
+  if (!m_is_array_modified)
+  {
+    std::cerr << "Warning: called syncArrayToVector when array has not been modified, vector will not be updated" << std::endl;
+    return;
+  }
+
   if (zero_vec)
     for( auto& val : m_vec)
       val = 0;

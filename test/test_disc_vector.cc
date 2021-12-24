@@ -128,6 +128,7 @@ TEST_F(DiscVectorTester, syncArrayToVector)
   for (unsigned int i=0; i < vec.shape()[0]; ++i)
     vec[i] = 0;
 
+  disc_vec->markArrayModified();
   disc_vec->syncArrayToVector(Assign2<Real>());
 
   auto dof_numbering = disc->getDofNumbering();
@@ -158,6 +159,7 @@ TEST_F(DiscVectorTester, syncVectorToArray)
     for (unsigned int j=0; j < dofs.shape()[1]; ++j)
       arr[i][j] = 0;
 
+  disc_vec->markVectorModified();
   disc_vec->syncVectorToArray();
 
   for (unsigned int i=0; i < dofs.shape()[0]; ++i)

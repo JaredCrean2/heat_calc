@@ -7,9 +7,12 @@ set(src_files EpwReader.cc
               discretization/volume_discretization.cc 
               discretization/surface_discretization.cc
               discretization/discretization.cc
+              discretization/DirichletBC.cc
               discretization/dof_numbering.cc
               discretization/disc_vector.cc
               discretization/model.cc
+              physics/PhysicsModel.cc
+              physics/heat/HeatEquation.cc
               )
 
 add_subdirectory(mesh)

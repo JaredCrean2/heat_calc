@@ -9,17 +9,22 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
 {
   this->quad.setDomain(volume_discs[0]->vol_group.ref_el_coord->getXiRange());
 
-  ArrayType<Real, 3> face_points(boost::extents[face_group.ref_el_coord->getNumFaces()][getNumQuadPtsPerFace()][3]);
-  getFacePoints(*this, face_points);
+  ArrayType<Real, 3> face_points_quad, face_points_sol;
+  getFaceQuadXi(*this, face_points_quad);
+  getFaceSolXi(*this, face_points_sol);
 
-  auto& tp_mapper = volume_discs[0]->vol_group.getTPMapperCoord();
+  auto& tp_mapper_coord = volume_discs[0]->vol_group.getTPMapperCoord();
+  auto& tp_mapper_sol   = volume_discs[0]->vol_group.getTPMapperSol();
   for (int i=0; i < face_group.ref_el_coord->getNumFaces(); ++i)
   {
-    interp_vcq_tp.emplace_back(tp_mapper.getXi(),
-                       face_points[boost::indices[i][range()][range()]]);
-    interp_vcq_flat.emplace_back(tp_mapper.getXi(),
-                       face_points[boost::indices[i][range()][range()]],
-                       tp_mapper.getNodemap()); 
+    interp_vcq_tp.emplace_back(tp_mapper_coord.getXi(),
+                       face_points_quad[boost::indices[i][range()][range()]]);
+    interp_vcq_flat.emplace_back(tp_mapper_coord.getXi(),
+                       face_points_quad[boost::indices[i][range()][range()]],
+                       tp_mapper_coord.getNodemap());
+    interp_vcs_flat.emplace_back(tp_mapper_sol.getXi(),
+                       face_points_sol[boost::indices[i][range()][range()]],
+                       tp_mapper_sol.getNodemap());
   }
   computeNormals(*this, normals);
 
@@ -72,7 +77,7 @@ void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& norma
   }
 }
 
-void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points)
+void getFaceQuadXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points)
 {
   int npts = disc.quad.getNumPoints() * disc.quad.getNumPoints();
   face_points.resize(boost::extents[disc.face_group.ref_el_coord->getNumFaces()][npts][3]);
@@ -93,6 +98,22 @@ void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_p
       }
   }
 }
+
+void getFaceSolXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points)
+{
+  int nfaces    = disc.face_group.ref_el_coord->getNumFaces();
+  auto& nodemap = disc.face_group.nodemap_sol;
+  auto& vol_xi  = disc.face_group.ref_el_sol->getNodeXi();
+  face_points.resize(boost::extents[nfaces][disc.getNumSolPtsPerFace()][3]);
+
+  for (int face=0; face < nfaces; ++face)
+  {
+    for (int j=0; j < disc.getNumSolPtsPerFace(); ++j)
+      for (int d=0; d < 3; ++d)
+        face_points[face][j][d] = vol_xi[nodemap[face][j]][d];
+  }
+}
+
 
 void getFaceTensorProductMap(const SurfaceDiscretization& disc, ArrayType<LocalIndex, 2>& nodemap)
 {

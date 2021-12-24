@@ -586,3 +586,55 @@ TEST(Polynomials, LagrangeTP2D)
   }
 
 }
+
+#include "mesh/mesh.h"
+#include "physics/heat/basis_vals.h"
+
+TEST(Polynomials, HeatBasisVals)
+{
+  std::vector<Real> pts_in = {-1.0, 0.0, 1.0};
+  std::vector<Real> pts_out = {-0.75, -0.25, 0.25, 0.75};
+  Mesh::TensorProductMapper mapper_in(pts_in), mapper_out(pts_out);
+  Heat::BasisVals basis_vals(mapper_in, mapper_out);
+
+  auto& nodemap_in  = mapper_in.getNodemap();
+  auto& nodemap_out = mapper_out.getNodemap();
+  int npts_in       = nodemap_in.num_elements();
+  int npts_out      = nodemap_out.num_elements();
+  ArrayType<Real, 1> vals_in_flat(boost::extents[npts_in]);
+  ArrayType<Real, 1> vals_out_flat(boost::extents[npts_out]);
+  ArrayType<Real, 2> derivs_out_flat(boost::extents[npts_out][3]);
+
+  for (int i=0; i < 3; ++i)
+    for (int j=0; j < 3; ++j)
+      for (int k=0; k < 3; ++k)
+        vals_in_flat[nodemap_in[i][j][k]] = testPoly(pts_in[i], pts_in[j], pts_in[k]);
+
+  for (int i=0; i < npts_out; ++i)
+  {
+    vals_out_flat[i] = 0;
+    for (int d=0; d < 3; ++d)
+      derivs_out_flat[i][d] = 0;
+    for (int j=0; j < npts_in; ++j)
+    {
+      vals_out_flat[i] += basis_vals.getValue(j, i) * vals_in_flat[j];
+
+      Real derivs[3];
+      basis_vals.getDerivs(j, i, derivs);
+      for (int d=0; d < 3; ++d)
+        derivs_out_flat[i][d] += derivs[d] * vals_in_flat[j];
+    }
+  
+  }
+
+  for (int i=0; i < 4; ++i)
+    for (int j=0; j < 4; ++j)
+      for (int k=0; k < 4; ++k)
+      {
+        EXPECT_FLOAT_EQ(vals_out_flat[nodemap_out[i][j][k]], testPoly(pts_out[i], pts_out[j], pts_out[k]));
+        EXPECT_FLOAT_EQ(derivs_out_flat[nodemap_out[i][j][k]][0], testPoly_dx(pts_out[i], pts_out[j], pts_out[k]));
+        EXPECT_FLOAT_EQ(derivs_out_flat[nodemap_out[i][j][k]][1], testPoly_dy(pts_out[i], pts_out[j], pts_out[k]));
+        EXPECT_FLOAT_EQ(derivs_out_flat[nodemap_out[i][j][k]][2], testPoly_dz(pts_out[i], pts_out[j], pts_out[k]));
+      }
+        
+}

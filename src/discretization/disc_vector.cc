@@ -37,6 +37,12 @@ void DiscVector::markArrayModified()
 // Dirichlet values are not present in the vector
 void DiscVector::syncVectorToArray()
 {
+  if (!m_is_vec_modified)
+  {
+    std::cerr << "Warning: called syncVectorToArray when vector has not been modified, array will not be updated" << std::endl;
+    return;
+  }
+  
   auto dof_numbering = m_disc->getDofNumbering();
 
   for (int i=0; i < m_disc->getNumVolDiscs(); ++i)

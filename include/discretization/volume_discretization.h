@@ -12,8 +12,8 @@ class VolumeDiscretization
   public:
     explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group,
                                   const Quadrature& quad);
-    ArrayType<Real, 4> dxidx;
-    ArrayType<Real, 2> detJ; // determinant of dxi/dx
+    ArrayType<Real, 4> dxidx;  // num elements x numQuadPtsPerElement x 3 x 3
+    ArrayType<Real, 2> detJ; // determinant of dxi/dx, num elements x numQuadPtsPerFace
     const Mesh::VolumeGroup& vol_group;
     Quadrature quad;
     // coordinate to solution interpolation

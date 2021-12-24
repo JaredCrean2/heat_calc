@@ -91,6 +91,7 @@ class StandardDiscSetup : public StandardMeshBase
     {
 
       StandardMeshBase::setup(quad_degree, spec);
+      std::cout << "number of mesh volume groups = " << mesh->getNumVolumeGroups() << std::endl;
 
       disc = std::make_shared<Discretization>(mesh, quad_degree, quad_degree);
     }

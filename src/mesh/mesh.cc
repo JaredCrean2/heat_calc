@@ -154,7 +154,8 @@ void MeshCG::createFaceGroups()
 
   for (auto& surf : m_all_face_spec)
   {
-    m_all_faces.emplace_back(surf.getIdx(), ref_el_coord, ref_el_sol, nodemap_coord, nodemap_sol, tp_nodemap);
+    m_all_faces.emplace_back(surf.getIdx(), ref_el_coord, ref_el_sol, nodemap_coord, nodemap_sol,
+                             tp_nodemap, surf.getIsDirichlet());
     auto& face_group = m_all_faces.back();
 
     //TODO: consider doing adjacency based search (starting with min

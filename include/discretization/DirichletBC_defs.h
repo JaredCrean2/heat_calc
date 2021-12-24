@@ -10,14 +10,14 @@ class DirichletBCMMS : public DirichletBC
     DirichletBCMMS(SurfDiscPtr surf, T func) :
       DirichletBC(surf), 
       m_func(func),
-      m_coords(boost::extents[surf->getNumQuadPtsPerFace()][3])
+      m_coords(boost::extents[surf->getNumSolPtsPerFace()][3])
   {}
 
 
-    void getValue(const Index face, const Real t, Real* vals) const override
+    void getValue(const Index face, const Real t, Real* vals) override
     {
       auto surf_disc = getSurfDisc();
-      getNodeCoords(face, m_coords);
+      getSolNodeCoords(face, m_coords);
 
       for (int i=0; i < surf_disc->getNumCoordPtsPerFace(); ++i)
         vals[i] = m_func(m_coords[i][0], m_coords[i][1], m_coords[i][2], t);

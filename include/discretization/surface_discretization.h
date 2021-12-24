@@ -17,6 +17,8 @@ class SurfaceDiscretization
 
     int getIdx() const { return face_group.getIdx(); }
 
+    bool getIsDirichlet() const { return face_group.getIsDirichlet(); }
+
     int getNumFaces() const { return face_group.getNumFaces();}
 
     int getNumCoordPtsPerFace() const { return face_group.getNumCoordPtsPerFace(); }
@@ -39,6 +41,10 @@ class SurfaceDiscretization
     // volume coords to face quadrature
     std::vector<LagrangeEvaluatorTPToNonTP> interp_vcq_tp;
     std::vector<LagrangeEvaluatorTPFlatToNonTP> interp_vcq_flat;
+
+    // volume coord to face solution
+    std::vector<LagrangeEvaluatorTPFlatToNonTP> interp_vcs_flat;
+
 
     ArrayType<LocalIndex, 2> quad_tp_nodemap;
 };
@@ -64,7 +70,10 @@ void SurfaceDiscretization::getFaceQuadCoords(const Index face, Array2D& quad_co
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals);
 
 // gets xi coordinates of surface quadrature points in flat array
-void getFacePoints(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points);
+void getFaceQuadXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points);
+
+// get xi coordinate of surface coordinate nodes on flat array
+void getFaceSolXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points);
 
 // get tensor product nodemap associated with getFacePoints
 void getFaceTensorProductMap(const SurfaceDiscretization& disc,
