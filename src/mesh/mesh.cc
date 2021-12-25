@@ -1,6 +1,7 @@
 #include "mesh/mesh.h"
 #include "mesh/mesh_helper.h"
 #include "mesh/dof_numbering.h"
+#include "mesh/apfShapeHex.h"
 #include "PCU.h"
 #include "mpi.h"
 
@@ -67,8 +68,8 @@ void MeshCG::setSurfaceIndices()
 
 void MeshCG::setApfData()
 {
-  m_apf_data.sol_shape = apf::getLagrange(m_dof_numbering.sol_degree);
-  m_apf_data.coord_shape = apf::getLagrange(m_dof_numbering.coord_degree);
+  m_apf_data.sol_shape = Mesh::getLagrange(m_dof_numbering.sol_degree);
+  m_apf_data.coord_shape = Mesh::getLagrange(m_dof_numbering.coord_degree);
 
   m_dof_numbering.nodes_per_element =
     apf::countElementNodes(m_apf_data.sol_shape, apf::Mesh::HEX);

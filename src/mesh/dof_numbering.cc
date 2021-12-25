@@ -18,12 +18,14 @@ namespace Mesh {
 
 bool AdjacencyNumberer::hasNode(apf::Mesh2* m_local, apf::MeshEntity* e)
 {
-  return m_local->getShape()->countNodesOn(m_local->getType(e)) > 0;
+  return apf::getShape(m_dof_nums)->countNodesOn(m_local->getType(e)) > 0;
+  //return m_local->getShape()->countNodesOn(m_local->getType(e)) > 0;
 }
 
 int AdjacencyNumberer::nodeCount(apf::Mesh2* m_local, apf::MeshEntity* e)
 {
-  return m_local->getShape()->countNodesOn(m_local->getType(e));
+  return apf::getShape(m_dof_nums)->countNodesOn(m_local->getType(e));
+  //return m_local->getShape()->countNodesOn(m_local->getType(e));
 }
 
 // determine if a dof should be numbered or not
@@ -73,7 +75,6 @@ apf::MeshEntity* AdjacencyNumberer::getStartEntity(apf::Mesh2* m_local)
       e_min = e_i;
       degree_min = degree;
     }
-
   }
 
   m_local->end(it);
@@ -220,7 +221,7 @@ void AdjacencyNumberer::printElNumbers(apf::Mesh2* m_local)
   while ((e = m_local->iterate(it) ) )
   {
     int num = apf::getNumber(m_el_nums, e, 0 , 0);
-    std::cout << "element " << i << "1 number = " << num << std::endl;
+    std::cout << "element " << i << " has num = " << num << std::endl;
     ++i;
   }
 }
@@ -284,7 +285,7 @@ void AdjacencyNumberer::reorder()
     numNodes_i = nodeCount(m_local,e);
     for ( int i = 0; i < numNodes_i; ++i)
       labelNode(e, i);
-
+    
     // if e is a vertex, find adjacencies, look for unlabeled nodes
     if (m_local->getType(e) == apf::Mesh::VERTEX)
     {

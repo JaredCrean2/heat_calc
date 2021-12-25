@@ -69,3 +69,40 @@ TEST_F(HeatMMSTester, Constant)
     EXPECT_LE(std::abs(vec[i]), 1e-13);
   }
 }
+
+
+TEST_F(HeatMMSTester, PolynomialExactness)
+{
+  for (int sol_degree=1; sol_degree <= 1; ++sol_degree)
+  {
+    std::cout << "testing sol degree " << sol_degree << std::endl;
+    for (int degree=0; degree <= sol_degree; ++degree)
+    {
+      std::cout << "  testing polynomial degree " << degree << std::endl;
+      auto ex_sol = [&] (Real x, Real y, Real z, Real t) -> Real
+                      { return std::pow(x, degree) + std::pow(y, degree) + std::pow(z, degree) ; };
+
+      auto src_func = [&] (Real x, Real y, Real z, Real t) -> Real
+                        {
+                          if (degree == 0)
+                            return 0.0;
+                          else
+                            return degree * std::pow(x, degree-1) + degree * std::pow(y, degree-1) + degree*std::pow(z, degree-1);
+                        };
+
+      setup(5, sol_degree);
+      setSolution(ex_sol, src_func);
+
+      heat->computeRhs(u_vec, 0.0, res_vec);
+      res_vec->syncArrayToVector();
+
+      auto& vec = res_vec->getVector();
+      for (int i=0; i < vec.shape()[0]; ++i)
+      {
+        std::cout << "vec " << i << " = " << vec[i] << std::endl;
+        EXPECT_LE(std::abs(vec[i]), 1e-13);
+      }
+
+    }
+  }
+}

@@ -8,6 +8,7 @@
 #include "apf.h"
 #include "apfNumbering.h"
 #include "apfMesh2.h"
+#include "apfShape.h"
 
 namespace Mesh{
 

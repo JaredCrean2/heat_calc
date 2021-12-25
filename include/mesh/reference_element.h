@@ -50,11 +50,14 @@ class ReferenceElementTensorProduct : public ReferenceElement
 
     virtual ~ReferenceElementTensorProduct() {}
 
-    const ArrayType<Real, 2>& getNodeXi() const override;
 
     int getNumNodes() const override;
 
     int getNumNodesTensorProduct() const override { return getTensorProductXi().size();}
+
+  protected:
+    ArrayType<Real, 2> computeNodeXi() const;
+
 };
 
 
@@ -62,12 +65,15 @@ class HexReferenceElement : public ReferenceElementTensorProduct
 {
   public:
     HexReferenceElement(const int degree) :
-      ReferenceElementTensorProduct(degree)
+      ReferenceElementTensorProduct(degree),
+      m_node_xi(computeNodeXi())
     {}
 
     const ArrayType<LocalIndex, 3>& getTensorProductMap() const override;
 
     const std::vector<Real>& getTensorProductXi() const override;
+
+    const ArrayType<Real, 2>& getNodeXi() const override;
 
     const ArrayType<Real, 2>& getNormals() const override;
 
@@ -76,6 +82,9 @@ class HexReferenceElement : public ReferenceElementTensorProduct
     void computeElementXi(const int face, const Real* xi_face, Real* xi_element) const override;
 
     int getNumFaces() const override { return 6;}
+
+  private:
+    ArrayType<Real, 2> m_node_xi;
 };
 
 

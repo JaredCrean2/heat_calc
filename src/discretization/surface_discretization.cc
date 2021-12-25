@@ -14,7 +14,7 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
   getFaceSolXi(*this, face_points_sol);
 
   auto& tp_mapper_coord = volume_discs[0]->vol_group.getTPMapperCoord();
-  auto& tp_mapper_sol   = volume_discs[0]->vol_group.getTPMapperSol();
+  //auto& tp_mapper_sol   = volume_discs[0]->vol_group.getTPMapperSol();
   for (int i=0; i < face_group.ref_el_coord->getNumFaces(); ++i)
   {
     interp_vcq_tp.emplace_back(tp_mapper_coord.getXi(),
@@ -22,9 +22,9 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
     interp_vcq_flat.emplace_back(tp_mapper_coord.getXi(),
                        face_points_quad[boost::indices[i][range()][range()]],
                        tp_mapper_coord.getNodemap());
-    interp_vcs_flat.emplace_back(tp_mapper_sol.getXi(),
+    interp_vcs_flat.emplace_back(tp_mapper_coord.getXi(),
                        face_points_sol[boost::indices[i][range()][range()]],
-                       tp_mapper_sol.getNodemap());
+                       tp_mapper_coord.getNodemap());
   }
   computeNormals(*this, normals);
 

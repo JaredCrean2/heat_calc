@@ -19,7 +19,7 @@ Mesh::MeshSpec getStandardMeshSpec()
 }
 
 
-std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec)
+std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec, int sol_degree)
 {
   auto generator = Mesh::make_mesh_generator(meshspec, &(Mesh::identity));
   auto m = generator.generate();
@@ -40,7 +40,7 @@ std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec)
 
   std::vector<Mesh::MeshEntityGroupSpec> other_surfaces;
   auto mesh = std::make_shared<Mesh::MeshCG>(m, volume_groups, surface_groups,
-                                       other_surfaces, 1, 1);
+                                       other_surfaces, sol_degree, 1);
 
   return mesh;
 }

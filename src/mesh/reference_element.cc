@@ -4,15 +4,16 @@ namespace Mesh {
 
 // ReferenceElementTensorProduct
 
-const ArrayType<Real, 2>& ReferenceElementTensorProduct::getNodeXi() const
+ArrayType<Real, 2> ReferenceElementTensorProduct::computeNodeXi() const
 {
   auto& nodemap = getTensorProductMap();
   auto& tp_xi   = getTensorProductXi();
-  static ArrayType<Real, 2> xi(boost::extents[getNumNodes()][3]);
-  static bool is_initialized = false;
 
-  if (!is_initialized)
-  {
+  ArrayType<Real, 2> xi(boost::extents[getNumNodes()][3]);
+  //static bool is_initialized = false;
+
+  //if (!is_initialized)
+ // {
     // TODO: this doesn't work for 2D
     for (int i=0; i < getNumNodesTensorProduct(); ++i)
       for (int j=0; j < getNumNodesTensorProduct(); ++j)
@@ -22,8 +23,8 @@ const ArrayType<Real, 2>& ReferenceElementTensorProduct::getNodeXi() const
             xi[nodemap[i][j][k]][1] = tp_xi[j];
             xi[nodemap[i][j][k]][2] = tp_xi[k];
         }
-    is_initialized = true;
-  }
+  //  is_initialized = true;
+  //}
 
   return xi;
 }
@@ -120,6 +121,12 @@ const std::vector<Real>& HexReferenceElement::getTensorProductXi() const
     throw std::invalid_argument(msg);
   }
 }
+
+const ArrayType<Real, 2>& HexReferenceElement::getNodeXi() const
+{
+  return m_node_xi;
+}
+
 
 
 const ArrayType<Real, 2>& HexReferenceElement::getNormals() const
