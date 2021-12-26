@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include <utility>
+#include <deque>
 
 // class for evaluating Lagrange polynomials and their derivatives
 class LagrangeBasis
@@ -77,8 +78,8 @@ class LagrangeMemoizer
 
     double m_eps = 1e-13;
     std::vector<InputOutput> m_inputs;
-    std::vector<SType> m_vals;  // pts_out x pts_in
-    std::vector<SType> m_derivs;  // pts_out x pts_in
+    std::deque<SType> m_vals;  // pts_out x pts_in
+    std::deque<SType> m_derivs;  // pts_out x pts_in
 };
 
 extern LagrangeMemoizer lagrange_memoizer;
