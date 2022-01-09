@@ -23,9 +23,9 @@ VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, c
 
   tp_mapper_quad = Mesh::TensorProductMapper(quad.getPoints());
   interp_cq_flat_to_flat = LagrangeEvaluatorTPFlatToTPFlat(vol_group.getTPMapperCoord().getXi(),
-                         tp_mapper_quad.getXi(),
-                         vol_group.getTPMapperCoord().getNodemap(),
-                         tp_mapper_quad.getNodemap());
+                                                           tp_mapper_quad.getXi(),
+                                                           vol_group.getTPMapperCoord().getNodemap(),
+                                                           tp_mapper_quad.getNodemap());
 
   computeDxidx(*this, dxidx);
   computeDetJ(*this, detJ);

@@ -12,14 +12,14 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   if (!(u->isArrayCurrent()))
     u->syncVectorToArray();
 
-  // apply Dirichlet values to vector
+  // apply Dirichlet values to array
   applyDirichletValues(*this, t, u);
 
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
 
-  std::cout << "after volume term " << std::endl;
-  printArray(rhs);
+  //std::cout << "\nafter volume term " << std::endl;
+  //printArray(rhs);
 
   // compute Neumann BC terms
   if (getNeumannBCs().size() != 0)
@@ -27,6 +27,9 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 
   // compute source term
   computeSourceTerm(*this, t, rhs);
+
+  //std::cout << "\nafter source term " << std::endl;
+  //printArray(rhs);
 }
 
 void HeatEquation::checkInitialization()
@@ -73,8 +76,11 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
   Real alpha = params.kappa / (params.rho * params.Cp);
   BasisVals basis_vals(vol_disc->vol_group.getTPMapperSol(), Mesh::TensorProductMapper(vol_disc->quad.getPoints()));
   Real dNi_dxi[3], dNi_dx[3], dNj_dxi[3], dNj_dx[3];
+
   for (int el=0; el < vol_disc->getNumElems(); ++el)
+  {
     for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+    {
       for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
         for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
         {
@@ -90,8 +96,8 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
             dNj_dx[d1] = 0;
             for (int d2=0; d2 < 3; ++d2)
             {
-              dNi_dx[d1] += dxidx[el][i][d2][d1] * dNi_dxi[d2];
-              dNj_dx[d1] += dxidx[el][j][d2][d1] * dNj_dxi[d2];
+              dNi_dx[d1] += dxidx[el][k][d2][d1] * dNi_dxi[d2];
+              dNj_dx[d1] += dxidx[el][k][d2][d1] * dNj_dxi[d2];
             }
           }
 
@@ -101,10 +107,11 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
           Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
           for (int d=0; d < 3; ++d)
           {
-            //std::cout << "assembling value " << alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k] << std::endl;
             rhs_arr[el][i] += alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k];
           }
         }
+    }
+  }
 }
 
 
@@ -138,18 +145,23 @@ void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
     src->getValues(el, t, src_vals.data());
+
     for (int q=0; q < vol_disc->getNumQuadPtsPerElement(); ++q)
     {
       int k_i = rev_nodemap[q][0]; int k_j = rev_nodemap[q][1]; int k_k = rev_nodemap[q][2];
       Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+
       for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+      {
         rhs_arr[el][i] -= basis_vals.getValue(i, q) * weight * src_vals[q] / detJ[el][q];
+      }
     }
   }
 }
 
 void printArray(DiscVectorPtr vec)
 {
+  Real val_sum = 0;
   auto disc = vec->getDisc();
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
   {
@@ -157,9 +169,20 @@ void printArray(DiscVectorPtr vec)
     auto& arr_i = vec->getArray(i);
 
     for (unsigned int el=0; el < arr_i.shape()[0]; ++el)
+    {
+      Real el_sum = 0;
       for (unsigned int j=0; j < arr_i.shape()[1]; ++j)
+      {
         std::cout << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+        val_sum += arr_i[el][j];
+        el_sum += arr_i[el][j];
+      }
+
+      std::cout << "el_sum = " << el_sum << std::endl;
+    }
   }
+
+  std::cout << "val_sum = " << val_sum << std::endl;
 }
 
 

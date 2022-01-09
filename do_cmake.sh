@@ -2,11 +2,11 @@
 
 # ASAN flags
 #ASAN_FLAGS="-fsanitize=address"
-CXXFLAGS="-O0 -Wall -g"
-BUILDTYPE="Debug"
+#CXXFLAGS="-O0 -Wall -g"
+#BUILDTYPE="Debug"
 
-#CXXFLAGS="-O3 -Wall"
-#BUILDTYPE="Release"
+CXXFLAGS="-O3 -Wall"
+BUILDTYPE="Release"
 
 
 cmake \

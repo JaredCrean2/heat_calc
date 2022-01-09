@@ -200,7 +200,6 @@ class LagrangeEvaluatorTPFlatToTP
                     m_vals[i_out][i_in]*m_derivs[j_out][j_in]*m_vals[k_out][k_in]*vals_in[node];
                   vals_out[i_out][j_out][k_out][2] += 
                     m_vals[i_out][i_in]*m_vals[j_out][j_in]*m_derivs[k_out][k_in]*vals_in[node];
-
                 }
           }
     }
@@ -352,7 +351,6 @@ class LagrangeEvaluatorTPFlatToTPFlat
       assert(vals_in.shape()[0]        == getNumPointsIn());
       assert(vals_out.shape()[0]       == getNumPointsOut());
       const auto& vals = *m_vals;
-
 
       for (Index i_out=0; i_out < getNumTPPointsOut(); ++i_out)
         for (Index j_out=0; j_out < getNumTPPointsOut(); ++j_out)

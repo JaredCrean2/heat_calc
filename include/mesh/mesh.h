@@ -10,6 +10,7 @@
 #include <apfMesh2.h>
 #include <apfNumbering.h>
 #include <vector>
+#include <iostream>
 
 namespace Mesh {
 
