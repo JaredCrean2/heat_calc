@@ -188,9 +188,10 @@ class LagrangeHexCubic : public FieldShape
       else if (type == Mesh::QUAD)
         return 4;
       else if (type == Mesh::HEX)
-        return 4;
+        return 8;
       else
-        throw std::runtime_error(std::string("entity type ") + apf::Mesh::typeName[type] + " not supported");
+        return 0;
+        //throw std::runtime_error(std::string("entity type ") + apf::Mesh::typeName[type] + " not supported");
     }
 
     int getOrder() override

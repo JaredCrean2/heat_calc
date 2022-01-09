@@ -15,7 +15,6 @@ void DofNumbering::setDofs(std::shared_ptr<Mesh::MeshCG> mesh, int vol_idx)
   for (int i=0; i < vol_group.getNumElems(); ++i)
   {
     mesh->getElementDofs(vol_group, i, nodenums_tmp);
-
     assert(nodenums_tmp.size() == vol_group.getNumSolPtsPerElement());
 
     for (int j=0; j < vol_group.getNumSolPtsPerElement(); ++j)

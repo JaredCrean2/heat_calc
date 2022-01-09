@@ -201,7 +201,7 @@ TEST(Polynomials, Quadrature)
   // test using orthogonality property of Legendre polnomials
 
   LegendrePoly legendre;
-  std::vector<int> exactness = {1, 3, 5, 7};
+  std::vector<int> exactness = {1, 3, 5, 7, 9};
 
   for (auto degree_max : exactness)
   {
