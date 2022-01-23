@@ -97,8 +97,8 @@ class LagrangeEvaluator2DTPFlatToTP
     LagrangeEvaluator2DTPFlatToTP(const std::vector<Real>& pts_in,
                                 const std::vector<Real>& pts_out,
                                 const ArrayType<LocalIndex, 2>& nodemap_in) :
-      m_vals(lagrange_memoizer.getValues(pts_in, pts_out)), 
-      m_derivs(lagrange_memoizer.getDerivs(pts_in, pts_out)),
+      m_vals(lagrange_memoizer.getValuesP(pts_in, pts_out)), 
+      m_derivs(lagrange_memoizer.getDerivsP(pts_in, pts_out)),
       m_nodemap_in(nodemap_in)
     {
       for (int i=0; i < 3; ++i)
@@ -116,6 +116,8 @@ class LagrangeEvaluator2DTPFlatToTP
       for (int i=0; i < 2; ++i)
         assert(vals_out.shape()[i] == getNumPointsOut());
 
+      const auto& vals     = *m_vals;
+      
       for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
         for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
         {
@@ -123,7 +125,7 @@ class LagrangeEvaluator2DTPFlatToTP
           for (Index i_in=0; i_in < getNumTPPointsIn(); ++i_in)
             for (Index j_in=0; j_in < getNumTPPointsIn(); ++j_in)
               vals_out[i_out][j_out] += 
-                m_vals[i_out][i_in]*m_vals[j_out][j_in]*
+                vals[i_out][i_in]*vals[j_out][j_in]*
                 vals_in[m_nodemap_in[i_in][j_in]];
         }
     }
@@ -140,6 +142,9 @@ class LagrangeEvaluator2DTPFlatToTP
       for (int i=0; i < 2; ++i)
         assert(vals_out.shape()[i] == getNumPointsOut());
 
+      const auto& vals     = *m_vals;
+      const auto& derivs = *m_derivs;
+
 
       for (Index i_out=0; i_out < getNumPointsOut(); ++i_out)
         for (Index j_out=0; j_out < getNumPointsOut(); ++j_out)
@@ -151,26 +156,26 @@ class LagrangeEvaluator2DTPFlatToTP
             {
               auto node = m_nodemap_in[i_in][j_in];
               vals_out[i_out][j_out][0] += 
-                m_derivs[i_out][i_in]*m_vals[j_out][j_in]*vals_in[node];
+                derivs[i_out][i_in]*vals[j_out][j_in]*vals_in[node];
               vals_out[i_out][j_out][1] += 
-                m_vals[i_out][i_in]*m_derivs[j_out][j_in]*vals_in[node];
+                vals[i_out][i_in]*derivs[j_out][j_in]*vals_in[node];
             }
         }
     }
 
     Index getNumPointsIn() const {return m_nodemap_in.num_elements();}
 
-    Index getNumPointsOut() const {return m_vals.shape()[0];}
+    Index getNumPointsOut() const {return m_vals->shape()[0];}
 
   private:
 
-    Index getNumTPPointsIn() const {return m_vals.shape()[1];}
+    Index getNumTPPointsIn() const {return m_vals->shape()[1];}
 
     // TODO use BOOST_RESTRICT
     // basis function values and derivatives, npts_out x npts_in
-    LagrangeMemoizer::RetType m_vals;
-    LagrangeMemoizer::RetType m_derivs;
-    const ArrayType<LocalIndex, 2>& m_nodemap_in;
+    LagrangeMemoizer::RetTypeP m_vals;
+    LagrangeMemoizer::RetTypeP m_derivs;
+    const ArrayType<LocalIndex, 2> m_nodemap_in;
 };
 
 

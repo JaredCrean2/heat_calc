@@ -2,6 +2,7 @@
 #define MESH_H
 
 #include "ProjectDefs.h"
+#include "utils/memory.h"
 #include "mesh/mesh_input.h"
 #include "mesh/reference_element.h"
 
@@ -62,6 +63,8 @@ class TensorProductMapper
 
       return *this;
     }
+
+    int getNumTPPoints() const { return m_xi.size(); }
 
     const std::vector<Real> getXi() const { return m_xi;}
     
@@ -178,6 +181,8 @@ class VolumeGroup
 struct FaceGroup
 {
   FaceGroup(const int idx, ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol,
+            const TensorProductMapper& tp_mapper_coord,
+            const TensorProductMapper& tp_mapper_sol,
             ArrayType<LocalIndex, 2> nodemap_coord,
             ArrayType<LocalIndex, 2> nodemap_sol,
             const ArrayType<LocalIndex, 2> face_tp_nodemap_coord,
@@ -188,7 +193,9 @@ struct FaceGroup
     nodemap_sol(nodemap_sol),
     face_tp_nodemap_coord(face_tp_nodemap_coord),
     m_idx(idx),
-    m_is_dirichlet(is_dirichlet)
+    m_is_dirichlet(is_dirichlet),
+    m_tp_mapper_coord(tp_mapper_coord),
+    m_tp_mapper_sol(tp_mapper_sol)
   {}
 
   std::vector<FaceSpec> faces;
@@ -214,16 +221,24 @@ struct FaceGroup
 
   int getNumSolPtsPerFace() const { return nodemap_sol.shape()[1];}
 
+  // TensorProductMappers for the volume element this face is based on
+  const TensorProductMapper& getTPMapperCoord() const { return m_tp_mapper_coord;}
+
+  const TensorProductMapper& getTPMapperSol() const { return m_tp_mapper_sol;}
+
   private:
     const int m_idx;
     const bool m_is_dirichlet;
+    const TensorProductMapper& m_tp_mapper_coord;
+    const TensorProductMapper& m_tp_mapper_sol;
 };
 
 struct ApfData
 {
   explicit ApfData(apf::Mesh2* m = nullptr, apf::Numbering* dof_nums=nullptr,
                    apf::Numbering* is_dirichlet=nullptr, apf::FieldShape* sol_shape=nullptr) :
-    m(m), dof_nums(dof_nums), is_dirichlet(is_dirichlet), sol_shape(sol_shape)
+    m(m), dof_nums(dof_nums), is_dirichlet(is_dirichlet), sol_shape(sol_shape),
+    m_shared(makeSharedWithDeleter(m, apf::destroyMesh))
   {}
 
   apf::Mesh2* m;
@@ -233,6 +248,11 @@ struct ApfData
   apf::FieldShape* sol_shape;    // FieldShape of solution
   apf::FieldShape* coord_shape;  // FieldShape of cooordinate field
   apf::Numbering* vol_groups;    // volume group number of elements
+
+  // unfortunately, the apf API takes raw pointers rather than shared
+  // pointers for everything, so we keep the raw pointer above, and also
+  // have a shared pointer for memory management
+  std::shared_ptr<apf::Mesh2> m_shared;
 
   //std::vector<apf::MeshEntity*> elements;
 };

@@ -11,10 +11,10 @@ class NeumannBC : public BoundaryCondition
 
     virtual ~NeumannBC() {}
 
-    // gets the prescribed flux value at the face qu adrature points.
+    // gets the prescribed flux value at the face quadrature nodes
     // it would be better if the output argument were a boost array type,
     // but template functions cant be virtual
-    virtual void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) const = 0;
+    virtual void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) = 0;
 
 };
 

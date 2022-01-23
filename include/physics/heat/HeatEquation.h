@@ -66,6 +66,11 @@ void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs);
 void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
                        ArrayType<Real, 2>& rhs_arr);
 
+void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs);
+
+void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs);
+
+
 void printArray(DiscVectorPtr vec);
 
 

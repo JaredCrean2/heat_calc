@@ -1,6 +1,7 @@
 #ifndef SURFACE_DISCRETIZATION_H
 #define SURFACE_DISCRETIZATION_H
 
+#include "lagrange.h"
 #include "mesh/mesh.h"
 #include "utils/lagrange2d.h"
 #include "utils/quadrature.h"
@@ -45,6 +46,8 @@ class SurfaceDiscretization
     // volume coord to face solution
     std::vector<LagrangeEvaluatorTPFlatToNonTP> interp_vcs_flat;
 
+    // volume solution to face quadrature
+    std::vector<LagrangeEvaluatorTPFlatToNonTP> interp_vsq_flat;
 
     ArrayType<LocalIndex, 2> quad_tp_nodemap;
 };
@@ -75,8 +78,8 @@ void getFaceQuadXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_p
 // get xi coordinate of surface coordinate nodes on flat array
 void getFaceSolXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points);
 
-// get tensor product nodemap associated with getFacePoints
-void getFaceTensorProductMap(const SurfaceDiscretization& disc,
+// get tensor product nodemap associated with getFaceQuadXi
+void getFaceTensorProductMap(int npts,
                              ArrayType<LocalIndex, 2>& nodemap);
 
 template <typename Array2D, typename ArrayNormalsXi, typename ArrayNormalsX>

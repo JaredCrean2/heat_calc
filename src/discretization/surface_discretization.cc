@@ -8,13 +8,14 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
   volume_discs(volume_discs)
 {
   this->quad.setDomain(volume_discs[0]->vol_group.ref_el_coord->getXiRange());
+  getFaceTensorProductMap(quad.getNumPoints(), quad_tp_nodemap);
 
   ArrayType<Real, 3> face_points_quad, face_points_sol;
   getFaceQuadXi(*this, face_points_quad);
   getFaceSolXi(*this, face_points_sol);
 
   auto& tp_mapper_coord = volume_discs[0]->vol_group.getTPMapperCoord();
-  //auto& tp_mapper_sol   = volume_discs[0]->vol_group.getTPMapperSol();
+  auto& tp_mapper_sol   = volume_discs[0]->vol_group.getTPMapperSol();
   for (int i=0; i < face_group.ref_el_coord->getNumFaces(); ++i)
   {
     interp_vcq_tp.emplace_back(tp_mapper_coord.getXi(),
@@ -25,7 +26,11 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
     interp_vcs_flat.emplace_back(tp_mapper_coord.getXi(),
                        face_points_sol[boost::indices[i][range()][range()]],
                        tp_mapper_coord.getNodemap());
+    interp_vsq_flat.emplace_back(tp_mapper_sol.getXi(),
+                                 face_points_quad[boost::indices[i][range()][range()]],
+                                 tp_mapper_sol.getNodemap());
   }
+
   computeNormals(*this, normals);
 
 }
@@ -85,16 +90,15 @@ void getFaceQuadXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_p
 
   for (int face=0; face < disc.face_group.ref_el_coord->getNumFaces(); ++face)
   {
-    int idx = 0;
     for (int i=0; i < disc.quad.getNumPoints(); ++i)
       for (int j=0; j < disc.quad.getNumPoints(); ++j)
       {
         xi_face[0] = disc.quad.getPoint(i);
         xi_face[1] = disc.quad.getPoint(j);
+        int idx = disc.quad_tp_nodemap[i][j];
         disc.face_group.ref_el_coord->computeElementXi(face, xi_face, xi_element);
         for (int d=0; d < 3; ++d)
           face_points[face][idx][d] = xi_element[d];
-        idx++;
       }
   }
 }
@@ -115,12 +119,11 @@ void getFaceSolXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_po
 }
 
 
-void getFaceTensorProductMap(const SurfaceDiscretization& disc, ArrayType<LocalIndex, 2>& nodemap)
+void getFaceTensorProductMap(int npts, ArrayType<LocalIndex, 2>& nodemap)
 {
-  nodemap.resize(boost::extents[disc.quad.getNumPoints()][disc.quad.getNumPoints()]);
+  nodemap.resize(boost::extents[npts][npts]);
   int idx = 0;
-  for (int i=0; i < disc.quad.getNumPoints(); ++i)
-    for (int j=0; j < disc.quad.getNumPoints(); ++j)
+  for (int i=0; i < npts; ++i)
+    for (int j=0; j < npts; ++j)
       nodemap[i][j] = idx++;
-
 }

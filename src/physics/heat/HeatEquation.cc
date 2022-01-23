@@ -22,8 +22,7 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   //printArray(rhs);
 
   // compute Neumann BC terms
-  if (getNeumannBCs().size() != 0)
-    throw std::runtime_error("Neumann BCs not yet supported");
+  computeNeumannBC(*this, t, u, rhs);
 
   // compute source term
   computeSourceTerm(*this, t, rhs);
@@ -156,6 +155,62 @@ void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
         rhs_arr[el][i] -= basis_vals.getValue(i, q) * weight * src_vals[q] / detJ[el][q];
       }
     }
+  }
+}
+
+//-----------------------------------------------------------------------------
+// Neumann BC
+
+void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs)
+{
+  const auto& neumann_bcs = physics.getNeumannBCs();
+  for (auto& bc : neumann_bcs)
+  {
+    computeNeumannBC(bc, u, t, rhs);
+  }
+}
+
+void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
+{
+  // Note: we currently don't require that a given surface has a single volume as
+  //       as its upward adjacency, so we have to look up a different volume disc
+  //       for every face
+
+  
+  auto surf = bc->getSurfDisc();
+  ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);
+  std::vector<Real> flux_vals(surf->getNumQuadPtsPerFace());
+  Quadrature& quad = surf->quad;
+  BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.nodemap_sol, surf->face_group.ref_el_sol);
+  for (int face=0; face < surf->getNumFaces(); ++face)
+  {
+    auto& face_spec = surf->face_group.faces[face];
+    auto& u_arr = u->getArray(face_spec.vol_group);
+    auto& res_arr = u->getArray(face_spec.vol_group);
+
+    auto u_el = u_arr[boost::indices[face_spec.el_group][range()]];
+    auto res_el = res_arr[boost::indices[face_spec.el_group][range()]];
+
+    surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
+    bc->getValue(face, t, u_quad.data(), flux_vals.data());
+
+    for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+      for (int j=0; j < surf->getNumQuadPtsPerFace(); ++j)
+      {
+        int node    = surf->quad_tp_nodemap[i][j];
+        Real weight = quad.getWeight(i) * quad.getWeight(j);
+        Real area   = std::sqrt(surf->normals[face][node][0] * surf->normals[face][node][0] +
+                             surf->normals[face][node][1] * surf->normals[face][node][1] +
+                             surf->normals[face][node][2] * surf->normals[face][node][2]);
+        Real val = weight * area;
+
+        for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
+        {
+          int node_sol = surf->face_group.nodemap_sol[face][k];
+          res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
+        }
+          
+      }
   }
 }
 

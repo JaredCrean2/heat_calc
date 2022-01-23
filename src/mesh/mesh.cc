@@ -155,7 +155,9 @@ void MeshCG::createFaceGroups()
 
   for (auto& surf : m_all_face_spec)
   {
-    m_all_faces.emplace_back(surf.getIdx(), ref_el_coord, ref_el_sol, nodemap_coord, nodemap_sol,
+    m_all_faces.emplace_back(surf.getIdx(), ref_el_coord, ref_el_sol,
+                             m_tensor_product_coord_map, m_tensor_product_sol_map,
+                             nodemap_coord, nodemap_sol,
                              tp_nodemap, surf.getIsDirichlet());
     auto& face_group = m_all_faces.back();
 

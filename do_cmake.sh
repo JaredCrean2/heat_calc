@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ASAN flags
-#ASAN_FLAGS="-fsanitize=address"
-#CXXFLAGS="-O0 -Wall -g"
+ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
+#CXXFLAGS="-O1 -Wall -g"
 #BUILDTYPE="Debug"
 
 CXXFLAGS="-O3 -Wall"
