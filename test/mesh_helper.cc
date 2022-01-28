@@ -1,6 +1,8 @@
 #include "mesh_helper.h"
 #include "mesh/mesh_generator.h"
 #include "mesh/mesh.h"
+#include "utils/error_handling.h"
+#include <stdexcept>
 
 Mesh::MeshSpec getStandardMeshSpec()
 {
@@ -19,8 +21,10 @@ Mesh::MeshSpec getStandardMeshSpec()
 }
 
 
-std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec, int sol_degree)
+std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec, int sol_degree, const std::vector<bool>& is_surf_dirichlet)
 {
+  assertAlways(is_surf_dirichlet.size() == 6, "is_surf_dirichlet must have length 6");
+
   auto generator = Mesh::make_mesh_generator(meshspec, &(Mesh::identity));
   auto m = generator.generate();
 
@@ -35,7 +39,7 @@ std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec, i
   {
     surface_groups.emplace_back(std::string("surface") + std::to_string(i));
     surface_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, i), Mesh::ModelEntitySpec(3, 0));
-    surface_groups.back().setIsDirichlet(true);
+    surface_groups.back().setIsDirichlet(is_surf_dirichlet[i]);
   }
 
   std::vector<Mesh::MeshEntityGroupSpec> other_surfaces;

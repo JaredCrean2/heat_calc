@@ -4,11 +4,15 @@
 #include "discretization/surface_discretization.h"
 #include "discretization/boundary_condition.h"
 #include "discretization/disc_vector.h"
+#include "utils/error_handling.h"
 
 class DirichletBC : public BoundaryCondition
 {
   public:
-    DirichletBC (SurfDiscPtr surf) : BoundaryCondition(surf) {}
+    DirichletBC (SurfDiscPtr surf) : BoundaryCondition(surf)
+    {
+      assertAlways(surf->face_group.getIsDirichlet(), "Cannot define Dirichlet BC on non-Dirichlet surface");
+    }
 
     virtual ~DirichletBC() {}
 

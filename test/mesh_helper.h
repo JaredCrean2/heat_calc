@@ -12,7 +12,8 @@
 
 Mesh::MeshSpec getStandardMeshSpec();
 
-std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& spec = getStandardMeshSpec(), int sol_degree=1);
+std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& spec = getStandardMeshSpec(), int sol_degree=1,
+                                const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true});
 
 // creates a single block mesh with all dirichlet BCs
 class StandardMeshBase
@@ -21,7 +22,8 @@ class StandardMeshBase
     virtual ~StandardMeshBase() {}
 
     // function must be called before first usage of any fields
-    virtual void setup(const int quad_degree=5, int sol_degree=1)
+    virtual void setup(const int quad_degree=5, int sol_degree=1, 
+              const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
     {
       spec = getStandardMeshSpec();
       //spec.nx = 4; spec.ny = 5, spec.nz = 6;
@@ -29,17 +31,18 @@ class StandardMeshBase
       //spec.nx = 2; spec.ny = 2, spec.nz = 2;
       //spec.xmin = 0; spec.ymin = 0; spec.zmin = 0;
       //spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
-      setup(quad_degree, sol_degree, spec);
+      setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
     }
 
 
-    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec)
+    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
+                       const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
     {
       quad = getGaussianQuadrature(quad_degree);
 
       mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
       mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};
-      mesh = makeStandardMesh(spec, sol_degree);
+      mesh = makeStandardMesh(spec, sol_degree, is_surf_dirichlet);
     }
 
     Mesh::MeshSpec spec;
@@ -58,9 +61,10 @@ class StandardMeshSetup : public StandardMeshBase
 
     using StandardMeshBase::setup;
 
-    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec) override
+    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
+                       const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true}) override
     {
-      StandardMeshBase::setup(quad_degree, sol_degree, spec);
+      StandardMeshBase::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
  
       Mesh::VolumeGroup& vol_group = mesh->getElements(0);
       vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
@@ -85,9 +89,10 @@ class StandardDiscSetup : public StandardMeshBase
 
     using StandardMeshBase::setup;
 
-    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec) override
+    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
+                       const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true}) override
     {
-      StandardMeshBase::setup(quad_degree, sol_degree, spec);
+      StandardMeshBase::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
       disc = std::make_shared<Discretization>(mesh, quad_degree, quad_degree);
     }
 

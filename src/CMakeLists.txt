@@ -3,7 +3,8 @@ message("Processing source directory")
 set(src_files EpwReader.cc 
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
-              utils/legendre.cc 
+              utils/legendre.cc
+              utils/error_handling.cc
               discretization/volume_discretization.cc 
               discretization/surface_discretization.cc
               discretization/discretization.cc

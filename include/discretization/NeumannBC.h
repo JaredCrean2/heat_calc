@@ -3,11 +3,15 @@
 
 #include "discretization/surface_discretization.h"
 #include "discretization/boundary_condition.h"
+#include "error_handling.h"
 
 class NeumannBC : public BoundaryCondition
 {
   public:
-    NeumannBC (SurfDiscPtr surf) : BoundaryCondition(surf) {}
+    NeumannBC (SurfDiscPtr surf) : BoundaryCondition(surf)
+    {
+      assertAlways(!(surf->face_group.getIsDirichlet()), "Cannot define Neumann BC on a Dirichlet surface");
+    }
 
     virtual ~NeumannBC() {}
 
