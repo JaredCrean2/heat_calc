@@ -76,7 +76,7 @@ class BasisVals2D
                 std::vector<Real> pts_out,
                 const ArrayType<LocalIndex, 2>& face_nodemap,
                 Mesh::ReferenceElement* ref_el) :
-      m_vals(boost::extents[face_nodemap.shape()[0]][face_nodemap.shape()[0]][pts_out.size()][pts_out.size()])
+      m_vals(boost::extents[face_nodemap.shape()[0]][face_nodemap.shape()[1]][pts_out.size()][pts_out.size()])
     {
       //TODO: there is a better way of doing this that requires less storage: both the input and the output are
       //      tensor product, so there should be a way to make m_vals 3 dimensional rather than 4 dimensional
@@ -111,7 +111,7 @@ class BasisVals2D
 
     int getNumNodesPerFace() const { return m_vals.shape()[1]; }
 
-    int getNumOutputNodes() const { return m_vals.shape()[0]; }
+    int getNumOutputNodes() const { return m_vals.shape()[2]; }
 
 
   private:

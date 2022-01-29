@@ -29,7 +29,7 @@ class NeumannBCMMS : public NeumannBC
 };
 
 template <typename T>
-NeumannBCPtr makeDirichletBCMMS(SurfDiscPtr surf, T func)
+NeumannBCPtr makeNeumannBCMMS(SurfDiscPtr surf, T func)
 {
   return std::make_shared<NeumannBCMMS<T>>(surf, func);
 }

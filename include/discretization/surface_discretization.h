@@ -22,6 +22,8 @@ class SurfaceDiscretization
 
     int getNumFaces() const { return face_group.getNumFaces();}
 
+    const Mesh::FaceSpec& getFaceSpec(int face) { return face_group.faces[face]; }
+
     int getNumCoordPtsPerFace() const { return face_group.getNumCoordPtsPerFace(); }
 
     int getNumSolPtsPerFace() const { return face_group.getNumSolPtsPerFace();}
@@ -33,6 +35,10 @@ class SurfaceDiscretization
     // computes coordinates of face quadrature points in a flat array (num quad points per face x 3)
     template <typename Array2D>
     void getFaceQuadCoords(const Index face, Array2D& quad_coords);
+
+    // gets coordinates of solution nodes for a given face
+    template <typename Array2D>
+    void getFaceSolCoords(const Index face, Array2D& coords);
 
     ArrayType<Real, 3> normals;
     const Mesh::FaceGroup& face_group;
@@ -68,6 +74,20 @@ void SurfaceDiscretization::getFaceQuadCoords(const Index face, Array2D& quad_co
   }
 }
 
+
+template <typename Array2D>
+void SurfaceDiscretization::getFaceSolCoords(const Index face, Array2D& coords)
+{
+  auto& face_spec = getFaceSpec(face);
+  auto& vol_disc = volume_discs[face_spec.vol_group];
+  //auto& localidx = vol_disc.nodemap_coord[face][node];
+  for (int d=0; d < 3; ++d)
+  {
+    auto coords_d = vol_disc->vol_group.coords[boost::indices[face_spec.el_group][range()][d]];
+    auto coords_out = coords[boost::indices[range()][d]];
+    interp_vcs_flat[face_spec.face].interpolateVals(coords_d, coords_out);
+  }
+}
 
 
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals);

@@ -2,7 +2,7 @@
 
 # ASAN flags
 ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
-#CXXFLAGS="-O1 -Wall -g"
+#CXXFLAGS="-O0 -Wall -g"
 #BUILDTYPE="Debug"
 
 CXXFLAGS="-O3 -Wall"

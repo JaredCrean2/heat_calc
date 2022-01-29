@@ -194,9 +194,13 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
 
-    for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
-      for (int j=0; j < surf->getNumQuadPtsPerFace(); ++j)
+    std::cout << "surf->getNumQuadPtsPerFace = " << surf->getNumQuadPtsPerFace() << std::endl;
+    std::cout << "quad->getNumPoints = " << quad.getNumPoints() << std::endl;
+
+    for (int i=0; i < quad.getNumPoints(); ++i)
+      for (int j=0; j < quad.getNumPoints(); ++j)
       {
+        std::cout << "i = " << i << ", j = " << j << std::endl;
         int node    = surf->quad_tp_nodemap[i][j];
         Real weight = quad.getWeight(i) * quad.getWeight(j);
         Real area   = std::sqrt(surf->normals[face][node][0] * surf->normals[face][node][0] +
@@ -206,7 +210,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
         for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
         {
-          int node_sol = surf->face_group.nodemap_sol[face][k];
+          int node_sol = surf->face_group.nodemap_sol[face_spec.face][k];
           res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
         }
           
