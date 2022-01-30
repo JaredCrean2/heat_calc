@@ -18,11 +18,14 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
 
-  //std::cout << "\nafter volume term " << std::endl;
-  //printArray(rhs);
+  std::cout << "\nafter volume term " << std::endl;
+  printArray(rhs);
 
   // compute Neumann BC terms
   computeNeumannBC(*this, t, u, rhs);
+
+  std::cout << "\nafter Neumann term " << std::endl;
+  printArray(rhs);
 
   // compute source term
   computeSourceTerm(*this, t, rhs);
@@ -166,6 +169,7 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
   const auto& neumann_bcs = physics.getNeumannBCs();
   for (auto& bc : neumann_bcs)
   {
+    std::cout << "doing Neumann BC " << bc->getSurfDisc()->getIdx() << std::endl;
     computeNeumannBC(bc, u, t, rhs);
   }
 }
@@ -182,39 +186,58 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
   std::vector<Real> flux_vals(surf->getNumQuadPtsPerFace());
   Quadrature& quad = surf->quad;
   BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.nodemap_sol, surf->face_group.ref_el_sol);
+
+  for (int face=0; face < 6; ++face)
+  {
+    std::cout << "nodemap for face " << face << std::endl;
+    for (int i=0; i < 4; ++i)
+      std::cout << surf->face_group.nodemap_sol[face][i] << ", ";
+
+    std::cout << std::endl;
+  }
   for (int face=0; face < surf->getNumFaces(); ++face)
   {
     auto& face_spec = surf->face_group.faces[face];
     auto& u_arr = u->getArray(face_spec.vol_group);
-    auto& res_arr = u->getArray(face_spec.vol_group);
+    auto& res_arr = rhs->getArray(face_spec.vol_group);
 
     auto u_el = u_arr[boost::indices[face_spec.el_group][range()]];
     auto res_el = res_arr[boost::indices[face_spec.el_group][range()]];
 
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
+    ArrayType<Real, 1> face_sum(boost::extents[surf->getNumSolPtsPerFace()]);
+    for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
+      face_sum[k] = 0;
 
-    std::cout << "surf->getNumQuadPtsPerFace = " << surf->getNumQuadPtsPerFace() << std::endl;
-    std::cout << "quad->getNumPoints = " << quad.getNumPoints() << std::endl;
 
     for (int i=0; i < quad.getNumPoints(); ++i)
       for (int j=0; j < quad.getNumPoints(); ++j)
       {
-        std::cout << "i = " << i << ", j = " << j << std::endl;
         int node    = surf->quad_tp_nodemap[i][j];
         Real weight = quad.getWeight(i) * quad.getWeight(j);
         Real area   = std::sqrt(surf->normals[face][node][0] * surf->normals[face][node][0] +
                              surf->normals[face][node][1] * surf->normals[face][node][1] +
                              surf->normals[face][node][2] * surf->normals[face][node][2]);
-        Real val = weight * area;
+        Real val = weight * area * flux_vals[node];
+        //std::cout << "node   = " << node << ", flux val = " << flux_vals[node] << std::endl;
+        //std::cout << "weight = " << weight << std::endl;
+        //std::cout << "area   = " << area << std::endl;
+        //std::cout << "val    = " << val << std::endl;
 
         for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
         {
           int node_sol = surf->face_group.nodemap_sol[face_spec.face][k];
+          //std::cout << "adding to el, node = " << face_spec.el_group << ", " << node_sol << std::endl;
           res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
-        }
-          
+          //std::cout << "contrib = " << basis.getValue(face_spec.face, k, i, j) * val << std::endl;
+          face_sum[k] -= basis.getValue(face_spec.face, k, i, j) * val;
+        }          
       }
+
+    std::cout << "face (" << face_spec.el_group << ", " << face_spec.face << ") contribution sum: " << std::endl;
+    for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
+      std::cout << "node " << surf->face_group.nodemap_sol[face_spec.face][k] << ": " << face_sum[k] << std::endl;
   }
 }
 

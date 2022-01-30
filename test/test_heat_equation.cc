@@ -161,7 +161,7 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
-  std::vector<bool> dirichlet_surfs = {true, false, true, false, true, false};
+  std::vector<bool> dirichlet_surfs = {false, true, false, true, true, true};
   for (int sol_degree=1; sol_degree <= 1; ++sol_degree)
   {
     std::cout << "testing sol degree " << sol_degree << std::endl;
