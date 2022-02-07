@@ -278,9 +278,9 @@ void HexReferenceElement::computeElementXi(const int face, const Real* xi_face, 
   {
     case 0:
     {
-      // oriented v0 - v1 - v2 - v3
-      xi_element[0] = xi_face[0];
-      xi_element[1] = xi_face[1];
+      // oriented v0 - v3 - v2 - v1
+      xi_element[0] = xi_face[1];
+      xi_element[1] = xi_face[0];
       xi_element[2] = 0;
       break;
     }
@@ -296,19 +296,19 @@ void HexReferenceElement::computeElementXi(const int face, const Real* xi_face, 
 
     case 2:
     {
-      // oriented v1 - v5 - v6 - v2
+      // oriented v1 - v2 - v6 - v5
       xi_element[0] = 1;
-      xi_element[1] = xi_face[1];
-      xi_element[2] = xi_face[0];
+      xi_element[1] = xi_face[0];  //TODO: is this backwards?
+      xi_element[2] = xi_face[1];
       break;
     }
 
     case 3:
     {
-      // oriented v3 - v2 - v6 - v7
-      xi_element[0] = xi_face[0];
+      // oriented v3 - v7 - v6 - v2
+      xi_element[0] = xi_face[1];
       xi_element[1] = 1;
-      xi_element[2] = xi_face[1];
+      xi_element[2] = xi_face[0];
       break;
     }
 

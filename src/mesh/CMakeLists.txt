@@ -5,6 +5,7 @@ add_library(mesh mesh_generator.cc
                  mesh.cc
                  dof_numbering.cc
                  reference_element.cc
+                 reference_element_geometry.cc
                  apfShapeHex.cc)
 
 target_include_directories(mesh PUBLIC
