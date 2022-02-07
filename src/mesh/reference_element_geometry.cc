@@ -1,7 +1,47 @@
 #include "mesh/reference_element_geometry.h"
+#include "mesh/reference_element_geometry_types.h"
 #include <iostream>
 
 namespace reference_element {
+
+void GeometricEntity::setDown(GEPtr entity, int perm)
+{ 
+  assertAlways(entity->getDimension() == getDimension() - 1, "Downward adjacency must be one dimension lower");
+  m_down.push_back(entity);
+  m_down_perm.push_back(perm);
+}
+
+
+Point GeometricEntity::computeFromDownCoordinates(int i, const Point pt)
+{
+  assertAlways(i >= 0 && static_cast<unsigned int>(i) <= m_down.size(), "invalid downward entity");
+  validatePoint(pt);
+  return computefromDownCoordinatesImpl(i, pt);
+}
+
+
+Point GeometricEntity::computeFromDownCoordinates(GEPtr entity, const Point pt)
+{
+  for (size_t i=0; i < m_down.size(); ++i)
+    if (entity == m_down[i])
+      return computeFromDownCoordinates(i, pt);
+
+  throw std::invalid_argument("entity must be a downward adjacent entity");
+}
+
+
+void GeometricEntity::validatePoint(const Point pt)
+{
+  const Real tol = 1e-13;
+  for (int i=0; i < 3; ++i)
+  {
+    if (i >= getDimension())
+      assertAlways(std::abs(pt[i]) < tol, "extra dimensions must have zero coordinate");
+    else
+      assertAlways(pt[i] >= -tol && pt[i] <= 1 + tol, "coordinate is out of range");
+  }
+}
+
 
 ReferenceElement::ReferenceElement(const ReferenceElementDef& def)
 {
@@ -34,6 +74,12 @@ ReferenceElement::ReferenceElement(const ReferenceElementDef& def)
   for (size_t j=0; j < def.el_faces.size(); ++j)
     m_element->setDown(m_faces[def.el_faces[j]], def.el_face_perms[j]);
 } 
+
+
+ReferenceElementDef getStandardReferenceElementDef()
+{
+  return ReferenceElementDef();
+}
 
 
 // returns true if to_entity is a downward adjacency of from_entity 
