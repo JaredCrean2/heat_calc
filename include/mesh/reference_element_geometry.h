@@ -66,39 +66,9 @@ class GeometricEntity
 };
 
 
-class ReferenceElement
-{
-  public:
-    explicit ReferenceElement(const ReferenceElementDef& def);
-
-    int getNumVerts() const { return m_verts.size(); }
-
-    GEPtr getVert(int i) { return m_verts.at(i); }
-
-    int getNumEdges() const { return m_edges.size(); }
-
-    GEPtr getEdge(int i) { return m_edges.at(i); }
-
-    int getNumFaces() const { return m_faces.size(); }
-
-    GEPtr getFace(int i) { return m_faces.at(i); }
-
-    GEPtr getElement() { return m_element; }
-
-  private:
-    std::vector<GEPtr> m_verts;
-    std::vector<GEPtr> m_edges;
-    std::vector<GEPtr> m_faces;
-    GEPtr m_element;
-};
-
-ReferenceElementDef getStandardReferenceElementDef();
-
 // returns true if to_entity is a downward adjacency of from_entity 
 // (traversing several dimensions down if necessary)
 bool hasDownwardAdjacency(GEPtr from_entity, GEPtr to_entity);
-
-void checkReferenceElementDef(const ReferenceElementDef& def);
 
 //TODO: this is very slow.  See if there is a way to combine hasDownwardAdjacency
 //      into this function, rather than evaluating it so many times
