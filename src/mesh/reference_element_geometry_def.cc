@@ -1,4 +1,4 @@
-#include "mesh/reference_element_def.h"
+#include "mesh/reference_element_geometry_def.h"
 #include "mesh/reference_element_geometry_types.h"
 
 namespace reference_element {
@@ -52,7 +52,7 @@ void checkReferenceElementDef(const ReferenceElementDef& def)
                "Not all faces are used in element definition");
 }
 
-ReferenceElement::ReferenceElement(const ReferenceElementDef& def)
+ReferenceElementGeometry::ReferenceElementGeometry(const ReferenceElementDef& def)
 {
   checkReferenceElementDef(def);
 

@@ -19,7 +19,7 @@ TEST(ReferenceGeometry, Verifier)
 
 TEST(ReferenceGeometry, Counts)
 {
-  reference_element::ReferenceElement ref_el(reference_element::getStandardReferenceElementDef());
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
 
   EXPECT_EQ(ref_el.getNumVerts(), 8);
   EXPECT_EQ(ref_el.getNumEdges(), 12);
@@ -40,7 +40,7 @@ TEST(ReferenceGeometry, Counts)
 
 TEST(ReferenceGeometry, VertCoords)
 {
-  reference_element::ReferenceElement ref_el(reference_element::getStandardReferenceElementDef());
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
 
   Point pt_in{0, 0, 0};
   std::vector<Point> pt_exact{ {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},
@@ -57,7 +57,7 @@ TEST(ReferenceGeometry, VertCoords)
 
 TEST(ReferenceGeometry, EdgeCoords)
 {
-  reference_element::ReferenceElement ref_el(reference_element::getStandardReferenceElementDef());
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
 
   Point pt_in{0.25, 0, 0};
   std::vector<Point> pt_exact{ {0.25, 0, 0}, {1, 0.25, 0}, {0.75, 1, 0}, {0, 0.25, 0},
@@ -75,7 +75,7 @@ TEST(ReferenceGeometry, EdgeCoords)
 
 TEST(ReferenceGeometry, FaceCoords)
 {
-  reference_element::ReferenceElement ref_el(reference_element::getStandardReferenceElementDef());
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
 
   Point pt_in{0.25, 0.35, 0};
   std::vector<Point> pt_exact{ {0.25, 0.35, 0}, {0.25, 0, 0.35}, {1, 0.25, 0.35},

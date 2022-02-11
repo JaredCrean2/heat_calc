@@ -7,7 +7,8 @@ add_library(mesh mesh_generator.cc
                  reference_element.cc
                  reference_element_geometry.cc
                  reference_element_geometry_types.cc
-                 reference_element_def.cc
+                 reference_element_geometry_def.cc
+                 reference_element_nodes.cc
                  apfShapeHex.cc)
 
 target_include_directories(mesh PUBLIC
