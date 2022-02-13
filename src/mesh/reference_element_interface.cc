@@ -1,6 +1,7 @@
 #include "mesh/reference_element_interface.h"
 #include "mesh/reference_element_nodes.h"
 #include "mesh/reference_element_geometry_hex.h"
+#include <map>
 
 namespace reference_element {
 
@@ -131,11 +132,21 @@ ArrayType<Real, 2> computeNormals(ReferenceElement& ref_el)
 
 std::shared_ptr<ReferenceElement> getLagrangeHexReferenceElement(int degree)
 {
-  auto def = getStandardReferenceElementDef();
-  ReferenceElementGeometry ref_geom(def);
-  auto nodes = getLagrangeHexNodes(degree);
+  static std::map<int, std::shared_ptr<ReferenceElement>> ref_els;
 
-  return std::make_shared<ReferenceElement>(ref_geom, nodes);
+  if (ref_els.count(degree) == 1)
+    return ref_els[degree];
+  else
+  {
+    auto def = getStandardReferenceElementDef();
+    ReferenceElementGeometry ref_geom(def);
+    auto nodes = getLagrangeHexNodes(degree);
+
+    auto ref_el = std::make_shared<ReferenceElement>(ref_geom, nodes);
+    ref_els[degree] = ref_el;
+
+    return ref_el;
+  }
 }
 
 }
