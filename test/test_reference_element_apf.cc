@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "mesh/reference_element_def.h"
+#include "mesh/reference_element_interface.h"
 #include "mesh/reference_element_apf.h"
 
 

@@ -1,5 +1,5 @@
-#include "mesh/reference_element_geometry_def.h"
-#include "mesh/reference_element_geometry_types.h"
+#include "mesh/reference_element_geometry_interface.h"
+#include "mesh/reference_element_geometry_hex.h"
 
 namespace reference_element {
 

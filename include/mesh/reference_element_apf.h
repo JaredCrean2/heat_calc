@@ -1,7 +1,7 @@
 #ifndef REFERENCE_ELEMENT_APF_H
 #define REFERENCE_ELEMENT_APF_H
 
-#include "mesh/reference_element_def.h"
+#include "mesh/reference_element_interface.h"
 
 #include "apfMesh.h"
 #include "apf.h"

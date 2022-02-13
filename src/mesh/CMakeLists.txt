@@ -6,10 +6,10 @@ add_library(mesh mesh_generator.cc
                  dof_numbering.cc
                  reference_element.cc
                  reference_element_geometry.cc
-                 reference_element_geometry_types.cc
-                 reference_element_geometry_def.cc
+                 reference_element_geometry_hex.cc
+                 reference_element_geometry_interface.cc
                  reference_element_nodes.cc
-                 reference_element_def.cc
+                 reference_element_interface.cc
                  reference_element_apf.cc
                  apfShapeHex.cc)
 

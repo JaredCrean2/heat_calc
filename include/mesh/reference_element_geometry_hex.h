@@ -2,7 +2,7 @@
 #define REFERENCE_ELEMENT_GEOMETRY_TYPES_H
 
 #include "mesh/reference_element_geometry.h"
-#include "mesh/reference_element_def.h"
+#include "mesh/reference_element_interface.h"
 
 namespace reference_element {
 

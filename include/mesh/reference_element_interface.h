@@ -2,8 +2,8 @@
 #define REFERENCE_ELEMENT_DEF_H
 
 #include "mesh/reference_element_geometry.h"
-#include "mesh/reference_element_geometry_def.h"
-#include "mesh/reference_element_geometry_types.h"
+#include "mesh/reference_element_geometry_interface.h"
+#include "mesh/reference_element_geometry_hex.h"
 #include "mesh/reference_element_nodes.h"
 #include "utils/math.h"
 

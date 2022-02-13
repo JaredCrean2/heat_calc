@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "mesh/reference_element_geometry.h"
-#include "mesh/reference_element_geometry_types.h"
+#include "mesh/reference_element_geometry_hex.h"
+#include "mesh/reference_element_geometry_interface.h"
 
 using Point = reference_element::Point;
 
