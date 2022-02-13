@@ -52,24 +52,27 @@ void checkReferenceElementDef(const ReferenceElementDef& def)
                "Not all faces are used in element definition");
 }
 
-ReferenceElementGeometry::ReferenceElementGeometry(const ReferenceElementDef& def)
+ReferenceElementGeometry::ReferenceElementGeometry(const ReferenceElementDef& def) :
+  m_def(def)
 {
   checkReferenceElementDef(def);
 
   for (int i=0; i < def.nverts; ++i)
-    m_verts.push_back(std::make_shared<GeometricVertex>(0));
+    m_verts.push_back(std::make_shared<GeometricVertex>(0, i));
 
+  int idx = 0;
   for (auto& verts_i : def.edge_verts)
   {
-    auto entity = std::make_shared<GeometricEdge>(1);
+    auto entity = std::make_shared<GeometricEdge>(1, idx++);
     entity->setDown(m_verts[verts_i[0]]);
     entity->setDown(m_verts[verts_i[1]]);
     m_edges.push_back(entity);
   }
 
+  idx = 0;
   for (size_t i=0; i < def.face_edges.size(); ++i)
   {
-    auto entity = std::make_shared<GeometricQuad>(2);
+    auto entity = std::make_shared<GeometricQuad>(2, idx++);
     auto& edge_idxs = def.face_edges[i];
     auto& edge_perms = def.face_edge_perms[i];
 
@@ -79,7 +82,7 @@ ReferenceElementGeometry::ReferenceElementGeometry(const ReferenceElementDef& de
     m_faces.push_back(entity);
   }
 
-  m_element = std::make_shared<GeometricHex>(3);
+  m_element = std::make_shared<GeometricHex>(3, 0);
   for (size_t j=0; j < def.el_faces.size(); ++j)
     m_element->setDown(m_faces[def.el_faces[j]], def.el_face_perms[j]);
 }

@@ -26,15 +26,29 @@ TEST(ReferenceGeometry, Counts)
   EXPECT_EQ(ref_el.getNumFaces(), 6);
 
   for (int i=0; i < ref_el.getNumVerts(); ++i)
+  {
     EXPECT_NE(ref_el.getVert(i), nullptr);
+    EXPECT_EQ(ref_el.getVert(i)->getDimension(), 0);
+    EXPECT_EQ(ref_el.getVert(i)->getId(), i);
+  }
 
   for (int i=0; i < ref_el.getNumEdges(); ++i)
-      EXPECT_NE(ref_el.getEdge(i), nullptr);
+  {
+    EXPECT_NE(ref_el.getEdge(i), nullptr);
+    EXPECT_EQ(ref_el.getEdge(i)->getDimension(), 1);
+    EXPECT_EQ(ref_el.getEdge(i)->getId(), i);
+  }
 
   for (int i=0; i < ref_el.getNumFaces(); ++i)
-      EXPECT_NE(ref_el.getFace(i), nullptr);
+  {
+    EXPECT_NE(ref_el.getFace(i), nullptr);
+    EXPECT_EQ(ref_el.getFace(i)->getDimension(), 2);
+    EXPECT_EQ(ref_el.getFace(i)->getId(), i);
+  }
 
   EXPECT_NE(ref_el.getElement(), nullptr);
+  EXPECT_EQ(ref_el.getElement()->getDimension(), 3);
+  EXPECT_EQ(ref_el.getElement()->getId(), 0);
 }
 
 
@@ -89,3 +103,74 @@ TEST(ReferenceGeometry, FaceCoords)
     EXPECT_TRUE(isNear(pt_out, pt_exact[i], 1e-13));
   }
 }
+
+
+TEST(ReferenceGeometry, getDownwardElToFace)
+{
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
+
+  auto el = ref_el.getElement();
+
+  auto faces = reference_element::getDownward(el, 2);
+  EXPECT_EQ(faces.size(), static_cast<size_t>(6));
+  for (int i=0; i < 6; ++i)
+  {
+    EXPECT_EQ(faces[i]->getDimension(), 2);
+    EXPECT_EQ(faces[i]->getId(), i);
+  }
+}
+
+TEST(ReferenceGeometry, getDownwardFaceToEdge)
+{
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
+
+  for (int i=0; i < 6; ++i)
+  {
+    auto face = ref_el.getFace(i);
+
+    auto edges = reference_element::getDownward(face, 1);
+    auto& faces_def = ref_el.getDef().face_edges;
+    EXPECT_EQ(edges.size(), static_cast<size_t>(4));
+    for (int j=0; j < 4; ++j)
+    {
+      EXPECT_EQ(edges[j]->getDimension(), 1);
+      EXPECT_EQ(edges[j]->getId(), faces_def[i][j]);
+    }
+  }
+}
+
+
+TEST(ReferenceGeometry, getDownwardElToEdge)
+{
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
+
+  std::vector<int> edges_expected = {0, 1, 2, 3, 9, 4, 8, 10, 5, 11, 6, 7};
+
+  auto el = ref_el.getElement();
+  auto edges = reference_element::getDownward(el, 1);
+  EXPECT_EQ(edges.size(), static_cast<size_t>(12));
+  for (int i=0; i < 12; ++i)
+  {
+    EXPECT_EQ(edges[i]->getDimension(), 1);
+    EXPECT_EQ(edges[i]->getId(), edges_expected[i]);
+  }
+}
+
+
+TEST(ReferenceGeometry, getDownwardElToVert)
+{
+  reference_element::ReferenceElementGeometry ref_el(reference_element::getStandardReferenceElementDef());
+
+  std::vector<int> verts_expected = {0, 1, 2, 3, 5, 4, 6, 7};
+
+  auto el = ref_el.getElement();
+  auto verts = reference_element::getDownward(el, 0);
+  EXPECT_EQ(verts.size(), static_cast<size_t>(8));
+  for (int i=0; i < 8; ++i)
+  {
+    EXPECT_EQ(verts[i]->getDimension(), 0);
+    EXPECT_EQ(verts[i]->getId(), verts_expected[i]);
+  }
+}
+
+

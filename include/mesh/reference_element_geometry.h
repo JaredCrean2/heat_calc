@@ -24,13 +24,16 @@ struct ReferenceElementDef;
 class GeometricEntity
 {
   public:
-    explicit GeometricEntity(int dim) :
-      m_dim(dim)
+    explicit GeometricEntity(int dim, int id) :
+      m_dim(dim),
+      m_id(id)
     {}
 
     virtual ~GeometricEntity() = default;
 
     int getDimension() const {return m_dim; }
+
+    int getId() const { return m_id; }
 
     int countDown() const { return m_down.size(); }
 
@@ -60,11 +63,14 @@ class GeometricEntity
 
   private:
     int m_dim;
+    int m_id;
     std::vector<GEPtr> m_down;
     std::vector<int> m_down_perm;
     std::vector<GEPtr> m_up;
 };
 
+
+std::vector<GEPtr> getDownward(GEPtr entity, int dim);
 
 // returns true if to_entity is a downward adjacency of from_entity 
 // (traversing several dimensions down if necessary)

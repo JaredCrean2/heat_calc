@@ -1,6 +1,7 @@
 #include "mesh/reference_element_geometry.h"
 #include "mesh/reference_element_geometry_types.h"
 #include <iostream>
+#include <set>
 
 namespace reference_element {
 
@@ -39,6 +40,37 @@ void GeometricEntity::validatePoint(const Point pt)
       assertAlways(std::abs(pt[i]) < tol, "extra dimensions must have zero coordinate");
     else
       assertAlways(pt[i] >= -tol && pt[i] <= 1 + tol, "coordinate is out of range");
+  }
+}
+
+
+std::vector<GEPtr> getDownward(GEPtr entity, int dim)
+{
+  assertAlways(dim < entity->getDimension(), "invalid dimension");
+
+  std::vector<GEPtr> down(entity->countDown());
+  for (int i=0; i < entity->countDown(); ++i)
+    down[i] = entity->getDown(i);
+    
+  if (dim == entity->getDimension() - 1)
+  {
+    return down;
+  } else
+  {
+    std::vector<GEPtr> down_total;
+    std::set<GEPtr> seen_entities;
+    for (int i=0; i < entity->countDown(); ++i)
+    {
+      auto down_i = getDownward(down[i], dim);
+      for (unsigned int j=0; j < down_i.size(); ++j)
+        if (seen_entities.count(down_i[j]) == 0)
+        {
+          down_total.push_back(down_i[j]);
+          seen_entities.insert(down_i[j]);
+        }
+    }
+
+    return down_total;
   }
 }
 
@@ -113,6 +145,10 @@ std::vector<GEPtr> getEntityChain(GEPtr from_entity, GEPtr to_entity)
 
 Point reclassifyPoint(GEPtr from_entity, const Point& pt_in, GEPtr to_entity)
 {
+  // allow "reclassifying" on self for convenience
+  if (from_entity == to_entity)
+    return pt_in;
+
   assertAlways(from_entity->getDimension() < to_entity->getDimension(), 
           "can only reclassify point from lower dimension entity to higher dimension entity");
 

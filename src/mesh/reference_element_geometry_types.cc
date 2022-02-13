@@ -25,7 +25,14 @@ ReferenceElementDef getStandardReferenceElementDef()
   std::vector<Int> el_faces      = {0, 1, 2, 3, 4, 5};
   std::vector<Int> el_face_perms = {0, 0, 0, 0, 0, 0};
 
-  return {nverts, edge_verts, face_edges, face_edge_perms, el_faces, el_face_perms};
+  std::vector<Int> verts_to_apf = {3, 0, 1, 2, 7, 4, 5, 6};
+  std::vector<Int> edges_to_apf = {3, 0, 1, 2, 11, 8, 9, 10, 7, 4, 6, 7};
+  std::vector<Int> faces_to_apf = {0, 4, 1, 2, 3, 5};
+
+  ReferenceElementDef def{nverts, edge_verts, face_edges, face_edge_perms, el_faces, el_face_perms,
+          verts_to_apf, edges_to_apf, faces_to_apf}; 
+
+  return def;    
 };
 
 

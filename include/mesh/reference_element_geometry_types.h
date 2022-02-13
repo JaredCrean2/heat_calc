@@ -18,7 +18,7 @@ ReferenceElementDef getStandardReferenceElementDef();
 class GeometricVertex : public GeometricEntity
 {
   public:
-    GeometricVertex(int dim) : GeometricEntity(dim) {}
+    GeometricVertex(int dim, int id) : GeometricEntity(dim, id) {}
 
   protected:
     Point computefromDownCoordinatesImpl(int i, const Point pt) override;
@@ -28,7 +28,7 @@ class GeometricVertex : public GeometricEntity
 class GeometricEdge : public GeometricEntity
 {
   public:
-    GeometricEdge(int dim) : GeometricEntity(dim) {}
+    GeometricEdge(int dim, int id) : GeometricEntity(dim, id) {}
 
   protected:
     Point computefromDownCoordinatesImpl(int i, const Point pt) override;
@@ -39,7 +39,7 @@ class GeometricEdge : public GeometricEntity
 class GeometricQuad : public GeometricEntity
 {
   public:
-    GeometricQuad(int dim) : GeometricEntity(dim) {}
+    GeometricQuad(int dim, int id) : GeometricEntity(dim, id) {}
 
   protected:
     Point computefromDownCoordinatesImpl(int i, const Point pt) override;
@@ -50,7 +50,7 @@ class GeometricQuad : public GeometricEntity
 class GeometricHex : public GeometricEntity
 {
   public:
-    GeometricHex(int dim) : GeometricEntity(dim) {}
+    GeometricHex(int dim, int id) : GeometricEntity(dim, id) {}
 
   protected:
     Point computefromDownCoordinatesImpl(int i, const Point pt) override;
