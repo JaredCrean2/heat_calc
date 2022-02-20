@@ -3,6 +3,7 @@
 #include "lagrange_basis.h"
 #include "mesh/mesh.h"
 #include "mesh/reference_element.h"
+#include "mesh/reference_element_geometry.h"
 
 namespace Heat {
 
@@ -75,28 +76,31 @@ class BasisVals2D
     BasisVals2D(const Mesh::TensorProductMapper& tp_mapper_in,
                 std::vector<Real> pts_out,
                 const ArrayType<LocalIndex, 2>& face_nodemap,
-                Mesh::ReferenceElement* ref_el) :
+                Mesh::REPtr ref_el) :
       m_vals(boost::extents[face_nodemap.shape()[0]][face_nodemap.shape()[1]][pts_out.size()][pts_out.size()])
     {
       //TODO: there is a better way of doing this that requires less storage: both the input and the output are
       //      tensor product, so there should be a way to make m_vals 3 dimensional rather than 4 dimensional
       LagrangeBasis basis(tp_mapper_in.getXi());
       for (int face=0; face < getNumFaces(); ++face)
+      {
+        auto ge_el = ref_el->getElement();
+        auto ge_face = ref_el->getFace(face);
         for (int j=0; j < getNumNodesPerFace(); ++j)
           for (int ki=0; ki < getNumOutputNodes(); ++ki)
             for (int kj=0; kj < getNumOutputNodes(); ++kj)
             {
-              std::array<Real, 2> xi_face{pts_out[ki], pts_out[kj]};
-              std::array<Real, 3> xi_vol;
-              ref_el->computeElementXi(face, xi_face.data(), xi_vol.data());
-
+              std::array<Real, 3> xi_face{pts_out[ki], pts_out[kj], 0};
+              //TODO: this is likely a performance problem
+              auto xi_vol = reference_element::reclassifyPoint(ge_face, xi_face, ge_el);
+              //ref_el->computeElementXi(face, xi_face.data(), xi_vol.data());
 
               auto tp_indices = getTPIndices(tp_mapper_in, face_nodemap[face][j]);
               m_vals[face][j][ki][kj] = basis.evalPoly(tp_indices[0], xi_vol[0]) * 
                                         basis.evalPoly(tp_indices[1], xi_vol[1]) *
                                         basis.evalPoly(tp_indices[2], xi_vol[2]);
-
-            }
+        }
+      }
     }
 
     // face is the face of the element

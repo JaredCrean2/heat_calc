@@ -78,6 +78,16 @@ class ReferenceElement
     // total number of nodes on all entities
     int getNumNodesTotal() { return getNumNodesInclusive(3); }
 
+    // get total number of nodes on all entities <= dim
+    int getNumNodesInclusive(int dim)
+    {
+      int total = 0;
+      for (int i=0; i <= dim; ++i)
+        total += getNumEntities(i) * getNumNodes(i);
+
+      return total;
+    }
+
     // get the index of the node in the range [0, getNumNodesTotal)
     // node is in the range [0, total number of nodes on all entities of given dim)
     int getNodeIndex(int dim, int node)
@@ -94,7 +104,12 @@ class ReferenceElement
       return getNodeIndex(dim, entity * getNumNodes(dim) + node);
     }
 
+    // returns nfaces x nnodes per face array giving the indices of the nodes on each face
+    const ArrayType<LocalIndex, 2>& getFaceNodes() const { return m_face_nodes; }
+
     int getNumNodesTP() const { return m_tp_nodemap.shape()[0]; }
+
+    int getDegree() const { return getNumNodesTP() - 1; }
 
     const ArrayType<Real, 2>& getNodeXi() const { return m_node_xi; }
 
@@ -108,18 +123,10 @@ class ReferenceElement
 
 
   private:
-    // get total number of nodes on all entities <= dim
-    int getNumNodesInclusive(int dim)
-    {
-      int total = 0;
-      for (int i=0; i <= dim; ++i)
-        total += getNumEntities(i) * getNumNodes(i);
-
-      return total;
-    }
 
     ReferenceElementGeometry m_geom;
     ReferenceNodes m_nodes;
+    ArrayType<LocalIndex, 2> m_face_nodes;
     ArrayType<LocalIndex, 3> m_tp_nodemap;
     ArrayType<Real, 2> m_normals;
     std::vector<Real> m_tp_xi;
@@ -127,6 +134,8 @@ class ReferenceElement
 };
 
 namespace Impl {
+
+void getFaceNodes(ReferenceElement& ref_el, ArrayType<LocalIndex, 2>& face_nodes);
 
 void getNodeXi(ReferenceElement& ref_el, ArrayType<Real, 2>& node_xi);
 
@@ -137,11 +146,11 @@ int searchNode(ReferenceElement& ref_el, const Point& pt);
 void computeTPNodemap(ReferenceElement& ref_el, ArrayType<LocalIndex, 3>& nodemap);
 
 void computeNormals(ReferenceElement& ref_el, ArrayType<Real, 2>& normals);
-
-
 }
 
-std::shared_ptr<ReferenceElement> getLagrangeHexReferenceElement(int degree);
+using REPtr = std::shared_ptr<ReferenceElement>;
+
+REPtr getLagrangeHexReferenceElement(int degree);
 
 
 }

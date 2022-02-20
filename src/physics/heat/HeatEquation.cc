@@ -185,13 +185,13 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
   ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);
   std::vector<Real> flux_vals(surf->getNumQuadPtsPerFace());
   Quadrature& quad = surf->quad;
-  BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.nodemap_sol, surf->face_group.ref_el_sol);
+  BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.getFaceNodesSol(), surf->face_group.ref_el_sol);
 
   for (int face=0; face < 6; ++face)
   {
     std::cout << "nodemap for face " << face << std::endl;
     for (int i=0; i < 4; ++i)
-      std::cout << surf->face_group.nodemap_sol[face][i] << ", ";
+      std::cout << surf->face_group.getFaceNodesSol()[face][i] << ", ";
 
     std::cout << std::endl;
   }
@@ -227,7 +227,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
         for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
         {
-          int node_sol = surf->face_group.nodemap_sol[face_spec.face][k];
+          int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][k];
           //std::cout << "adding to el, node = " << face_spec.el_group << ", " << node_sol << std::endl;
           res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
           //std::cout << "contrib = " << basis.getValue(face_spec.face, k, i, j) * val << std::endl;
@@ -237,7 +237,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
     std::cout << "face (" << face_spec.el_group << ", " << face_spec.face << ") contribution sum: " << std::endl;
     for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
-      std::cout << "node " << surf->face_group.nodemap_sol[face_spec.face][k] << ": " << face_sum[k] << std::endl;
+      std::cout << "node " << surf->face_group.getFaceNodesSol()[face_spec.face][k] << ": " << face_sum[k] << std::endl;
   }
 }
 

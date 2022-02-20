@@ -1,4 +1,5 @@
 #include "discretization/surface_discretization.h"
+#include "mesh/reference_element_geometry.h"
 #include "utils/lagrange.h"
 
 SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, const Quadrature& quad, 
@@ -86,17 +87,21 @@ void getFaceQuadXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_p
 {
   int npts = disc.quad.getNumPoints() * disc.quad.getNumPoints();
   face_points.resize(boost::extents[disc.face_group.ref_el_coord->getNumFaces()][npts][3]);
-  Real xi_face[3], xi_element[3];
+  std::array<Real, 3> xi_face;
 
-  for (int face=0; face < disc.face_group.ref_el_coord->getNumFaces(); ++face)
+  for (int face=0; face < disc.face_group.ref_el_sol->getNumFaces(); ++face)
   {
+    //TODO: this is a potential performance problem
+    auto ge_el = disc.face_group.ref_el_sol->getElement();
+    auto ge_face = disc.face_group.ref_el_sol->getFace(face);
     for (int i=0; i < disc.quad.getNumPoints(); ++i)
       for (int j=0; j < disc.quad.getNumPoints(); ++j)
       {
         xi_face[0] = disc.quad.getPoint(i);
         xi_face[1] = disc.quad.getPoint(j);
         int idx = disc.quad_tp_nodemap[i][j];
-        disc.face_group.ref_el_coord->computeElementXi(face, xi_face, xi_element);
+        auto xi_element = reference_element::reclassifyPoint(ge_face, xi_face, ge_el);
+        //disc.face_group.ref_el_coord->computeElementXi(face, xi_face, xi_element);
         for (int d=0; d < 3; ++d)
           face_points[face][idx][d] = xi_element[d];
       }
@@ -106,7 +111,7 @@ void getFaceQuadXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_p
 void getFaceSolXi(const SurfaceDiscretization& disc, ArrayType<Real, 3>& face_points)
 {
   int nfaces    = disc.face_group.ref_el_coord->getNumFaces();
-  auto& nodemap = disc.face_group.nodemap_sol;
+  auto& nodemap = disc.face_group.getFaceNodesSol();
   auto& vol_xi  = disc.face_group.ref_el_sol->getNodeXi();
   face_points.resize(boost::extents[nfaces][disc.getNumSolPtsPerFace()][3]);
 

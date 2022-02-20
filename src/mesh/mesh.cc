@@ -3,6 +3,8 @@
 #include "mesh/dof_numbering.h"
 #include "mesh/apfShapeHex.h"
 #include "PCU.h"
+#include "mesh/reference_element_apf.h"
+#include "mesh/reference_element_interface.h"
 #include "mpi.h"
 
 #include "apfShape.h"
@@ -31,8 +33,10 @@ MeshCG::MeshCG(apf::Mesh2* m,
   m_volume_spec(volume_group_spec),
   m_bc_spec(bc_spec),
   m_all_face_spec(other_surface_spec),
-  m_tensor_product_coord_map(getReferenceElement(apf::Mesh::HEX, coord_degree)),
-  m_tensor_product_sol_map(getReferenceElement(apf::Mesh::HEX, solution_degree))
+  m_ref_el_coord(reference_element::getLagrangeHexReferenceElement(coord_degree)),
+  m_ref_el_sol(reference_element::getLagrangeHexReferenceElement(solution_degree)),
+  m_tensor_product_coord_map(m_ref_el_coord),
+  m_tensor_product_sol_map(m_ref_el_sol)
 {
   assert(coord_degree == 1);
   m_dof_numbering.sol_degree   = solution_degree;
@@ -71,6 +75,15 @@ void MeshCG::setApfData()
   m_apf_data.sol_shape = Mesh::getLagrange(m_dof_numbering.sol_degree);
   m_apf_data.coord_shape = Mesh::getLagrange(m_dof_numbering.coord_degree);
 
+  auto sol_shape = apf::getHexFieldShape(m_ref_el_sol);
+  auto coord_shape = apf::getHexFieldShape(m_ref_el_coord);
+  m_apf_data.m_sol_shape = sol_shape;
+  m_apf_data.sol_shape = sol_shape.get();
+  m_apf_data.m_coord_shape = coord_shape;
+  m_apf_data.coord_shape = coord_shape.get();
+  
+
+
   m_dof_numbering.nodes_per_element =
     apf::countElementNodes(m_apf_data.sol_shape, apf::Mesh::HEX);
   m_dof_numbering.nodes_per_face =
@@ -107,11 +120,6 @@ void MeshCG::createVolumeGroups()
   m_elnums_global_to_local.resize(m_elements.size());
   m_elnums_local_to_global.resize(m_volume_spec.size());
 
-  ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
-                                            m_dof_numbering.coord_degree);
-  ReferenceElement* ref_el_sol   = getReferenceElement(apf::Mesh::HEX,
-                                            m_dof_numbering.sol_degree);
-
   for (SInt i=0; i < m_volume_spec.size(); ++i)
   {
     //TODO: avoid Boost array deep copies
@@ -127,7 +135,7 @@ void MeshCG::createVolumeGroups()
 
     m_vol_group.emplace_back(VolumeGroup(m_volume_spec[i].getIdx(), dof_nums, coords,
       m_tensor_product_coord_map, m_tensor_product_sol_map, 
-      ref_el_coord, ref_el_sol, elements_group));
+      m_ref_el_coord, m_ref_el_sol, elements_group));
 
     m_elnums_local_to_global[i].resize(elements_group.size());
     for (SInt j=0; j < elements_group.size(); ++j)
@@ -144,21 +152,20 @@ void MeshCG::createFaceGroups()
 {
 
   apf::Downward down;
-  ArrayType<LocalIndex, 2> nodemap_coord = getFaceNodeMap(m_apf_data, m_apf_data.coord_shape);
-  ArrayType<LocalIndex, 2> nodemap_sol = getFaceNodeMap(m_apf_data, m_apf_data.sol_shape);
-  const auto& tp_nodemap = getFaceTensorProductMap(m_dof_numbering.coord_degree);
-
+  //ArrayType<LocalIndex, 2> nodemap_coord = getFaceNodeMap(m_apf_data, m_apf_data.coord_shape);
+  //ArrayType<LocalIndex, 2> nodemap_sol = getFaceNodeMap(m_apf_data, m_apf_data.sol_shape);
+  //const auto& tp_nodemap = getFaceTensorProductMap(m_dof_numbering.coord_degree);
+/*
   ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
                                             m_dof_numbering.coord_degree);
   ReferenceElement* ref_el_sol   = getReferenceElement(apf::Mesh::HEX,
                                             m_dof_numbering.sol_degree);
-
+*/
   for (auto& surf : m_all_face_spec)
   {
-    m_all_faces.emplace_back(surf.getIdx(), ref_el_coord, ref_el_sol,
+    m_all_faces.emplace_back(surf.getIdx(), m_ref_el_coord, m_ref_el_sol,
                              m_tensor_product_coord_map, m_tensor_product_sol_map,
-                             nodemap_coord, nodemap_sol,
-                             tp_nodemap, surf.getIsDirichlet());
+                             /*tp_nodemap,*/ surf.getIsDirichlet());
     auto& face_group = m_all_faces.back();
 
     //TODO: consider doing adjacency based search (starting with min
@@ -210,8 +217,9 @@ void MeshCG::createFaceGroups()
 
     // get dofs
     auto nfaces = face_group.faces.size();
-    int num_nodes_per_face = nodemap_sol.shape()[1];
+    int num_nodes_per_face = m_ref_el_sol->getNumNodes(2);
     face_group.nodenums.resize(boost::extents[nfaces][num_nodes_per_face]);
+    auto& nodemap_sol = m_ref_el_sol->getFaceNodes();
     //face_group.nodenums = ArrayType<Index, 2>(boost::extents[nfaces][num_nodes_per_face]);
 
     for (SInt i=0; i < nfaces; ++i)

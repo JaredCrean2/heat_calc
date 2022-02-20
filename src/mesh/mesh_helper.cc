@@ -235,7 +235,7 @@ void setDirichletDofs(ApfData& apf_data, int& dof_start)
     }
 }
 
-
+/*
 ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data, apf::FieldShape* fshape)
 {
   apf::Downward faces;
@@ -298,7 +298,8 @@ ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data, apf::FieldShape* fshap
 
   return nodemap;
 }
-
+*/
+/*
 const ArrayType<LocalIndex, 2>& getFaceTensorProductMap(const int degree)
 {
   // this has to be consistent with getFaceNodemap
@@ -328,5 +329,6 @@ const ArrayType<LocalIndex, 2>& getFaceTensorProductMap(const int degree)
   else
     throw std::invalid_argument("unsupported degree");
 }
+*/
 
 } // namespace

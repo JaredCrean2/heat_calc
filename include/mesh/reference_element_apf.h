@@ -72,6 +72,7 @@ class FieldShapeRefEl: public FieldShape
     m_ref_el(ref_el),
     m_entityshapes(entityshapes)
     { 
+      std::cout << "about to register FieldShape name " << getName() << std::endl;
       registerSelf(getName());
     }
 
@@ -98,9 +99,16 @@ class FieldShapeRefEl: public FieldShape
     
     int countNodesOn(int type) override
     {
-      assert(type == Mesh::VERTEX || type == Mesh::EDGE || type == Mesh::QUAD || type == Mesh::HEX);
-      int dim = apf::Mesh::typeDimension[type];
-      return m_ref_el->getNumNodes(dim);
+      // apf sometimes queries this function for all types, even of none of those exist
+      // in the mesh
+      if (type == Mesh::VERTEX || type == Mesh::EDGE || type == Mesh::QUAD || type == Mesh::HEX)
+      {
+        int dim = apf::Mesh::typeDimension[type];
+        return m_ref_el->getNumNodes(dim);
+      } else
+      {
+        return 0;
+      }
     }
 
     int getOrder() override

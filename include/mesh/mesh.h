@@ -4,7 +4,9 @@
 #include "ProjectDefs.h"
 #include "utils/memory.h"
 #include "mesh/mesh_input.h"
-#include "mesh/reference_element.h"
+#include "mesh/reference_element.h"  //TODO: remove this
+#include "mesh/reference_element_interface.h"
+#include "mesh/reference_element_apf.h"
 
 #include <apf.h>
 #include <apfMesh.h>
@@ -15,6 +17,7 @@
 
 namespace Mesh {
 
+using REPtr = reference_element::REPtr;
 
 bool initialize();
 
@@ -36,8 +39,8 @@ class TensorProductMapper
   public:
   // TODO: maybe ReferenceElement should not be responsible for tensor product mapping
   //       and this class should be moved into utils
-    explicit TensorProductMapper(ReferenceElement* ref_el) :
-      tp_nodemap(ref_el->getTensorProductMap()),
+    explicit TensorProductMapper(REPtr ref_el) :
+      tp_nodemap(ref_el->getTPNodemap()),
       m_xi(ref_el->getTensorProductXi())
       //m_ref_el(ref_el)
     {}
@@ -129,8 +132,8 @@ class VolumeGroup
     VolumeGroup (const int idx, ArrayType<Index, 2>& nodenums, ArrayType<Real, 3>& coords,
                  const TensorProductMapper& tp_mapper_coord,
                  const TensorProductMapper& tp_mapper_sol,
-                 ReferenceElement* ref_el_coord,
-                 ReferenceElement* ref_el_sol,
+                 REPtr ref_el_coord,
+                 REPtr ref_el_sol,
                  std::vector<apf::MeshEntity*>& elements) :
       nodenums(nodenums),
       coords(coords),
@@ -147,8 +150,8 @@ class VolumeGroup
     ArrayType<Index, 2> nodenums;   // nelems x npts per element
     ArrayType<Real, 3> coords;      // nelems x npts per element coord x 3
     ArrayType<Real, 2> normals_xi;  // nfaces x 3
-    ReferenceElement* ref_el_coord;
-    ReferenceElement* ref_el_sol;
+    REPtr ref_el_coord;
+    REPtr ref_el_sol;
 
     // const std::vector<apf::Vector3>& normals_xi;
     int sol_degree;
@@ -166,6 +169,7 @@ class VolumeGroup
 
     const TensorProductMapper& getTPMapperSol() const { return m_tp_mapper_sol;}
 
+    //TODO: is this used?
     // given derivative d/dxi, computes d/dx
     // deriv_xi: num_nodes_per_element x 3
     // deriv_x: same as above
@@ -180,18 +184,16 @@ class VolumeGroup
 
 struct FaceGroup
 {
-  FaceGroup(const int idx, ReferenceElement* ref_el_coord, ReferenceElement* ref_el_sol,
+  FaceGroup(const int idx, REPtr ref_el_coord, REPtr ref_el_sol,
             const TensorProductMapper& tp_mapper_coord,
             const TensorProductMapper& tp_mapper_sol,
-            ArrayType<LocalIndex, 2> nodemap_coord,
-            ArrayType<LocalIndex, 2> nodemap_sol,
-            const ArrayType<LocalIndex, 2> face_tp_nodemap_coord,
+            //ArrayType<LocalIndex, 2> nodemap_coord,
+            //ArrayType<LocalIndex, 2> nodemap_sol,
+            //const ArrayType<LocalIndex, 2> face_tp_nodemap_coord,
             bool is_dirichlet) :
     ref_el_coord(ref_el_coord),
     ref_el_sol(ref_el_sol),
-    nodemap_coord(nodemap_coord),
-    nodemap_sol(nodemap_sol),
-    face_tp_nodemap_coord(face_tp_nodemap_coord),
+    //face_tp_nodemap_coord(face_tp_nodemap_coord),
     m_idx(idx),
     m_is_dirichlet(is_dirichlet),
     m_tp_mapper_coord(tp_mapper_coord),
@@ -202,14 +204,11 @@ struct FaceGroup
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
                                 // TODO: now that we have the nodemaps, we
                                 // don't need this large array anymore
-  ReferenceElement* ref_el_coord;
-  ReferenceElement* ref_el_sol;
-  // volume to face nodemap
-  ArrayType<LocalIndex, 2> nodemap_coord;  // nfaces_per_element x num coord pts per face
-  ArrayType<LocalIndex, 2> nodemap_sol;    // nfaces_per_element x num sol pts per face
+  REPtr ref_el_coord;
+  REPtr ref_el_sol;
 
   // face tensor product nodemap
-  const ArrayType<LocalIndex, 2> face_tp_nodemap_coord;
+  //const ArrayType<LocalIndex, 2> face_tp_nodemap_coord;
 
   int getIdx() const { return m_idx; }
 
@@ -217,9 +216,15 @@ struct FaceGroup
 
   int getNumFaces() const { return faces.size();}
 
-  int getNumCoordPtsPerFace() const { return nodemap_coord.shape()[1]; }
+  int getNumCoordPtsPerFace() const { return ref_el_coord->getNumNodes(2); }
 
-  int getNumSolPtsPerFace() const { return nodemap_sol.shape()[1];}
+  int getNumSolPtsPerFace() const { return ref_el_sol->getNumNodes(2); }
+
+  // volume to face nodemap
+  // nfaces_per_element x num nodes per face
+  const ArrayType<LocalIndex, 2> getFaceNodesCoord() const { return ref_el_coord->getFaceNodes(); }
+
+  const ArrayType<LocalIndex, 2> getFaceNodesSol() const { return ref_el_sol->getFaceNodes(); }
 
   // TensorProductMappers for the volume element this face is based on
   const TensorProductMapper& getTPMapperCoord() const { return m_tp_mapper_coord;}
@@ -235,10 +240,19 @@ struct FaceGroup
 
 struct ApfData
 {
-  explicit ApfData(apf::Mesh2* m = nullptr, apf::Numbering* dof_nums=nullptr,
-                   apf::Numbering* is_dirichlet=nullptr, apf::FieldShape* sol_shape=nullptr) :
-    m(m), dof_nums(dof_nums), is_dirichlet(is_dirichlet), sol_shape(sol_shape),
-    m_shared(makeSharedWithDeleter(m, apf::destroyMesh))
+  using FSPtr = std::shared_ptr<apf::FieldShapeRefEl>;
+
+  explicit ApfData(apf::Mesh2* m, apf::Numbering* dof_nums=nullptr,
+                   apf::Numbering* is_dirichlet=nullptr,
+                   FSPtr sol_shape=nullptr,
+                   FSPtr coord_shape=nullptr) :
+    m(m), dof_nums(dof_nums), 
+    is_dirichlet(is_dirichlet), 
+    sol_shape(sol_shape.get()),
+    coord_shape(coord_shape.get()),
+    m_shared(makeSharedWithDeleter(m, apf::destroyMesh)),
+    m_sol_shape(sol_shape),
+    m_coord_shape(coord_shape)
   {}
 
   apf::Mesh2* m;
@@ -247,12 +261,14 @@ struct ApfData
   apf::Numbering* is_dirichlet;  // if dof is dirichlet
   apf::FieldShape* sol_shape;    // FieldShape of solution
   apf::FieldShape* coord_shape;  // FieldShape of cooordinate field
-  apf::Numbering* vol_groups;    // volume group number of elements
+  apf::Numbering* vol_groups;    // volume group numbering of elements
 
   // unfortunately, the apf API takes raw pointers rather than shared
   // pointers for everything, so we keep the raw pointer above, and also
   // have a shared pointer for memory management
   std::shared_ptr<apf::Mesh2> m_shared;
+  FSPtr m_sol_shape;
+  FSPtr m_coord_shape;
 
   //std::vector<apf::MeshEntity*> elements;
 };
@@ -370,6 +386,8 @@ class MeshCG
     std::vector<apf::MeshEntity*> m_elements;
     std::vector<Index> m_elnums_global_to_local;  // element numbers to group element numbers
     std::vector< std::vector<Index> > m_elnums_local_to_global; // (group, local element number) -> global element number
+    REPtr m_ref_el_coord;
+    REPtr m_ref_el_sol;
     TensorProductMapper m_tensor_product_coord_map;
     TensorProductMapper m_tensor_product_sol_map;
 

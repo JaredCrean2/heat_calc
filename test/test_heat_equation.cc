@@ -208,7 +208,7 @@ TEST_F(StandardDiscTester, BasisVals2D_interpolation)
         //std::cout << "\ntesting surface " << surf_i << ", degree " << degree << std::endl;
         auto surf = disc->getSurfDisc(surf_i);
         auto& quad = surf->quad;
-        Heat::BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.nodemap_sol, surf->face_group.ref_el_sol);
+        Heat::BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.getFaceNodesSol(), surf->face_group.ref_el_sol);
         ArrayType<Real, 2> quad_coords(boost::extents[surf->getNumQuadPtsPerFace()][3]);
         ArrayType<Real, 2> sol_coords(boost::extents[surf->getNumSolPtsPerFace()][3]);
         ArrayType<Real, 1> sol_vals(boost::extents[surf->getNumSolPtsPerFace()]);

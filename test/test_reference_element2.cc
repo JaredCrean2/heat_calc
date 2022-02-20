@@ -77,6 +77,38 @@ void testNormals(REPtr ref_el)
   }
 }
 
+
+void testFaceNodes(REPtr ref_el)
+{
+  std::vector<int> const_xi = {2, 1, 0, 1, 0, 2};
+  int nnodes = std::pow(ref_el->getDegree() + 1, 2);
+
+  auto& face_nodes = ref_el->getFaceNodes();
+  auto& node_xi    = ref_el->getNodeXi();
+
+  EXPECT_EQ(face_nodes.shape()[0], 6);
+  EXPECT_EQ(face_nodes.shape()[1], nnodes);
+  for (int i=0; i < 6; ++i)
+  {
+    // check uniqueness
+    for (int j=0; j < nnodes; ++j)
+      for (int k=0; k < nnodes; ++k)
+        if (j == k)
+          EXPECT_EQ(face_nodes[i][j], face_nodes[i][k]);
+        else
+          EXPECT_NE(face_nodes[i][j], face_nodes[i][k]);
+
+    // check that the specified xi coordinate is constant on the face
+    int const_coord = const_xi[i];
+    int node_idx0 = face_nodes[i][0];
+    for (int j=1; j < nnodes; ++j)
+    {
+      int node_idx = face_nodes[i][j];
+      EXPECT_NEAR(node_xi[node_idx0][const_coord], node_xi[node_idx][const_coord], 1e-13);
+    }
+  }
+}
+
 }
 
 
@@ -121,7 +153,7 @@ TEST(ReferenceElementHex, Linear)
   testNodeXi(ref_el, tp_xi_exact);
   testXiRange(ref_el);
   testNormals(ref_el);
-
+  testFaceNodes(ref_el);
 }
 
 
@@ -152,6 +184,7 @@ TEST(ReferenceElementHex, Quadratic)
   testNodeXi(ref_el, tp_xi_exact);
   testXiRange(ref_el);
   testNormals(ref_el);
+  testFaceNodes(ref_el);
 
 }
 
@@ -188,5 +221,5 @@ TEST(ReferenceElementHex, Cubic)
   testNodeXi(ref_el, tp_xi_exact);
   testXiRange(ref_el);
   testNormals(ref_el);
-
+  testFaceNodes(ref_el);
 }

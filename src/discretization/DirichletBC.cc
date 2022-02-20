@@ -11,7 +11,7 @@ void applyDirichletValues(DirichletBCPtr bc, const Real t, DiscVectorPtr disc_ve
     auto& face_spec = surf->face_group.faces[face];
 
     auto& arr = disc_vec->getArray(face_spec.vol_group);
-    auto& nodemap = surf->face_group.nodemap_sol;
+    auto& nodemap = surf->face_group.getFaceNodesSol();
     for (int j=0; j < surf->getNumSolPtsPerFace(); ++j)
       arr[face_spec.el_group][nodemap[face_spec.face][j]] = vals[j];
   }

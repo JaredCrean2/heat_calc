@@ -58,9 +58,9 @@ void setDirichletDofs(ApfData& apf_data, int& dof_start);
 
 // gives map relating nodes on the volume to the face .
 // Output is nfaces (on reference element) x nnodes per face
-ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data, apf::FieldShape* fshape);
+//ArrayType<LocalIndex, 2> getFaceNodeMap(ApfData apf_data, apf::FieldShape* fshape);
 
-const ArrayType<LocalIndex, 2>& getFaceTensorProductMap(const int degree);
+//const ArrayType<LocalIndex, 2>& getFaceTensorProductMap(const int degree);
 
 }
 #endif

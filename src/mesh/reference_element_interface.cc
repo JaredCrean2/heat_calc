@@ -10,6 +10,7 @@ ReferenceElement::ReferenceElement(const ReferenceElementGeometry& geom, const R
   m_geom(geom),
   m_nodes(nodes)
 {
+  Impl::getFaceNodes(*this, m_face_nodes);
   Impl::computeTPNodemap(*this, m_tp_nodemap);
   Impl::computeNormals(*this, m_normals);
 
@@ -18,6 +19,44 @@ ReferenceElement::ReferenceElement(const ReferenceElementGeometry& geom, const R
 }
 
 namespace Impl {
+
+void getFaceNodes(ReferenceElement& ref_el, ArrayType<LocalIndex, 2>& face_nodes)
+{
+  auto ge_face = ref_el.getFace(0);
+  int nnodes_per_face = 0;
+  for (int dim=0; dim < 2; ++dim)
+    nnodes_per_face += ref_el.getNumNodes(dim) * getDownward(ge_face, 0).size();
+  nnodes_per_face += ref_el.getNumNodes(2);
+
+  int nfaces = ref_el.getNumFaces();
+  face_nodes.resize(boost::extents[nfaces][nnodes_per_face]);
+  std::vector<reference_element::GEPtr> entities_dim;
+  for (int face=0; face < nfaces; ++face)
+  {
+    auto face_p = ref_el.getFace(face);
+
+    int idx = 0;
+    for (int dim=0; dim <= 2; ++dim)
+    {
+      if (dim < 2)
+      {
+        entities_dim = getDownward(face_p, dim);
+      } else
+      {
+        entities_dim.resize(1);
+        entities_dim[0] = face_p;
+      }
+
+      for (auto entity : entities_dim)
+        for (int node=0; node < ref_el.getNumNodes(dim); ++node)
+          face_nodes[face][idx++] = ref_el.getNodeIndex(dim, entity->getId(), node);
+    }
+
+    assert(idx == nnodes_per_face);
+  }
+
+}
+
 
 
 void getNodeXi(ReferenceElement& ref_el, ArrayType<Real, 2>& node_xi)
