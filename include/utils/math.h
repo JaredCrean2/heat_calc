@@ -2,6 +2,7 @@
 #define UTILS_MATH_H
 
 #include <array>
+#include <ostream>
 
 namespace {
   template <typename T>
@@ -97,6 +98,19 @@ T dot(const std::array<T, N>& a, const std::array<T, N>& b)
     val += a[i] * b[i];
 
   return val;
+}
+
+template <typename T,  size_t N>
+std::ostream& operator<<(std::ostream& os, const std::array<T, N>& a)
+{
+  for (size_t i=0; i < N; ++i)
+  {
+    os << a[i];
+    if (i < N - 1)
+      os << ", ";
+  }
+
+  return os;
 }
 
 template <typename T>

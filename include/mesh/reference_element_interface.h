@@ -94,7 +94,18 @@ class ReferenceElement
       return getNodeIndex(dim, entity * getNumNodes(dim) + node);
     }
 
+    int getNumNodesTP() const { return m_tp_nodemap.shape()[0]; }
+
+    const ArrayType<Real, 2>& getNodeXi() const { return m_node_xi; }
+
+    const ArrayType<Real, 2>& getNormals() const { return m_normals; }
+
     const ArrayType<LocalIndex, 3>& getTPNodemap() const {return m_tp_nodemap; }
+
+    const std::vector<Real>& getTensorProductXi() const { return m_tp_xi; }
+
+    std::pair<Real, Real> getXiRange() const { return std::pair<Real, Real>(m_tp_xi.front(), m_tp_xi.back()); }
+
 
   private:
     // get total number of nodes on all entities <= dim
@@ -111,18 +122,27 @@ class ReferenceElement
     ReferenceNodes m_nodes;
     ArrayType<LocalIndex, 3> m_tp_nodemap;
     ArrayType<Real, 2> m_normals;
+    std::vector<Real> m_tp_xi;
+    ArrayType<Real, 2> m_node_xi;  // num_total_nodes x 3
 };
 
+namespace Impl {
+
+void getNodeXi(ReferenceElement& ref_el, ArrayType<Real, 2>& node_xi);
 
 std::vector<Real> get1DXi(ReferenceElement& ref_el);
 
 int searchNode(ReferenceElement& ref_el, const Point& pt);
 
-ArrayType<LocalIndex, 3> computeTPNodemap(ReferenceElement& ref_el);
+void computeTPNodemap(ReferenceElement& ref_el, ArrayType<LocalIndex, 3>& nodemap);
 
-ArrayType<Real, 2> computeNormals(ReferenceElement& ref_el);
+void computeNormals(ReferenceElement& ref_el, ArrayType<Real, 2>& normals);
+
+
+}
 
 std::shared_ptr<ReferenceElement> getLagrangeHexReferenceElement(int degree);
+
 
 }
 

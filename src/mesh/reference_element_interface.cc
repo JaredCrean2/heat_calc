@@ -1,4 +1,5 @@
 #include "mesh/reference_element_interface.h"
+#include "mesh/reference_element_geometry.h"
 #include "mesh/reference_element_nodes.h"
 #include "mesh/reference_element_geometry_hex.h"
 #include <map>
@@ -9,15 +10,36 @@ ReferenceElement::ReferenceElement(const ReferenceElementGeometry& geom, const R
   m_geom(geom),
   m_nodes(nodes)
 {
-  auto tp_nodemap = computeTPNodemap(*this);
-  auto normals    = computeNormals(*this);
+  Impl::computeTPNodemap(*this, m_tp_nodemap);
+  Impl::computeNormals(*this, m_normals);
 
-  m_tp_nodemap.resize(boost::extents[tp_nodemap.shape()[0]][tp_nodemap.shape()[1]][tp_nodemap.shape()[2]]);
-  m_tp_nodemap = tp_nodemap;
-
-  m_normals.resize(boost::extents[normals.shape()[0]][normals.shape()[1]]);
-  m_normals = normals;
+  m_tp_xi = Impl::get1DXi(*this);
+  Impl::getNodeXi(*this, m_node_xi);
 }
+
+namespace Impl {
+
+
+void getNodeXi(ReferenceElement& ref_el, ArrayType<Real, 2>& node_xi)
+{
+  int nnodes = ref_el.getNumNodesTotal();
+  node_xi.resize(boost::extents[nnodes][3]);
+
+  auto el = ref_el.getElement();
+  for (int dim=0; dim <= 3; ++dim)
+    for (int entity=0; entity < ref_el.getNumEntities(dim); ++entity)
+      for (int node=0; node < ref_el.getNumNodes(dim); ++node)
+      {
+        auto entity_p = ref_el.getEntity(dim, entity);
+        auto pt = ref_el.getNode(dim, node).xi;
+        auto xi = reference_element::reclassifyPoint(entity_p, pt, el);
+        int idx = ref_el.getNodeIndex(dim, entity, node);
+
+        for (int k=0; k < 3; ++k)
+          node_xi[idx][k] = xi[k];
+      }
+}
+
 
 std::vector<Real> get1DXi(ReferenceElement& ref_el)
 {
@@ -64,12 +86,12 @@ int searchNode(ReferenceElement& ref_el, const Point& pt)
 }
 
 
-ArrayType<LocalIndex, 3> computeTPNodemap(ReferenceElement& ref_el)
+void computeTPNodemap(ReferenceElement& ref_el, ArrayType<LocalIndex, 3>& nodemap)
 {
   auto xi_vals = get1DXi(ref_el);
   int nnodes = xi_vals.size();
 
-  ArrayType<LocalIndex, 3> nodemap(boost::extents[nnodes][nnodes][nnodes]);
+  nodemap.resize(boost::extents[nnodes][nnodes][nnodes]);
   for (int k=0; k < nnodes; ++k)
     for (int j=0; j < nnodes; ++j)
       for (int i=0; i < nnodes; ++i)
@@ -77,15 +99,13 @@ ArrayType<LocalIndex, 3> computeTPNodemap(ReferenceElement& ref_el)
         Point pt{xi_vals[i], xi_vals[j], xi_vals[k]};
         nodemap[i][j][k] = searchNode(ref_el, pt);
       }
-
-  return nodemap;
 }
 
 
-ArrayType<Real, 2> computeNormals(ReferenceElement& ref_el)
+void computeNormals(ReferenceElement& ref_el, ArrayType<Real, 2>& normals)
 {
   int nfaces = ref_el.getNumEntities(2);
-  ArrayType<Real, 2> normals(boost::extents[nfaces][3]);
+  normals.resize(boost::extents[nfaces][3]);
   auto el = ref_el.getElement();
 
   for (int i=0; i < nfaces; ++i)
@@ -119,16 +139,15 @@ ArrayType<Real, 2> computeNormals(ReferenceElement& ref_el)
 
     auto val = dot(norm, b3);
     assert(std::abs(val) > 1e-7);
-    if (val < 0)
+    if (val > 0)
       norm = norm * -1;
 
     for (int j=0; j < 3; ++j)
       normals[i][j] = norm[j];
   }
-
-  return normals;
 }
 
+}
 
 std::shared_ptr<ReferenceElement> getLagrangeHexReferenceElement(int degree)
 {
