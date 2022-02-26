@@ -195,6 +195,7 @@ void MeshCG::createFaceGroups()
               }
 
             assert(localidx != -1);
+            localidx = m_ref_el_coord->getREEntityIndex(2, localidx);
 
             int elnum = apf::getNumber(m_apf_data.el_nums, e_i, 0, 0);
             int elnum_local = m_elnums_global_to_local[elnum];
