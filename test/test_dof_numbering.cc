@@ -127,3 +127,39 @@ TEST_F(DofNumberingTester, DirichletDofsCoords)
     EXPECT_TRUE(on_surface);
   }
 }
+
+
+TEST_F(DofNumberingTester, DirichletDofVolumeCoords)
+{
+  setup(5, 3);
+  auto dof_numbering = disc->getDofNumbering();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    auto vol_disc = disc->getVolDisc(i);
+    auto dofs_i = dof_numbering->getDofs(i);
+    ArrayType<Real, 2> sol_coords(boost::extents[vol_disc->getNumSolPtsPerElement()][3]);
+    for (int el=0; el < vol_disc->getNumElems(); ++el)
+    {
+      vol_disc->getVolumeSolCoords(el, sol_coords);
+      for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
+      {
+        auto dof = dofs_i[el][j];
+        auto coords_j = sol_coords[boost::indices[j][range()]];
+
+        bool on_surface = false;
+        for (int d=0; d < 3; ++d)
+          on_surface |= std::abs(coords_j[d] - mesh_dim_mins[d]) < 1e-13 ||
+                        std::abs(coords_j[d] - mesh_dim_maxs[d]) < 1e-13;   
+
+        //std::cout << "el, j = " << el << ", " << j << std::endl;
+        //std::cout << std::boolalpha << "coords_j = " << coords_j[0] << ", " << coords_j[1] << ", " << coords_j[2] << ", is on surface = " << on_surface << std::endl;
+        if (dof_numbering->isDofActive(dof))
+          EXPECT_FALSE(on_surface);
+        else
+          EXPECT_TRUE(on_surface);     
+
+      }
+    }
+  }
+
+}

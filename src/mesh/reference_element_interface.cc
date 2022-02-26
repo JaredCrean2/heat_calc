@@ -3,6 +3,7 @@
 #include "mesh/reference_element_nodes.h"
 #include "mesh/reference_element_geometry_hex.h"
 #include <map>
+#include <stdexcept>
 
 namespace reference_element {
 
@@ -17,6 +18,35 @@ ReferenceElement::ReferenceElement(const ReferenceElementGeometry& geom, const R
   m_tp_xi = Impl::get1DXi(*this);
   Impl::getNodeXi(*this, m_node_xi);
 }
+
+
+int ReferenceElement::getREEntityIndex(int dim, int idx)
+{
+  if (dim == 3)
+  {
+    assert(idx == 0);
+    return idx;
+  }
+
+  const std::vector<ReferenceElementDef::Int>* map_p;
+
+  switch (dim)
+  {
+    case 0: { map_p = &(getDef().verts_to_apf); break; }
+    case 1: { map_p = &(getDef().edges_to_apf); break; }
+    case 2: { map_p = &(getDef().faces_to_apf); break; }
+  }
+
+  const auto& map = *map_p;
+  assert(idx >= 0 && idx < map.size());
+  for (unsigned int i=0; i < map.size(); ++i)
+    if (map[i] == idx)
+      return i;
+
+  throw std::invalid_argument(std::string("cannot find apf entity ") + std::to_string(idx) +
+                                          " of dimension " + std::to_string(dim));
+}
+
 
 namespace Impl {
 

@@ -70,6 +70,7 @@ class StandardMeshSetup : public StandardMeshBase
       vol_disc = std::make_shared<VolumeDiscretization>(vol_group, quad);
       std::vector<std::shared_ptr<VolumeDiscretization>> vol_discs{vol_disc};
       
+      surf_discs.resize(0);
       for (Index i=0; i < mesh->getNumSurfaces(); ++i)
       {
         auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), quad, vol_discs); 

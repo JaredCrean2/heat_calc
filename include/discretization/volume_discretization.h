@@ -38,11 +38,30 @@ class VolumeDiscretization
 
     // computes coordinates of volume quadrature points in a flat array (num quad points per face x 3)
     template <typename Array2D>
+    void getVolumeSolCoords(const Index el, Array2D& quad_coords);
+
+    // computes coordinates of volume quadrature points in a flat array (num quad points per face x 3)
+    template <typename Array2D>
     void getVolumeQuadCoords(const Index el, Array2D& quad_coords);
 };
 
 using VolDiscPtr = std::shared_ptr<VolumeDiscretization>;
 
+
+template <typename Array2D>
+void VolumeDiscretization::getVolumeSolCoords(const Index el, Array2D& sol_coords)
+{
+  assert(sol_coords.num_dimensions() == 2);
+  assert(sol_coords.shape()[0] == getNumSolPtsPerElement());
+  assert(sol_coords.shape()[1] == 3);
+
+  for (int d=0; d < 3; ++d)
+  {
+    auto coords_d = vol_group.coords[boost::indices[el][range()][d]];
+    auto sol_coords_d = sol_coords[boost::indices[range()][d]];
+    interp_cs_flat_to_flat.interpolateVals(coords_d, sol_coords_d);
+  }
+}
 
 template <typename Array2D>
 void VolumeDiscretization::getVolumeQuadCoords(const Index el, Array2D& quad_coords)

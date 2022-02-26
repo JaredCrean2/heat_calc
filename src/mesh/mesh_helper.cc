@@ -167,7 +167,8 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
 
 void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_nums)
 {
-  node_nums.resize(0);
+  //node_nums.resize(0);
+  node_nums.resize(apf_data.m_ref_el_sol->getNumNodesTotal());
   apf::Downward down;
   for (int dim=0; dim <= 3; ++dim)
   {
@@ -176,7 +177,12 @@ void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_num
     int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(down[0]));
     for (int i=0; i < ndown; ++i)
       for (int j=0; j < nnodes_dim; ++j)
-        node_nums.push_back(apf::getNumber(apf_data.dof_nums, down[i], j, 0));
+      {
+        int entity_ref_el = apf_data.m_ref_el_sol->getREEntityIndex(dim, i);
+        int node = apf_data.m_ref_el_sol->getNodeIndex(dim, entity_ref_el, j);
+        assert(node >= 0 && node < node_nums.size());
+        node_nums[node] = apf::getNumber(apf_data.dof_nums, down[i], j, 0);
+      }
   }
 }
 
@@ -191,7 +197,6 @@ void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
   int el_idx = 0;
   for( auto e : elements )
   {
-    int idx=0, offset=0;
     for (int dim=0; dim <= 3; ++dim)
     {
       int ndown = apf_data.m->getDownward(e, dim, down);
@@ -202,13 +207,13 @@ void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
         {
           apf_data.m->getPoint(down[i], j, point);
 
-          coords[el_idx][idx][0] = point.x();
-          coords[el_idx][idx][1] = point.y();
-          coords[el_idx][idx][2] = point.z();
-          ++idx;
-        }
+          int entity_ref_el = apf_data.m_ref_el_coord->getREEntityIndex(dim, i);
+          int node = apf_data.m_ref_el_coord->getNodeIndex(dim, entity_ref_el, j);
 
-      offset = offset + ndown * nnodes_dim;
+          coords[el_idx][node][0] = point.x();
+          coords[el_idx][node][1] = point.y();
+          coords[el_idx][node][2] = point.z();
+        }
     }
     ++el_idx;
   }

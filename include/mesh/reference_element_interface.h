@@ -104,19 +104,42 @@ class ReferenceElement
       return getNodeIndex(dim, entity * getNumNodes(dim) + node);
     }
 
+    // given the dimension and apf index, get the ReferenceElement index
+    int getREEntityIndex(int dim, int idx);
+
+    // given the dimension and ReferenceElement index, get the apf entity index
+    int getApfEntityIndex(int dim, int idx)
+    {
+      switch (dim)
+      {
+        case 0: return getDef().verts_to_apf.at(idx);
+        case 1: return getDef().edges_to_apf.at(idx);
+        case 2: return getDef().faces_to_apf.at(idx);
+        case 3: return idx;
+        default:
+          throw std::runtime_error(std::string("Unrecognized dimension: ") + std::to_string(dim));
+      }
+    }
+
     // returns nfaces x nnodes per face array giving the indices of the nodes on each face
     const ArrayType<LocalIndex, 2>& getFaceNodes() const { return m_face_nodes; }
+
+    int getNumFaceNodes() const { return getFaceNodes().shape()[1]; }
 
     int getNumNodesTP() const { return m_tp_nodemap.shape()[0]; }
 
     int getDegree() const { return getNumNodesTP() - 1; }
 
+    // getNumNodesTotal x 3
     const ArrayType<Real, 2>& getNodeXi() const { return m_node_xi; }
 
+    // nfaces x 3
     const ArrayType<Real, 2>& getNormals() const { return m_normals; }
 
+    // 3D array, each dimension getNumNodesTP
     const ArrayType<LocalIndex, 3>& getTPNodemap() const {return m_tp_nodemap; }
 
+    // length getNumNodesT() 
     const std::vector<Real>& getTensorProductXi() const { return m_tp_xi; }
 
     std::pair<Real, Real> getXiRange() const { return std::pair<Real, Real>(m_tp_xi.front(), m_tp_xi.back()); }

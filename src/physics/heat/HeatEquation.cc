@@ -12,26 +12,32 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   if (!(u->isArrayCurrent()))
     u->syncVectorToArray();
 
+  std::cout << "before setting dirichlet values, u = " << std::endl;
+  printArray(u);
+
   // apply Dirichlet values to array
   applyDirichletValues(*this, t, u);
+  std::cout << "after setting dirichlet values, u = " << std::endl;
+  printArray(u);
 
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
 
   std::cout << "\nafter volume term " << std::endl;
-  printArray(rhs);
+  printVector(rhs);
 
   // compute Neumann BC terms
   computeNeumannBC(*this, t, u, rhs);
 
-  std::cout << "\nafter Neumann term " << std::endl;
-  printArray(rhs);
+  //std::cout << "\nafter Neumann term " << std::endl;
+  //printArray(rhs);
 
   // compute source term
   computeSourceTerm(*this, t, rhs);
 
-  //std::cout << "\nafter source term " << std::endl;
+  std::cout << "\nafter source term " << std::endl;
   //printArray(rhs);
+  printVector(rhs);
 }
 
 void HeatEquation::checkInitialization()
@@ -265,6 +271,41 @@ void printArray(DiscVectorPtr vec)
   }
 
   std::cout << "val_sum = " << val_sum << std::endl;
+}
+
+
+void printVector(DiscVectorPtr vec)
+{
+  std::cout << "printing vector form" << std::endl;
+  vec->syncArrayToVector();
+
+  auto disc = vec->getDisc();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    std::cout << "Block " << i << std::endl;
+    auto vol_disc  = disc->getVolDisc(i);
+    auto& dofs     = disc->getDofNumbering()->getDofs(i);
+    auto& vec_vals = vec->getVector();
+    std::cout << "dofs.shape = " << dofs.shape()[0] << ", " << dofs.shape()[1] << std::endl;
+    std::cout << "vec_vals.shape = " << vec_vals.shape()[0] << std::endl;
+    ArrayType<Real, 2> sol_coords(boost::extents[vol_disc->getNumSolPtsPerElement()][3]);
+
+    for (int el=0; el < vol_disc->getNumElems(); ++el)
+    {
+      vol_disc->getVolumeSolCoords(el, sol_coords);
+      for (unsigned int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
+      {
+        //std::cout << "el = " << el << ", j = " << j << std::endl;
+        auto dof = dofs[el][j];
+        if (disc->getDofNumbering()->isDofActive(dof))
+        {
+          //std::cout << "dof = " << dof << std::endl;
+          std::cout << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+          std::cout << "  coords = " << sol_coords[j][0] << ", " << sol_coords[j][1] << ", " << sol_coords[j][2] << std::endl;
+        }
+      }
+    }
+  }
 }
 
 

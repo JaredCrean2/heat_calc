@@ -73,6 +73,9 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
 void printArray(DiscVectorPtr vec);
 
+void printVector(DiscVectorPtr vec);
+
+
 
 } // namespace
 

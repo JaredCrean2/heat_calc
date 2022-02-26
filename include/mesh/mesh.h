@@ -198,7 +198,11 @@ struct FaceGroup
     m_is_dirichlet(is_dirichlet),
     m_tp_mapper_coord(tp_mapper_coord),
     m_tp_mapper_sol(tp_mapper_sol)
-  {}
+  {
+
+    //std::cout << "in FaceGroup constructor" << std::endl;
+    //std::cout << "ref_el_coord->getNumCoordPtsPerFace() = " << ref_el_coord->getNumNodes(2) << std::endl;
+  }
 
   std::vector<FaceSpec> faces;
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
@@ -216,9 +220,9 @@ struct FaceGroup
 
   int getNumFaces() const { return faces.size();}
 
-  int getNumCoordPtsPerFace() const { return ref_el_coord->getNumNodes(2); }
+  int getNumCoordPtsPerFace() const { return ref_el_coord->getNumFaceNodes(); }
 
-  int getNumSolPtsPerFace() const { return ref_el_sol->getNumNodes(2); }
+  int getNumSolPtsPerFace() const { return ref_el_sol->getNumFaceNodes(); }
 
   // volume to face nodemap
   // nfaces_per_element x num nodes per face
@@ -269,6 +273,8 @@ struct ApfData
   std::shared_ptr<apf::Mesh2> m_shared;
   FSPtr m_sol_shape;
   FSPtr m_coord_shape;
+  REPtr m_ref_el_coord;
+  REPtr m_ref_el_sol;
 
   //std::vector<apf::MeshEntity*> elements;
 };

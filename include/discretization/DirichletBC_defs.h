@@ -19,7 +19,7 @@ class DirichletBCMMS : public DirichletBC
       auto surf_disc = getSurfDisc();
       getSolNodeCoords(face, m_coords);
 
-      for (int i=0; i < surf_disc->getNumCoordPtsPerFace(); ++i)
+      for (int i=0; i < surf_disc->getNumSolPtsPerFace(); ++i)
         vals[i] = m_func(m_coords[i][0], m_coords[i][1], m_coords[i][2], t);
     }
 

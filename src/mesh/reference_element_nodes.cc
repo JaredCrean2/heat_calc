@@ -71,7 +71,7 @@ ReferenceNodes getLagrangeHexNodes(int degree)
     }
 
     default:
-      throw std::invalid_argument("unsupported degree in getLagrangeHex()");
+      throw std::invalid_argument(std::string("unsupported degree in getLagrangeHex(): ") + std::to_string(degree));
   };
 }
 

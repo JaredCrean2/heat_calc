@@ -20,6 +20,50 @@ class SurfaceTester : public ::testing::Test,
 
 }
 
+TEST_F(SurfaceTester, Counts)
+{
+  int sol_degree = 1;
+  int quad_degree = 3;
+  setup(quad_degree, sol_degree);
+  for (auto& surf : surf_discs)
+  {
+    EXPECT_EQ(surf->getNumCoordPtsPerFace(), 4);
+    EXPECT_EQ(surf->getNumQuadPtsPerFace(), 4);
+    EXPECT_EQ(surf->getNumSolPtsPerFace(), 4);
+  }
+
+  quad_degree = 5;
+  setup(quad_degree, sol_degree);
+  for (auto& surf : surf_discs)
+  {
+    EXPECT_EQ(surf->getNumCoordPtsPerFace(), 4);
+    EXPECT_EQ(surf->getNumQuadPtsPerFace(), 9);
+    EXPECT_EQ(surf->getNumSolPtsPerFace(), 4);
+  }
+
+
+  sol_degree = 2;
+  quad_degree = 5;
+  setup(quad_degree, sol_degree);
+  for (auto& surf : surf_discs)
+  {
+    EXPECT_EQ(surf->getNumCoordPtsPerFace(), 4);
+    EXPECT_EQ(surf->getNumQuadPtsPerFace(), 9);
+    EXPECT_EQ(surf->getNumSolPtsPerFace(), 9);
+  }
+
+
+  sol_degree = 3;
+  quad_degree = 5;
+  setup(quad_degree, sol_degree);
+  for (auto& surf : surf_discs)
+  {
+    EXPECT_EQ(surf->getNumCoordPtsPerFace(), 4);
+    EXPECT_EQ(surf->getNumQuadPtsPerFace(), 9);
+    EXPECT_EQ(surf->getNumSolPtsPerFace(), 16);
+  }
+}
+
 
 TEST_F(SurfaceTester, Normals)
 {

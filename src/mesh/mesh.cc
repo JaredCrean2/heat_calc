@@ -75,14 +75,14 @@ void MeshCG::setApfData()
   m_apf_data.sol_shape = Mesh::getLagrange(m_dof_numbering.sol_degree);
   m_apf_data.coord_shape = Mesh::getLagrange(m_dof_numbering.coord_degree);
 
-  auto sol_shape = apf::getHexFieldShape(m_ref_el_sol);
+  auto sol_shape   = apf::getHexFieldShape(m_ref_el_sol);
   auto coord_shape = apf::getHexFieldShape(m_ref_el_coord);
-  m_apf_data.m_sol_shape = sol_shape;
-  m_apf_data.sol_shape = sol_shape.get();
-  m_apf_data.m_coord_shape = coord_shape;
-  m_apf_data.coord_shape = coord_shape.get();
-  
-
+  m_apf_data.m_sol_shape    = sol_shape;
+  m_apf_data.sol_shape      = sol_shape.get();
+  m_apf_data.m_coord_shape  = coord_shape;
+  m_apf_data.coord_shape    = coord_shape.get();
+  m_apf_data.m_ref_el_coord = m_ref_el_coord;
+  m_apf_data.m_ref_el_sol   = m_ref_el_sol;
 
   m_dof_numbering.nodes_per_element =
     apf::countElementNodes(m_apf_data.sol_shape, apf::Mesh::HEX);
@@ -97,7 +97,7 @@ void MeshCG::setApfData()
                                         apf::getConstant(3), 1);
   m_apf_data.is_dirichlet = apf::createNumbering(m_apf_data.m, "is_dirichlet",
                                               m_apf_data.sol_shape, 1);
-  m_apf_data.vol_groups = apf::createNumbering(m_apf_data.m, "vol_group",
+  m_apf_data.vol_groups = apf::createNumbering(m_apf_data.m, "vol_group",  //TODO: is this needed?
                                                apf::getConstant(3), 1);
 
   setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);

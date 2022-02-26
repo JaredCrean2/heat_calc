@@ -129,10 +129,10 @@ TEST_F(HeatMMSTester, Constant)
 
 TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 {
-  for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
+  for (int sol_degree=2; sol_degree <= 2; ++sol_degree)
   {
     std::cout << "testing sol degree " << sol_degree << std::endl;
-    for (int degree=0; degree <= sol_degree; ++degree)
+    for (int degree=2; degree <= sol_degree; ++degree)
     {
       std::cout << "  testing polynomial degree " << degree << std::endl;
       auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
@@ -152,6 +152,7 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
       auto& vec = res_vec->getVector();
       for (int i=0; i < vec.shape()[0]; ++i)
       {
+        std::cout << "vec[i] = " << vec[i] << std::endl;
         EXPECT_LE(std::abs(vec[i]), 1e-12);
       }
     }
