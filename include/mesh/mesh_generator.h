@@ -36,6 +36,7 @@ class MeshGenerator
       m_verts(boost::extents[mesh_spec.nx+1][mesh_spec.ny+1][mesh_spec.nz+1])
   {}
 
+    //TODO: move function definitions to source file
     apf::Mesh2* generate()
     {
       gmi_register_null();

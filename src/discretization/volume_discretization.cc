@@ -40,7 +40,6 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
 
   for (int i=0; i < vol_disc.getNumElems(); ++i)
   {
-
     for (int d=0; d < 3; ++d)
     {
       auto coords_d = vol_disc.vol_group.coords[boost::indices[i][range()][d]];

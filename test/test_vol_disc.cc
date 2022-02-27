@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "ProjectDefs.h"
 #include "mesh_helper.h"
 #include "discretization/volume_discretization.h"
 #include "mesh/mesh_generator.h"
@@ -14,18 +15,28 @@ TEST(VolDisc, dxidx)
   Mesh::VolumeGroup& vol_group = mesh->getElements(0);
   VolumeDiscretization vol_disc(vol_group, quad);
 
-  // xi is 0 to 1, the mesh is linear and axis aligned, to dxidx = 1/(xmax - xmin)/nx)
+  // xi is 0 to 1, the mesh is linear and axis aligned, so dxidx = 1/(xmax - xmin)/nx)
   
   double dxidx_ex[3] = {1.0/( (spec.xmax - spec.xmin)/spec.nx ),
                         1.0/( (spec.ymax - spec.ymin)/spec.ny ),
                         1.0/( (spec.zmax - spec.zmin)/spec.nz )};
+
+  ArrayType<Real, 2> dxidx_ex_mat(boost::extents[3][3]);
+  dxidx_ex_mat[0][0] = 0;            dxidx_ex_mat[0][1] = -dxidx_ex[1]; dxidx_ex_mat[0][2] = 0;
+  dxidx_ex_mat[1][0] = dxidx_ex[0];  dxidx_ex_mat[1][1] = 0;            dxidx_ex_mat[1][2] = 0;
+  dxidx_ex_mat[2][0] = 0;            dxidx_ex_mat[2][1] = 0;            dxidx_ex_mat[2][2] = dxidx_ex[2];
+
   
 
   for (int i=0; i < vol_disc.getNumElems(); ++i)
     for (int j=0; j < vol_disc.getNumQuadPtsPerElement(); ++j)
       for (int d1=0; d1 < 3; ++d1)
+      {
         for (int d2=0; d2 < 3; ++d2)
+        
         {
+          EXPECT_NEAR(vol_disc.dxidx[i][j][d1][d2], dxidx_ex_mat[d1][d2], 1e-13);
+          /*
           if (d1 == d2)
           {
             EXPECT_NEAR(vol_disc.dxidx[i][j][d1][d2], dxidx_ex[d1], 1e-13);
@@ -33,8 +44,10 @@ TEST(VolDisc, dxidx)
           {
             EXPECT_NEAR(vol_disc.dxidx[i][j][d1][d2], 0, 1e-13);
           }
+          */
           
         }
+      }
 }
 
 TEST(VolDisc, MatFuncs)
