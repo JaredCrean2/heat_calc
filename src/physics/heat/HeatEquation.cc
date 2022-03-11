@@ -23,8 +23,8 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
 
-  std::cout << "\nafter volume term " << std::endl;
-  printArray(rhs);
+  //std::cout << "\nafter volume term " << std::endl;
+  //printArray(rhs);
 
   // compute Neumann BC terms
   computeNeumannBC(*this, t, u, rhs);
@@ -35,8 +35,8 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   // compute source term
   computeSourceTerm(*this, t, rhs);
 
-  std::cout << "\nafter source term " << std::endl;
-  printArray(rhs);
+  //std::cout << "\nafter source term " << std::endl;
+  //printArray(rhs);
   //printVector(rhs);
 }
 
@@ -114,7 +114,6 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
 
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
-    std::cout << "el = " << el << std::endl;
     for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
     {
       for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
@@ -135,28 +134,6 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
               dNi_dx[d1] += dxidx[el][k][d2][d1] * dNi_dxi[d2];
               dNj_dx[d1] += dxidx[el][k][d2][d1] * dNj_dxi[d2];
             }
-          }
-
-          if (j == 0 && k == 0)
-          {
-            std::cout << "  i = " << i << std::endl;
-            std::cout << "  dN/dxi = " << dNi_dxi[0] << ", " << dNi_dxi[1] << ", " << dNi_dxi[2] << std::endl;
-            std::cout << "  dxi/dx = " << dxidx[el][k][0][0] << ", " << dxidx[el][k][0][1] << ", " << dxidx[el][k][0][2] << std::endl;
-            std::cout << "           " << dxidx[el][k][1][0] << ", " << dxidx[el][k][1][1] << ", " << dxidx[el][k][1][2] << std::endl;
-            std::cout << "           " << dxidx[el][k][2][0] << ", " << dxidx[el][k][2][1] << ", " << dxidx[el][k][2][2] << std::endl;
-            std::cout << "  dN/dx =  " << dNi_dx[0] << ", " << dNi_dx[1] << ", " << dNi_dx[2] << std::endl;
-            std::cout << std::endl;
-          }
-
-          if (i == 0 && j == 0)
-          {
-            auto& rev_nodemap = basis_vals.getRevNodemapOut();
-            int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
-            std::cout << "k = " << k << std::endl;
-            std::cout << "xi from quad           = " << tp_mapper_quad.getXi()[k_i] << ", " << tp_mapper_quad.getXi()[k_j] << ", " << tp_mapper_quad.getXi()[k_k] << std::endl;
-
-            auto xi_interp = interpolateXi(basis_vals, k);
-            std::cout << "xi from interpoloation = " << xi_interp[0] << ", " << xi_interp[1] << ", " << xi_interp[2] << std::endl;
           }
 
           // compute dN_i/dx * weights * dN_j/dx * |J| * T_j
@@ -187,8 +164,6 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
 
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
-    std::cout << "el = " << el << std::endl;
-
     for (int k=0; k < vol_disc->getNumSolPtsPerElement(); ++k)
       for (int d=0; d < 3; ++d)
         du_dx[k][d] = 0;
@@ -221,29 +196,7 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
           for (int d2=0; d2 < 3; ++d2)
             dNi_dx[d1] += dxidx[el][k][d2][d1] * dNi_dxi[d2];
         }
-/*
-        if (j == 0 && k == 0)
-        {
-          std::cout << "  i = " << i << std::endl;
-          std::cout << "  dN/dxi = " << dNi_dxi[0] << ", " << dNi_dxi[1] << ", " << dNi_dxi[2] << std::endl;
-          std::cout << "  dxi/dx = " << dxidx[el][k][0][0] << ", " << dxidx[el][k][0][1] << ", " << dxidx[el][k][0][2] << std::endl;
-          std::cout << "           " << dxidx[el][k][1][0] << ", " << dxidx[el][k][1][1] << ", " << dxidx[el][k][1][2] << std::endl;
-          std::cout << "           " << dxidx[el][k][2][0] << ", " << dxidx[el][k][2][1] << ", " << dxidx[el][k][2][2] << std::endl;
-          std::cout << "  dN/dx =  " << dNi_dx[0] << ", " << dNi_dx[1] << ", " << dNi_dx[2] << std::endl;
-          std::cout << std::endl;
-        }
 
-        if (i == 0 && j == 0)
-        {
-          auto& rev_nodemap = basis_vals.getRevNodemapOut();
-          int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
-          std::cout << "k = " << k << std::endl;
-          std::cout << "xi from quad           = " << tp_mapper_quad.getXi()[k_i] << ", " << tp_mapper_quad.getXi()[k_j] << ", " << tp_mapper_quad.getXi()[k_k] << std::endl;
-
-          auto xi_interp = interpolateXi(basis_vals, k);
-          std::cout << "xi from interpoloation = " << xi_interp[0] << ", " << xi_interp[1] << ", " << xi_interp[2] << std::endl;
-        }
-*/
         // compute dN_i/dx * weights * dN_j/dx * |J| * T_j
         auto& rev_nodemap = basis_vals.getRevNodemapOut();
         int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
@@ -309,10 +262,7 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
 {
   const auto& neumann_bcs = physics.getNeumannBCs();
   for (auto& bc : neumann_bcs)
-  {
-    std::cout << "doing Neumann BC " << bc->getSurfDisc()->getIdx() << std::endl;
     computeNeumannBC(bc, u, t, rhs);
-  }
 
   rhs->markArrayModified();
 }
@@ -330,14 +280,6 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
   Quadrature& quad = surf->quad;
   BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.getFaceNodesSol(), surf->face_group.ref_el_sol);
 
-  for (int face=0; face < 6; ++face)
-  {
-    std::cout << "nodemap for face " << face << std::endl;
-    for (int i=0; i < 4; ++i)
-      std::cout << surf->face_group.getFaceNodesSol()[face][i] << ", ";
-
-    std::cout << std::endl;
-  }
   for (int face=0; face < surf->getNumFaces(); ++face)
   {
     auto& face_spec = surf->face_group.faces[face];
@@ -349,11 +291,6 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
-    Real face_integral = 0;
-    ArrayType<Real, 1> face_sum(boost::extents[surf->getNumSolPtsPerFace()]);
-    for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
-      face_sum[k] = 0;
-
 
     for (int i=0; i < quad.getNumPoints(); ++i)
       for (int j=0; j < quad.getNumPoints(); ++j)
@@ -363,31 +300,16 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
         Real flux_normal = 0;
         for (int d=0; d < 3; ++d)
           flux_normal += surf->normals[face][node][d] * flux_vals[node + surf->getNumQuadPtsPerFace() * d];
-        //Real area   = std::sqrt(surf->normals[face][node][0] * surf->normals[face][node][0] +
-        //                        surf->normals[face][node][1] * surf->normals[face][node][1] +
-        //                        surf->normals[face][node][2] * surf->normals[face][node][2]);
+
         Real val = weight * flux_normal;
-        //std::cout << "node   = " << node << ", flux val = " << flux_vals[node] << std::endl;
-        //std::cout << "weight = " << weight << std::endl;
-        //std::cout << "area   = " << area << std::endl;
-        //std::cout << "val    = " << val << std::endl;
+
 
         for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
         {
           int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][k];
-          //std::cout << "adding to el, node = " << face_spec.el_group << ", " << node_sol << std::endl;
           res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
-          //std::cout << "contrib = " << basis.getValue(face_spec.face, k, i, j) * val << std::endl;
-          face_sum[k]   -= basis.getValue(face_spec.face, k, i, j) * val;
-          face_integral -= basis.getValue(face_spec.face, k, i, j) * val;
         }          
       }
-
-    std::cout << "face (" << face_spec.el_group << ", " << face_spec.face << ") contribution sum: " << std::endl;
-    std::cout << "normal = " << surf->normals[face][0][0] << ", " << surf->normals[face][0][1] << ", " << surf->normals[face][0][2] << std::endl;
-    for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
-      std::cout << "node " << surf->face_group.getFaceNodesSol()[face_spec.face][k] << ": " << face_sum[k] << std::endl;
-    std::cout << "face_sum = " << face_integral << std::endl;
   }
 }
 

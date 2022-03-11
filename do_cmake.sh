@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # ASAN flags
-ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
-CXXFLAGS="-O0 -Wall -g"
-BUILDTYPE="Debug"
+#ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
+#CXXFLAGS="-O0 -Wall -g"
+#BUILDTYPE="Debug"
 
-#CXXFLAGS="-O3 -Wall"
-#BUILDTYPE="Release"
+CXXFLAGS="-O3 -Wall"
+BUILDTYPE="Release"
 
 
 cmake \
