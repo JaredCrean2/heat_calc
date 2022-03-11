@@ -61,6 +61,9 @@ void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorP
 void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
                        const ArrayType<Real, 2>& u_arr, ArrayType<Real, 2>& rhs_arr);
 
+void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
+                        const ArrayType<Real, 2>& u_arr, ArrayType<Real, 2>& rhs_arr);
+
 void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs);
 
 void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,

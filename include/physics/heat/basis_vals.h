@@ -24,7 +24,7 @@ class BasisVals
       getReverseNodemap(tp_mapper_out, m_rev_nodemap_out);
     }
 
-    Real getValue(const int idx_in, const int idx_out)
+    Real getValue(const int idx_in, const int idx_out) const
     {
       int i_in = m_rev_nodemap_in[idx_in][0];  int i_out = m_rev_nodemap_out[idx_out][0];
       int j_in = m_rev_nodemap_in[idx_in][1];  int j_out = m_rev_nodemap_out[idx_out][1];
@@ -33,7 +33,7 @@ class BasisVals
       return m_vals[i_out][i_in] * m_vals[j_out][j_in] * m_vals[k_out][k_in];
     }
 
-    void getDerivs(const int idx_in, const int idx_out, Real derivs[3])
+    void getDerivs(const int idx_in, const int idx_out, Real derivs[3]) const
     {
       int i_in = m_rev_nodemap_in[idx_in][0];  int i_out = m_rev_nodemap_out[idx_out][0];
       int j_in = m_rev_nodemap_in[idx_in][1];  int j_out = m_rev_nodemap_out[idx_out][1];
@@ -44,7 +44,9 @@ class BasisVals
       derivs[2] = m_vals[i_out][i_in]   * m_vals[j_out][j_in]   * m_derivs[k_out][k_in];
     }
 
-    ArrayType<LocalIndex, 2>& getRevNodemapOut() { return m_rev_nodemap_out; }
+    const ArrayType<LocalIndex, 2>& getRevNodemapIn() const { return m_rev_nodemap_in; }
+
+    const ArrayType<LocalIndex, 2>& getRevNodemapOut() const { return m_rev_nodemap_out; }
 
   private:
 

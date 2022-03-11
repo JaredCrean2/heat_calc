@@ -7,6 +7,7 @@ template <typename T>
 class NeumannBCMMS : public NeumannBC
 {
   public:
+    // func must be std::array<Real, 3> func(Real x, Real y, Real z, Real t)
     NeumannBCMMS(SurfDiscPtr surf, T func) :
       NeumannBC(surf), 
       m_func(func),
@@ -20,7 +21,11 @@ class NeumannBCMMS : public NeumannBC
       getQuadNodeCoords(face, m_coords);
 
       for (int i=0; i < surf_disc->getNumQuadPtsPerFace(); ++i)
-        vals[i] = m_func(m_coords[i][0], m_coords[i][1], m_coords[i][2], t);
+      {
+        auto vals_i = m_func(m_coords[i][0], m_coords[i][1], m_coords[i][2], t);
+        for (int d=0; d < 3; ++d)
+          vals[i + d * surf_disc->getNumQuadPtsPerFace()] = vals_i[d];
+      }
     }
 
   private:

@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
+#include <ostream>
 
 namespace Mesh
 {
@@ -51,6 +52,18 @@ struct MeshSpec
   int nz = 10;
   int coord_order = 1;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const MeshSpec spec)
+{
+  os << "MeshSpec:" << std::endl;
+  os << "  nx = " << spec.nx << ", ny = " << spec.ny << ", nz = " << spec.nz << std::endl;
+  os << "  x = [" << spec.xmin << ", " << spec.xmax << "]" << std::endl;
+  os << "  y = [" << spec.ymin << ", " << spec.ymax << "]" << std::endl;
+  os << "  z = [" << spec.zmin << ", " << spec.zmax << "]" << std::endl;
+  os << "  coord order = " << spec.coord_order << std::endl;
+
+  return os;
+}
 
 
 

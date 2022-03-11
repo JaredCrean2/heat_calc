@@ -12,19 +12,19 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   if (!(u->isArrayCurrent()))
     u->syncVectorToArray();
 
-  std::cout << "before setting dirichlet values, u = " << std::endl;
-  printArray(u);
+  //std::cout << "before setting dirichlet values, u = " << std::endl;
+  //printArray(u);
 
   // apply Dirichlet values to array
   applyDirichletValues(*this, t, u);
-  std::cout << "after setting dirichlet values, u = " << std::endl;
-  printArray(u);
+  //std::cout << "after setting dirichlet values, u = " << std::endl;
+  //printArray(u);
 
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
 
   std::cout << "\nafter volume term " << std::endl;
-  printVector(rhs);
+  printArray(rhs);
 
   // compute Neumann BC terms
   computeNeumannBC(*this, t, u, rhs);
@@ -36,8 +36,8 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
   computeSourceTerm(*this, t, rhs);
 
   std::cout << "\nafter source term " << std::endl;
-  //printArray(rhs);
-  printVector(rhs);
+  printArray(rhs);
+  //printVector(rhs);
 }
 
 void HeatEquation::checkInitialization()
@@ -69,10 +69,35 @@ void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorP
     auto& u_arr   = u->getArray(i);
     auto& rhs_arr = rhs->getArray(i);
 
-    computeVolumeTerm(vol_disc, params, u_arr, rhs_arr);
+    //computeVolumeTerm(vol_disc, params, u_arr, rhs_arr);
+    computeVolumeTerm2(vol_disc, params, u_arr, rhs_arr);
   }
 
   rhs->markArrayModified();
+}
+
+
+std::array<Real, 3> interpolateXi(const BasisVals& basis_vals, int k)
+{
+  ArrayType<Real, 2> xi_vals(boost::extents[8][3]);
+  for (int i=0; i < 8; ++i)
+    for (int j=0; j < 3; ++j)
+      xi_vals[i][j] = 0;
+
+  
+  xi_vals[1][0] = 1;  xi_vals[2][1] = 1;  xi_vals[4][2] = 1;
+  xi_vals[2][0] = 1;  xi_vals[3][1] = 1;  xi_vals[5][2] = 1;
+  xi_vals[5][0] = 1;  xi_vals[6][1] = 1;  xi_vals[6][2] = 1;
+  xi_vals[6][0] = 1;  xi_vals[7][1] = 1;  xi_vals[7][2] = 1;
+
+  std::array<Real, 3> xi_interp{0, 0, 0};
+  for (int dim=0; dim < 3; ++dim)
+    for (int j=0; j < 8; ++j)
+    {
+      xi_interp[dim] += basis_vals.getValue(j, k) * xi_vals[j][dim];
+    }
+
+  return xi_interp;
 }
 
 
@@ -82,11 +107,14 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
   auto& dxidx = vol_disc->dxidx;
   auto& detJ  = vol_disc->detJ;
   Real alpha = params.kappa / (params.rho * params.Cp);
-  BasisVals basis_vals(vol_disc->vol_group.getTPMapperSol(), Mesh::TensorProductMapper(vol_disc->quad.getPoints()));
+  auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
+  Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
+  BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
   Real dNi_dxi[3], dNi_dx[3], dNj_dxi[3], dNj_dx[3];
 
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
+    std::cout << "el = " << el << std::endl;
     for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
     {
       for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
@@ -109,6 +137,28 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
             }
           }
 
+          if (j == 0 && k == 0)
+          {
+            std::cout << "  i = " << i << std::endl;
+            std::cout << "  dN/dxi = " << dNi_dxi[0] << ", " << dNi_dxi[1] << ", " << dNi_dxi[2] << std::endl;
+            std::cout << "  dxi/dx = " << dxidx[el][k][0][0] << ", " << dxidx[el][k][0][1] << ", " << dxidx[el][k][0][2] << std::endl;
+            std::cout << "           " << dxidx[el][k][1][0] << ", " << dxidx[el][k][1][1] << ", " << dxidx[el][k][1][2] << std::endl;
+            std::cout << "           " << dxidx[el][k][2][0] << ", " << dxidx[el][k][2][1] << ", " << dxidx[el][k][2][2] << std::endl;
+            std::cout << "  dN/dx =  " << dNi_dx[0] << ", " << dNi_dx[1] << ", " << dNi_dx[2] << std::endl;
+            std::cout << std::endl;
+          }
+
+          if (i == 0 && j == 0)
+          {
+            auto& rev_nodemap = basis_vals.getRevNodemapOut();
+            int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+            std::cout << "k = " << k << std::endl;
+            std::cout << "xi from quad           = " << tp_mapper_quad.getXi()[k_i] << ", " << tp_mapper_quad.getXi()[k_j] << ", " << tp_mapper_quad.getXi()[k_k] << std::endl;
+
+            auto xi_interp = interpolateXi(basis_vals, k);
+            std::cout << "xi from interpoloation = " << xi_interp[0] << ", " << xi_interp[1] << ", " << xi_interp[2] << std::endl;
+          }
+
           // compute dN_i/dx * weights * dN_j/dx * |J| * T_j
           auto& rev_nodemap = basis_vals.getRevNodemapOut();
           int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
@@ -118,6 +168,91 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
             rhs_arr[el][i] += alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k];
           }
         }
+    }
+  }
+}
+
+
+void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
+                        const ArrayType<Real, 2>& u_arr, ArrayType<Real, 2>& rhs_arr)
+{
+  auto& dxidx = vol_disc->dxidx;
+  auto& detJ  = vol_disc->detJ;
+  Real alpha = params.kappa / (params.rho * params.Cp);
+  auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
+  Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
+  BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
+  Real dNi_dxi[3], dNi_dx[3];
+  ArrayType<Real, 2> du_dx(boost::extents[vol_disc->getNumQuadPtsPerElement()][3]);
+
+  for (int el=0; el < vol_disc->getNumElems(); ++el)
+  {
+    std::cout << "el = " << el << std::endl;
+
+    for (int k=0; k < vol_disc->getNumSolPtsPerElement(); ++k)
+      for (int d=0; d < 3; ++d)
+        du_dx[k][d] = 0;
+
+    for (int k=0; k < vol_disc->getNumSolPtsPerElement(); ++k)
+      for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+      {
+        basis_vals.getDerivs(i, k, dNi_dxi);
+        for (int d1=0; d1 < 3; ++d1)
+        {
+          Real dN_dx = 0;
+          for (int d2=0; d2 < 3; ++d2)
+            dN_dx += dxidx[el][k][d2][d1] * dNi_dxi[d2];
+
+          du_dx[k][d1] += dN_dx * u_arr[el][i];
+        }
+      }
+
+    for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+    {
+      for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+      {
+        // evaluate shape function derivatives dN/dxi at quadrature point
+        basis_vals.getDerivs(i, k, dNi_dxi);
+
+        // use metrics to rotate dN/dxi to dN/dx
+        for (int d1=0; d1 < 3; ++d1)
+        {
+          dNi_dx[d1] = 0;
+          for (int d2=0; d2 < 3; ++d2)
+            dNi_dx[d1] += dxidx[el][k][d2][d1] * dNi_dxi[d2];
+        }
+/*
+        if (j == 0 && k == 0)
+        {
+          std::cout << "  i = " << i << std::endl;
+          std::cout << "  dN/dxi = " << dNi_dxi[0] << ", " << dNi_dxi[1] << ", " << dNi_dxi[2] << std::endl;
+          std::cout << "  dxi/dx = " << dxidx[el][k][0][0] << ", " << dxidx[el][k][0][1] << ", " << dxidx[el][k][0][2] << std::endl;
+          std::cout << "           " << dxidx[el][k][1][0] << ", " << dxidx[el][k][1][1] << ", " << dxidx[el][k][1][2] << std::endl;
+          std::cout << "           " << dxidx[el][k][2][0] << ", " << dxidx[el][k][2][1] << ", " << dxidx[el][k][2][2] << std::endl;
+          std::cout << "  dN/dx =  " << dNi_dx[0] << ", " << dNi_dx[1] << ", " << dNi_dx[2] << std::endl;
+          std::cout << std::endl;
+        }
+
+        if (i == 0 && j == 0)
+        {
+          auto& rev_nodemap = basis_vals.getRevNodemapOut();
+          int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+          std::cout << "k = " << k << std::endl;
+          std::cout << "xi from quad           = " << tp_mapper_quad.getXi()[k_i] << ", " << tp_mapper_quad.getXi()[k_j] << ", " << tp_mapper_quad.getXi()[k_k] << std::endl;
+
+          auto xi_interp = interpolateXi(basis_vals, k);
+          std::cout << "xi from interpoloation = " << xi_interp[0] << ", " << xi_interp[1] << ", " << xi_interp[2] << std::endl;
+        }
+*/
+        // compute dN_i/dx * weights * dN_j/dx * |J| * T_j
+        auto& rev_nodemap = basis_vals.getRevNodemapOut();
+        int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+        Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+        for (int d=0; d < 3; ++d)
+        {
+          rhs_arr[el][i] += alpha * dNi_dx[d] * weight * du_dx[k][d] / detJ[el][k];
+        }
+      }
     }
   }
 }
@@ -178,6 +313,8 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
     std::cout << "doing Neumann BC " << bc->getSurfDisc()->getIdx() << std::endl;
     computeNeumannBC(bc, u, t, rhs);
   }
+
+  rhs->markArrayModified();
 }
 
 void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
@@ -189,7 +326,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
   
   auto surf = bc->getSurfDisc();
   ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);
-  std::vector<Real> flux_vals(surf->getNumQuadPtsPerFace());
+  std::vector<Real> flux_vals(surf->getNumQuadPtsPerFace() * 3);
   Quadrature& quad = surf->quad;
   BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.getFaceNodesSol(), surf->face_group.ref_el_sol);
 
@@ -212,6 +349,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
+    Real face_integral = 0;
     ArrayType<Real, 1> face_sum(boost::extents[surf->getNumSolPtsPerFace()]);
     for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
       face_sum[k] = 0;
@@ -222,10 +360,13 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
       {
         int node    = surf->quad_tp_nodemap[i][j];
         Real weight = quad.getWeight(i) * quad.getWeight(j);
-        Real area   = std::sqrt(surf->normals[face][node][0] * surf->normals[face][node][0] +
-                             surf->normals[face][node][1] * surf->normals[face][node][1] +
-                             surf->normals[face][node][2] * surf->normals[face][node][2]);
-        Real val = weight * area * flux_vals[node];
+        Real flux_normal = 0;
+        for (int d=0; d < 3; ++d)
+          flux_normal += surf->normals[face][node][d] * flux_vals[node + surf->getNumQuadPtsPerFace() * d];
+        //Real area   = std::sqrt(surf->normals[face][node][0] * surf->normals[face][node][0] +
+        //                        surf->normals[face][node][1] * surf->normals[face][node][1] +
+        //                        surf->normals[face][node][2] * surf->normals[face][node][2]);
+        Real val = weight * flux_normal;
         //std::cout << "node   = " << node << ", flux val = " << flux_vals[node] << std::endl;
         //std::cout << "weight = " << weight << std::endl;
         //std::cout << "area   = " << area << std::endl;
@@ -237,13 +378,16 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
           //std::cout << "adding to el, node = " << face_spec.el_group << ", " << node_sol << std::endl;
           res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
           //std::cout << "contrib = " << basis.getValue(face_spec.face, k, i, j) * val << std::endl;
-          face_sum[k] -= basis.getValue(face_spec.face, k, i, j) * val;
+          face_sum[k]   -= basis.getValue(face_spec.face, k, i, j) * val;
+          face_integral -= basis.getValue(face_spec.face, k, i, j) * val;
         }          
       }
 
     std::cout << "face (" << face_spec.el_group << ", " << face_spec.face << ") contribution sum: " << std::endl;
+    std::cout << "normal = " << surf->normals[face][0][0] << ", " << surf->normals[face][0][1] << ", " << surf->normals[face][0][2] << std::endl;
     for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
       std::cout << "node " << surf->face_group.getFaceNodesSol()[face_spec.face][k] << ": " << face_sum[k] << std::endl;
+    std::cout << "face_sum = " << face_integral << std::endl;
   }
 }
 
@@ -254,14 +398,25 @@ void printArray(DiscVectorPtr vec)
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
   {
     std::cout << "Block " << i << std::endl;
+    auto vol_disc  = disc->getVolDisc(i);
+    ArrayType<Real, 2> sol_coords(boost::extents[vol_disc->getNumSolPtsPerElement()][3]);
+
     auto& arr_i = vec->getArray(i);
 
     for (unsigned int el=0; el < arr_i.shape()[0]; ++el)
     {
+      vol_disc->getVolumeSolCoords(el, sol_coords);
       Real el_sum = 0;
       for (unsigned int j=0; j < arr_i.shape()[1]; ++j)
       {
-        std::cout << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+        //std::cout << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+
+        std::string coord_str = std::string("coords = ") + std::to_string(sol_coords[j][0]) + ", " + 
+                                std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
+        int nspaces = std::max(40 - coord_str.size(), size_t(1));
+        std::string space_str(nspaces, ' ');
+        std::cout << coord_str << space_str << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+
         val_sum += arr_i[el][j];
         el_sum += arr_i[el][j];
       }
@@ -300,8 +455,15 @@ void printVector(DiscVectorPtr vec)
         if (disc->getDofNumbering()->isDofActive(dof))
         {
           //std::cout << "dof = " << dof << std::endl;
-          std::cout << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
-          std::cout << "  coords = " << sol_coords[j][0] << ", " << sol_coords[j][1] << ", " << sol_coords[j][2] << std::endl;
+          //std::cout << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+          std::string coord_str = std::string("coords = ") + std::to_string(sol_coords[j][0]) + ", " + 
+                                  std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
+          int nspaces = std::max(40 - coord_str.size(), size_t(1));
+          std::string space_str(nspaces, ' ');
+          std::cout << coord_str << space_str << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+
+         // std::cout << "coords = " << sol_coords[j][0] << ", " << sol_coords[j][1] << ", " << sol_coords[j][2]
+         //           << ",  arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
         }
       }
     }

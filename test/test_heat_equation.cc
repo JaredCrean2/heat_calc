@@ -57,16 +57,21 @@ namespace {
 
 Real ex_sol(Real x, Real y, Real z, Real t, int degree)
 {
-  return std::pow(x, degree); // + std::pow(y, degree) + std::pow(z, degree);
+  return std::pow(x, degree) + std::pow(y, degree) + std::pow(z, degree);
 }
 
 
-Real ex_sol_deriv(Real x, Real y, Real z, Real t, int degree)
+std::array<Real, 3> ex_sol_deriv(Real x, Real y, Real z, Real t, int degree)
 {
-  if (degree == 0)
-    return 0;
-  else
-    return degree * std::pow(x, degree - 1); //+ degree * std::pow(y, degree - 1) + degree * std::pow(z, degree-1);
+  std::array<Real, 3> derivs{0, 0, 0};
+  if (degree > 0)
+  {
+    derivs[0] = degree * std::pow(x, degree - 1);
+    derivs[1] = degree * std::pow(y, degree - 1);
+    derivs[2] = degree * std::pow(z, degree - 1);
+  }
+
+  return derivs;
 }
 
 
@@ -80,7 +85,7 @@ Real src_func_dir(Real x, int degree)
 
 Real src_func(Real x, Real y, Real z, Real t, int degree)
 {
-  return src_func_dir(x, degree); // + src_func_dir(y, degree) + src_func_dir(z, degree);
+  return src_func_dir(x, degree) + src_func_dir(y, degree) + src_func_dir(z, degree);
 }
 
 class StandardDiscTester : public StandardDiscSetup,
@@ -108,7 +113,7 @@ TEST_F(HeatMMSTester, Constant)
                    { return 1; };
 
   auto deriv = [] (Real x, Real y, Real z, Real t)
-                   { return 1; };
+                   { return std::array<Real, 3>{0, 0, 0}; };
 
   auto src_func = [] (Real x, Real y, Real z, Real t)
                      { return 0; };
@@ -138,7 +143,7 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
       auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
                           { return ex_sol(x, y, z, t, degree); };
 
-      auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> Real
+      auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
                           { return ex_sol_deriv(x, y, z, t, degree); };
       auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
                             { return src_func(x, y, z, t, degree); };
@@ -162,24 +167,26 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
-  std::vector<bool> dirichlet_surfs = {false, true, false, true, true, true};
-  for (int sol_degree=1; sol_degree <= 1; ++sol_degree)
+  //std::vector<bool> dirichlet_surfs = {false, true, false, true, true, true};
+  std::vector<bool> dirichlet_surfs = {false, false, true, true, true, true};
+  for (int sol_degree=1; sol_degree <= 2; ++sol_degree)
   {
     std::cout << "testing sol degree " << sol_degree << std::endl;
     //for (int degree=0; degree <= sol_degree; ++degree)
-    for (int degree=0; degree <= 1; ++degree)
+    for (int degree=0; degree <= sol_degree; ++degree)
     {
       std::cout << "  testing polynomial degree " << degree << std::endl;
       auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
                           { return ex_sol(x, y, z, t, degree); };
 
-      auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> Real
+      auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
                           { return ex_sol_deriv(x, y, z, t, degree); };
 
       auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
                             { return src_func(x, y, z, t, degree); };
 
       setup(2*sol_degree, sol_degree, dirichlet_surfs);
+      std::cout << spec;
       setSolution(ex_sol_l, deriv_l, src_func_l);
 
       heat->computeRhs(u_vec, 0.0, res_vec);
