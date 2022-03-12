@@ -75,69 +75,50 @@ std::vector<GEPtr> getDownward(GEPtr entity, int dim)
 }
 
 
-// returns true if to_entity is a downward adjacency of from_entity 
-// (traversing several dimensions down if necessary)
-bool hasDownwardAdjacency(GEPtr from_entity, GEPtr to_entity)
+bool getEntityChain(GEPtr from_entity, GEPtr to_entity, std::vector<GEPtr>& entities)
 {
   assertAlways(from_entity->getDimension() > to_entity->getDimension(), 
           "to_entity must be lower dimension than from_entity");
-  
+
   // recursive base case
   if (from_entity->getDimension() - to_entity->getDimension() == 1)
   {
     for (int i=0; i < from_entity->countDown(); ++i)
     {
       if (from_entity->getDown(i) == to_entity)
+      {
+        entities.push_back(from_entity);
         return true;
+      }
     }
 
     return false;
   } else
   {
     for (int i=0; i < from_entity->countDown(); ++i)
-      if (hasDownwardAdjacency(from_entity->getDown(i), to_entity))
+    {
+      bool found = getEntityChain(from_entity->getDown(i), to_entity, entities);
+      if (found)
+      {
+        entities.push_back(from_entity);
         return true;
+      }
+    }
 
     return false;
   }
 }
 
-
-//TODO: this is very slow.  See if there is a way to combine hasDownwardAdjacency
-//      into this function, rather than evaluating it so many times
 // gets sequence of entities that connect from_entity to to_entity such that
 // entity i+1 is on the closure of entity i
 // The returned sequence is in order of decreasing dimension, and from_entity
-// does is the first item in the list.  to_entity does not appear in the sequence,
+// is the first item in the list.  to_entity does not appear in the sequence,
 // the final entity is of one dimension higher.
 std::vector<GEPtr> getEntityChain(GEPtr from_entity, GEPtr to_entity)
 {
-  assertAlways(hasDownwardAdjacency(from_entity, to_entity), 
-           "cannot find chain of entities connecting given entities");
-
   std::vector<GEPtr> entities;
-  
-  GEPtr current_entity = from_entity;
-  entities.push_back(current_entity);
-  while (current_entity->getDimension() - to_entity->getDimension() > 1)
-  {
-    bool found = false;
-    for (int i=0; i < current_entity->countDown(); ++i)
-    {
-      if (hasDownwardAdjacency(current_entity->getDown(i), to_entity))
-      {
-        current_entity = current_entity->getDown(i);
-        entities.push_back(current_entity);
-        found = true;
-        break;
-      }
-    }
-
-    // strictly speaking, this check is unnecessary because the check at the beginning of
-    // this function guarantees hasDownwardAdjacency() will return true for some input value
-    if (!found)
-      throw std::runtime_error("cannot find chain of entities connecting given entities");
-  }
+  bool found = getEntityChain(from_entity, to_entity, entities);
+  assertAlways(found, "Unable to find entity chain");
 
   return entities;
 }
@@ -156,7 +137,7 @@ Point reclassifyPoint(GEPtr from_entity, const Point& pt_in, GEPtr to_entity)
 
   Point pt = pt_in;
   GEPtr prev_entity = from_entity;
-  for (auto it = entities.rbegin(); it != entities.rend(); ++it)
+  for (auto it = entities.begin(); it != entities.end(); ++it)
   {
     pt = (*it)->computeFromDownCoordinates(prev_entity, pt);
     prev_entity = *it;
