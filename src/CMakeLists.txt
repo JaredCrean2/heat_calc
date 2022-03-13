@@ -14,6 +14,7 @@ set(src_files EpwReader.cc
               discretization/model.cc
               physics/PhysicsModel.cc
               physics/heat/HeatEquation.cc
+              physics/heat/basis_vals.cc
               )
 
 add_subdirectory(mesh)

@@ -26,11 +26,11 @@ class StandardMeshBase
               const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
     {
       spec = getStandardMeshSpec();
-      //spec.nx = 4; spec.ny = 5, spec.nz = 6;
+      spec.nx = 4; spec.ny = 5, spec.nz = 6;
 
-      spec.nx = 2; spec.ny = 2, spec.nz = 2;
-      spec.xmin = 0; spec.ymin = 0; spec.zmin = 0;
-      spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
+      //spec.nx = 2; spec.ny = 2, spec.nz = 2;
+      //spec.xmin = 0; spec.ymin = 0; spec.zmin = 0;
+      //spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
       setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
     }
 
