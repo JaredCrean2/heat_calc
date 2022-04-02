@@ -15,6 +15,10 @@ set(src_files EpwReader.cc
               physics/PhysicsModel.cc
               physics/heat/HeatEquation.cc
               physics/heat/basis_vals.cc
+              linear_system/assembler.cc
+              linear_system/bla_wrapper.cc
+              linear_system/large_matrix.cc
+              linear_system/large_matrix_dense.cc
               )
 
 add_subdirectory(mesh)
@@ -27,7 +31,7 @@ target_include_directories(heat_lib PUBLIC
                           "${Boost_INCLUDE_DIRS}"
 )
 
-target_link_libraries(heat_lib PUBLIC mesh)
+target_link_libraries(heat_lib PUBLIC mesh Blas Lapack)
 
 set(ALL_LIBS ${ALL_LIBS} heat_lib PARENT_SCOPE)
 message("ALL_LIBS = ${ALL_LIBS}")

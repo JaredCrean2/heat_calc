@@ -2,11 +2,11 @@
 
 # ASAN flags
 #ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
-#CXXFLAGS="-O0 -Wall -g"
-#BUILDTYPE="Debug"
+CXXFLAGS="-O0 -Wall -g"
+BUILDTYPE="Debug"
 
-CXXFLAGS="-O3 -Wall"
-BUILDTYPE="Release"
+#CXXFLAGS="-O3 -Wall"
+#BUILDTYPE="Release"
 
 
 cmake \
@@ -15,6 +15,7 @@ cmake \
 -D CMAKE_CXX_COMPILER=`which mpicxx` \
 -D CMAKE_BUILD_TYPE=$BUILDTYPE \
 -D CMAKE_CXX_FLAGS="$CXXFLAGS $ASAN_FLAGS" \
+-D BLAS_ROOT="$HOME/build/OpenBLAS_install/" \
 ..
 
 

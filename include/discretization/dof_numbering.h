@@ -32,6 +32,8 @@ class DofNumbering
     }
 
 
+    // returns array numElems in volume group x numSolPtsPerElement giving
+    // dof numbers for given block
     const ArrayType<Index, 2>& getDofs(const int idx) const
     {
       return m_dof_nums.at(idx);
@@ -56,6 +58,11 @@ class DofNumbering
     bool isDofActive(Index dof) const
     {
       return dof < m_num_dofs;
+    }
+
+    int getNumDofs() const
+    {
+      return m_num_dofs;
     }
 
   private:

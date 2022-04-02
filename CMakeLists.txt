@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.12.0)
 
 # set project name
 project(RetirementCalc)
@@ -36,6 +36,60 @@ else()
   )
 
 endif()
+
+
+# find BLAS
+find_package(BLAS)
+if (BLAS_FOUND)
+  message("Found BLAS libraries: ${BLAS_LIBRARIES}")
+  message("Linker flags: ${BLAS_LINKER_FLAGS}")
+else()
+  message(FATAL_ERROR, "Unable to locate BLAS")
+endif()
+
+if (BLA_STATIC)
+  add_library(Blas STATIC IMPORTED GLOBAL)
+else()
+  add_library(Blas SHARED IMPORTED GLOBAL)
+  target_link_options(Blas INTERFACE ${BLAS_LINKER_FLAGS})
+endif()
+
+get_filename_component(BLAS_INCLUDE_DIR ${BLAS_LIBRARIES} DIRECTORY)
+set(BLAS_INCLUDE_DIR "${BLAS_INCLUDE_DIR}/../include")
+message("BLAS_INCLUDE_DIR = ${BLAS_INCLUDE_DIR}")
+target_include_directories(Blas INTERFACE ${BLAS_INCLUDE_DIR})
+set_property(TARGET Blas PROPERTY
+             IMPORTED_LOCATION ${BLAS_LIBRARIES})
+
+
+# find LAPACK
+find_package(LAPACK)
+if (LAPACK_FOUND)
+  message("Found LAPACK libraries: ${LAPACK_LIBRARIES}")
+else()
+  message(FATAL_ERROR, "Unable to locate LAPACK")
+endif()
+
+if (BLA_STATIC)
+  add_library(Lapack STATIC IMPORTED GLOBAL)
+else()
+  add_library(Lapack SHARED IMPORTED GLOBAL)
+  target_link_options(Lapack INTERFACE ${LAPACK_LINKER_FLAGS})
+endif()
+
+get_filename_component(LAPACK_INCLUDE_DIR ${LAPACK_LIBRARIES} DIRECTORY)
+set(LAPACK_INCLUDE_DIR "${LAPACK_INCLUDE_DIR}/../include")
+target_include_directories(Lapack INTERFACE ${LAPACK_INCLUDE_DIR})
+
+set_property(TARGET Lapack PROPERTY
+             IMPORTED_LOCATION ${LAPACK_LIBRARIES})
+
+             
+
+            
+
+
+
 
 
 
