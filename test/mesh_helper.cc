@@ -1,21 +1,13 @@
 #include "mesh_helper.h"
 #include "mesh/mesh_generator.h"
 #include "mesh/mesh.h"
+#include "mesh/mesh_input.h"
 #include "utils/error_handling.h"
 #include <stdexcept>
 
 Mesh::MeshSpec getStandardMeshSpec()
 {
-  Mesh::MeshSpec meshspec;
-  meshspec.xmin = 0;
-  meshspec.xmax = 2;
-  meshspec.ymin = 0;
-  meshspec.ymax = 2;
-  meshspec.zmin = 0;
-  meshspec.zmax = 2;
-  meshspec.nx = 5;
-  meshspec.ny = 5;
-  meshspec.nz = 5;
+  Mesh::MeshSpec meshspec = Mesh::getMeshSpec(0, 2, 0, 2, 0, 2, 5, 5, 5);
 
   return meshspec;
 }

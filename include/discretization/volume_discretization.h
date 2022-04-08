@@ -26,6 +26,9 @@ class VolumeDiscretization
     Mesh::TensorProductMapper tp_mapper_quad;
     LagrangeEvaluatorTPFlatToTPFlat interp_cq_flat_to_flat;
 
+    // solution to quadrature interpolation
+    LagrangeEvaluatorTPFlatToTPFlat interp_sq_flat_to_flat;
+
     int getIdx() const { return vol_group.getIdx();}
 
     int getNumElems() const { return vol_group.getNumElems();}

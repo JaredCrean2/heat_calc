@@ -18,5 +18,21 @@ target_link_libraries(unit_tests
                      heat_lib
                      SCOREC::core)
 
+file(GLOB verification_src_files ./verification/*.cc)
+
+add_executable(verification_tests ${verification_src_files} mesh_helper.cc)
+target_include_directories(verification_tests PUBLIC
+  "${PROJECT_BINARY_DIR}"
+  "${PROJECT_SOURCE_DIR}/include"
+  "${PROJECT_SOURCE_DIR}/test"
+  "${Boost_INCLUDE_DIRS}"
+)
+target_link_libraries(verification_tests
+                     ${GTEST_BOTH_LIBRARIES}
+                     pthread 
+                     mesh
+                     heat_lib
+                     SCOREC::core)
+
 message("Linking to ALL_LIBS = ${ALL_LIBS}")
 #target_link_libraries(unit_tests PUBLIC SCOREC::core)

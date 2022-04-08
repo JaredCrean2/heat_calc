@@ -53,6 +53,20 @@ struct MeshSpec
   int coord_order = 1;
 };
 
+inline MeshSpec getMeshSpec(double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, int nx, int ny, int nz, int coord_order=1)
+{
+  MeshSpec spec;
+  spec.xmin = xmin; spec.xmax = xmax;
+  spec.ymin = ymin; spec.ymax = ymax;
+  spec.zmin = zmin; spec.zmax = zmax;
+  spec.nx = nx;
+  spec.ny = ny;
+  spec.nz = nz;
+  spec.coord_order = coord_order;
+
+  return spec;
+}
+
 inline std::ostream& operator<<(std::ostream& os, const MeshSpec spec)
 {
   os << "MeshSpec:" << std::endl;

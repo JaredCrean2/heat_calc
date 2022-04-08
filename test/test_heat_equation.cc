@@ -58,11 +58,11 @@ namespace {
       HeatPtr heat;
       DiscVectorPtr u_vec;
       DiscVectorPtr res_vec;
-    };
+  };
 
 Real ex_sol(Real x, Real y, Real z, Real t, int degree)
 {
-  return std::pow(x, degree); // + std::pow(y, degree) + std::pow(z, degree);
+  return std::pow(x, degree) + std::pow(y, degree) + std::pow(z, degree);
 }
 
 
@@ -72,8 +72,8 @@ std::array<Real, 3> ex_sol_deriv(Real x, Real y, Real z, Real t, int degree)
   if (degree > 0)
   {
     derivs[0] = degree * std::pow(x, degree - 1);
-    //derivs[1] = degree * std::pow(y, degree - 1);
-    //derivs[2] = degree * std::pow(z, degree - 1);
+    derivs[1] = degree * std::pow(y, degree - 1);
+    derivs[2] = degree * std::pow(z, degree - 1);
   }
 
   return derivs;
@@ -93,6 +93,7 @@ Real src_func(Real x, Real y, Real z, Real t, int degree)
   return src_func_dir(x, degree); // + src_func_dir(y, degree) + src_func_dir(z, degree);
 }
 
+//TODO: what is this and why is it here
 class StandardDiscTester : public StandardDiscSetup,
                            public ::testing::Test
 {
@@ -205,6 +206,8 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
     }
   }
 }
+
+//TODO: test Neumann BCs with non-unity parameters
 
 
 TEST_F(StandardDiscTester, BasisVals2D_interpolation)
@@ -355,6 +358,96 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
           EXPECT_NEAR(product_fd[j], product_jac[j], 1e-5);
         }
       }
+    }
+  }
+}
+
+
+TEST_F(HeatMMSTester, MassMatrixConstant)
+{
+
+
+
+  // test that 1^T M 1 = volume of domain
+  std::vector<bool> dirichlet_surfs = {false, false, false, false, false, false};
+
+  auto ex_sol = [] (Real x, Real y, Real z, Real t)
+                   { return 1; };
+
+  auto deriv = [] (Real x, Real y, Real z, Real t)
+                   { return std::array<Real, 3>{0, 0, 0}; };
+
+  auto src_func = [] (Real x, Real y, Real z, Real t)
+                     { return 0; };
+                     
+  for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
+  {
+    std::cout << "testing sol degree " << sol_degree << std::endl;
+    setup(2*sol_degree, sol_degree, dirichlet_surfs);
+    setSolution(ex_sol, deriv, src_func);
+    DiscVectorPtr result_vec = makeDiscVector(disc);
+
+    heat->applyMassMatrix(u_vec, result_vec);
+
+    if (!result_vec->isVectorCurrent())
+      result_vec->syncArrayToVector();
+
+    int num_dofs = result_vec->getNumDofs();
+    Real sum = 0;
+    for (int i=0; i < num_dofs; ++i)
+      sum += result_vec->getVector()[i];
+
+    Real volume = (spec.xmax - spec.xmin) * (spec.ymax - spec.ymin) * (spec.zmax - spec.zmin);
+    EXPECT_NEAR(sum, volume, 1e-12);
+    
+  }
+}
+
+TEST_F(HeatMMSTester, MassMatrixPosDef)
+{
+  // test that M is positive definite
+
+  using Rng = std::mt19937;
+  Rng rng;
+  const int seed = 42;
+  std::uniform_real_distribution<Real> uniform_rng(-100, 100);
+  const int nvectors = 10;
+  std::vector<bool> dirichlet_surfs = {false, true, false, true, false, false};
+
+  auto ex_sol = [] (Real x, Real y, Real z, Real t)
+                   { return 1; };
+
+  auto deriv = [] (Real x, Real y, Real z, Real t)
+                   { return std::array<Real, 3>{0, 0, 0}; };
+
+  auto src_func = [] (Real x, Real y, Real z, Real t)
+                     { return 0; };
+                     
+  for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
+  {
+    setup(2*sol_degree, sol_degree, dirichlet_surfs);
+    setSolution(ex_sol, deriv, src_func);
+    DiscVectorPtr result_vec = makeDiscVector(disc);
+    int num_dofs = result_vec->getNumDofs();
+    rng.seed(seed);
+
+    for (int n=0; n < nvectors; ++n)
+    {
+
+      for (int i=0; i < num_dofs; ++i)
+        u_vec->getVector()[i] = uniform_rng(rng);
+      u_vec->markVectorModified();
+
+      heat->applyMassMatrix(u_vec, result_vec);
+
+      if (!result_vec->isVectorCurrent())
+        result_vec->syncArrayToVector();
+
+      Real sum = 0;
+      for (int i=0; i < num_dofs; ++i)
+        sum += u_vec->getVector()[i] * result_vec->getVector()[i];
+
+      EXPECT_TRUE(sum > 0);
     }
   }
 }

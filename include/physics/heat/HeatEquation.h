@@ -45,6 +45,7 @@ class HeatEquation : public PhysicsModel
         
     void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) override;
 
+    void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) override;
 
     void addVolumeGroupParams(const VolumeGroupParams& params) { m_params.push_back(params); }
 
@@ -58,6 +59,11 @@ class HeatEquation : public PhysicsModel
 
 
 void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorPtr u);
+
+void applyMassMatrix(const HeatEquation& physics, DiscVectorPtr vec_in, DiscVectorPtr vec_out);
+
+void applyMassMatrix(const VolDiscPtr vol_disc, const DofNumberingPtr dof_numbering,
+                     const ArrayType<Real, 2>& arr_in, ArrayType<Real, 2>& arr_out);
 
 void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorPtr rhs);
 

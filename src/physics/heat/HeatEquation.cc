@@ -1,5 +1,6 @@
 #include "physics/heat/HeatEquation.h"
 #include "discretization/disc_vector.h"
+#include "discretization/dof_numbering.h"
 #include "physics/heat/basis_vals.h"
 #include "physics/heat/helper_funcs.h"
 #include "mesh/mesh.h"
@@ -56,6 +57,15 @@ void HeatEquation::computeJacobian(DiscVectorPtr u, const Real t, linear_system:
   // typical Neumann and source terms don't contribute to the Jacobian
 }
 
+void HeatEquation::applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)
+{
+  if (!vec_in->isArrayCurrent())
+    vec_in->syncVectorToArray();
+
+  ::Heat::applyMassMatrix(*this, vec_in, vec_out);
+}
+
+
 
 void HeatEquation::checkInitialization()
 {
@@ -70,6 +80,73 @@ void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorP
 {
   for (auto bc : physics.getDirichletBCs())
     applyDirichletValues(bc, t, u);
+}
+
+//-----------------------------------------------------------------------------
+// ApplyMassMatrix
+
+void applyMassMatrix(const HeatEquation& physics, DiscVectorPtr vec_in, DiscVectorPtr vec_out)
+{
+  if (!vec_in->isArrayCurrent())
+    vec_in->syncVectorToArray();
+
+  auto disc = physics.getDiscretization();
+
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    auto vol_disc = disc->getVolDisc(i);
+    auto dofs     = disc->getDofNumbering();
+    auto& arr_in  = vec_in->getArray(i);
+    auto& arr_out = vec_out->getArray(i);
+
+    applyMassMatrix(vol_disc, dofs, arr_in, arr_out);
+  }
+
+  vec_out->markArrayModified();
+}
+
+void applyMassMatrix(const VolDiscPtr vol_disc, const DofNumberingPtr dof_numbering,
+                     const ArrayType<Real, 2>& arr_in, ArrayType<Real, 2>& arr_out)
+{
+  // for elements with dirichlet nodes, the form of the mass matrix is R^T M R,
+  // where M is the full mass matrix, R is a diagonal matrix with 1 on the diagonal
+  // for active dofs and 0 for dirichlet dofs.
+  // Replacing arr_in with zeros for the non-active dofs is equivalent to R * arr_in,
+  // and the transformation from array to vector form of arr_out is equivalent to R^T
+
+  auto& detJ  = vol_disc->detJ;
+  auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
+  Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
+  BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
+
+  const auto& dof_nums = dof_numbering->getDofs(vol_disc);
+  ArrayType<Real, 1> u_sol(boost::extents[vol_disc->getNumSolPtsPerElement()]);
+  ArrayType<Real, 1> u_quad(boost::extents[vol_disc->getNumQuadPtsPerElement()]);
+  auto& rev_nodemap = basis_vals.getRevNodemapOut();
+
+  for (int el=0; el < vol_disc->getNumElems(); ++el)
+  {
+    for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+      u_sol[i] = dof_numbering->isDofActive(dof_nums[el][i]) ? arr_in[el][i] : 0;
+
+    auto u_i = arr_in[boost::indices[el][range()]];
+    vol_disc->interp_sq_flat_to_flat.interpolateVals(u_i, u_quad);
+
+    for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+    {
+      int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+      Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+      u_quad[k] = u_quad[k] * weight / detJ[el][k];
+    }
+
+    for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+    {
+      arr_out[el][i] = 0;
+      for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+        arr_out[el][i] += basis_vals.getValue(i, k) * u_quad[k];
+    }
+
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -309,6 +386,8 @@ void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
 //-----------------------------------------------------------------------------
 // Neumann BC
 
+//TODO: I don't think the density and specific heat capacity are correctly accounted for here
+
 void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs)
 {
   const auto& neumann_bcs = physics.getNeumannBCs();
@@ -323,7 +402,6 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
   // Note: we currently don't require that a given surface has a single volume as
   //       as its upward adjacency, so we have to look up a different volume disc
   //       for every face
-
   
   auto surf = bc->getSurfDisc();
   ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);

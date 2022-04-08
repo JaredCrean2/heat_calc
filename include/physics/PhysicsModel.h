@@ -27,10 +27,11 @@ class PhysicsModel
 
     virtual void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) = 0;
 
+    virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) = 0;
+
     DiscPtr getDiscretization() { return m_disc; }
 
     const DiscPtr getDiscretization() const { return m_disc; }
-
 
     void addDirichletBC(DirichletBCPtr bc) { m_dirichlet_bcs.push_back(bc); }
 
