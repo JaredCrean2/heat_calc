@@ -12,8 +12,14 @@ void LargeMatrixDense::assembleValues_impl(const std::vector<DofInt>& dofs, cons
 {
   unsigned int nvals = dofs.size();
   for (int j=0; j < nvals; ++j)
+  {
+    if (dofs[j] < 0)
+      continue;
+
     for (int i=0; i < nvals; ++i)
-      m_matrix[getIdx(dofs[i], dofs[j])] += alpha * jac[i][j];
+      if (dofs[i] >= 0)
+        m_matrix[getIdx(dofs[i], dofs[j])] += alpha * jac[i][j];
+  }
 }
 
 void LargeMatrixDense::factor_impl()
@@ -58,6 +64,18 @@ void LargeMatrixDense::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1
     getrs('N', getMLocal(), 1, matrix_factorization.data(), getMLocal(), m_ipiv.data(), &(x[0]), getMLocal());
   }  
 }
+
+
+void LargeMatrixDense::matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+{
+  assertAlways(!getIsFactored(), "cannot do mat-vec when matrix is factored");
+
+  if (m_opts.is_value_symmetric)
+    symv('L', getMLocal(), 1, m_matrix.data(), getMLocal(), &(x[0]), 1, 0, &(b[0]), 1);
+  else
+    gemv('N', getMLocal(), getNLocal(), 1, m_matrix.data(), getMLocal(), &(x[0]), 1, 0, &(b[0]), 1);
+}
+
 
 
 std::ostream& operator<<(std::ostream& os, const LargeMatrixDense& mat)

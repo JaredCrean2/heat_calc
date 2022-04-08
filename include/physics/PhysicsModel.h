@@ -6,6 +6,7 @@
 #include "discretization/source_term.h"
 #include "discretization/disc_vector.h"
 #include "discretization/discretization.h"
+#include "linear_system/assembler.h"
 
 // Evaluates a discretization for the given equation
 // Produces linear systems K u = f, where K is the left-hand side
@@ -23,6 +24,8 @@ class PhysicsModel
     // on entry, u has the solution in vector form
     // on exit, rhs has the residual in array form
     virtual void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs) = 0;
+
+    virtual void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) = 0;
 
     DiscPtr getDiscretization() { return m_disc; }
 

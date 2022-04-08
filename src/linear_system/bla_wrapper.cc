@@ -21,8 +21,96 @@ lapack_int size(const std::vector<T>& v)
   return v.size();
 }
 
+enum CBLAS_TRANSPOSE get_cblas_trans(char trans)
+{
+  switch (trans)
+  {
+    case 'N': return CblasNoTrans;
+    case 'n': return CblasNoTrans;
+    case 'T': return CblasTrans;
+    case 't': return CblasTrans;
+    case 'C': return CblasConjTrans;
+    case 'c': return CblasConjTrans;
+    default:
+      throw std::runtime_error(std::string("unrecognized transpose specifier: ") + trans);
+  };
 }
 
+enum CBLAS_UPLO get_cblas_uplo(char uplo)
+{
+  switch(uplo)
+  {
+    case 'U': return CblasUpper;
+    case 'u': return CblasUpper;
+    case 'L': return CblasLower;
+    case 'l': return CblasLower;
+    default:
+      throw std::runtime_error(std::string("unrecognized upper/lower specifier: ") + uplo);
+  };
+}
+
+}
+
+//-----------------------------------------------------------------------------
+// GEMV
+void gemv(char trans, blasint m, blasint n, double alpha, const double* A, blasint lda, 
+          const double* x, blasint incx, double beta, double* y, blasint incy)
+{
+  cblas_dgemv(CblasColMajor, get_cblas_trans(trans), m, n, alpha, A, lda, x, incx, beta, y, incy);
+}
+
+void gemv(char trans, blasint m, blasint n, float alpha, const float* A, blasint lda, 
+          const float* x, blasint incx, float beta, float* y, blasint incy)
+{
+  cblas_sgemv(CblasColMajor, get_cblas_trans(trans), m, n, alpha, A, lda, x, incx, beta, y, incy);
+}
+
+template <typename T>
+void gemv(char trans, blasint m, blasint n, T alpha, const std::vector<T>& A, const std::vector<T>& x, T beta, std::vector<T>& y)
+{
+  assert(size(A) == m * n);
+  assert(size(x) == n);
+  assert(size(y) == m);
+
+  gemv(trans, m, n, alpha, A.data(), m, x.data(), 1, beta, y.data(), 1);
+}
+
+template
+void gemv<double>(char trans, blasint m, blasint n, double alpha, const std::vector<double>& A, const std::vector<double>& x, double beta, std::vector<double>& y);
+
+template
+void gemv<float>(char trans, blasint m, blasint n, float alpha, const std::vector<float>& A, const std::vector<float>& x, float beta, std::vector<float>& y);
+
+
+//-----------------------------------------------------------------------------
+// SYMV
+void symv(char uplo, blasint n, double alpha, const double* A, blasint lda, 
+          const double* x, blasint incx, double beta, double* y, blasint incy)
+{
+  cblas_dsymv(CblasColMajor, get_cblas_uplo(uplo), n, alpha, A, lda, x, incx, beta, y, incy);
+}
+
+void symv(char uplo, blasint n, float alpha, const float* A, blasint lda, 
+          const float* x, blasint incx, float beta, float* y, blasint incy)
+{
+  cblas_ssymv(CblasColMajor, get_cblas_uplo(uplo), n, alpha, A, lda, x, incx, beta, y, incy);
+}
+
+template <typename T>
+void symv(char uplo, blasint n, T alpha, const std::vector<T>& A, const std::vector<T>& x, T beta, std::vector<T>& y)
+{
+  assert(size(A) == n * n);
+  assert(size(x) == n);
+  assert(size(y) == n);
+
+  symv(uplo, n, alpha, A.data(), n, x.data(), 1, beta, y.data(), 1);
+}
+
+template
+void symv<double>(char uplo, blasint n, double alpha, const std::vector<double>& A, const std::vector<double>& x, double beta, std::vector<double>& y);
+
+template
+void symv<float>(char uplo, blasint n, float alpha, const std::vector<float>& A, const std::vector<float>& x, float beta, std::vector<float>& y);
 
 
 //-----------------------------------------------------------------------------

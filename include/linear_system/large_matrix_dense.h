@@ -26,6 +26,9 @@ class LargeMatrixDense : public LargeMatrix
 
     void solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x) override;
 
+    void matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
+
+
   private:
     DofInt getIdx(DofInt m, DofInt n) const
     {

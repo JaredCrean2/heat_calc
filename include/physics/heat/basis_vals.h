@@ -1,3 +1,5 @@
+#ifndef HEAT_EQUATION_BASIS_VAL_H
+#define HEAT_EQUATION_BASIS_VAL_H
 
 #include "ProjectDefs.h"
 #include "lagrange_basis.h"
@@ -85,3 +87,5 @@ class BasisVals2D
 };
 
 }
+
+#endif

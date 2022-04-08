@@ -1,6 +1,9 @@
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
 
+#include <memory>
+#include <vector>
+
 #include "ProjectDefs.h"
 #include "discretization/discretization.h"
 #include "discretization/dof_numbering.h"
@@ -11,12 +14,13 @@ namespace linear_system {
 class Assembler
 {
   public:
-    explicit Assembler(DiscPtr disc) :
+    explicit Assembler(DiscPtr disc, LargeMatrixPtr mat) :
       m_disc(disc),
       m_dof_nums(disc->getDofNumbering()),
       m_alpha(1),
       m_vol_dofs(disc->getVolDisc(0)->getNumSolPtsPerElement()),
-      m_face_dofs(disc->getSurfDisc(0)->getNumSolPtsPerFace())
+      m_face_dofs(disc->getSurfDisc(0)->getNumSolPtsPerFace()),
+      m_matrix(mat)
     {}
 
     virtual ~Assembler() {}
@@ -44,6 +48,8 @@ class Assembler
     std::vector<DofInt> m_face_dofs;
     LargeMatrixPtr m_matrix;
 };
+
+using AssemblerPtr = std::shared_ptr<Assembler>;
 
 } // namespace
 

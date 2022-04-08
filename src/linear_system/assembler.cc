@@ -2,8 +2,12 @@
 
 namespace linear_system {
 
+static_assert(std::is_signed<DofInt>::value, "DofInt must be a signed integral type");
+
+
 void Assembler::assembleVolume(int vol_disc_idx, int elnum, const ArrayType<Real, 2>& jac)
 {
+
   auto vol_disc = m_disc->getVolDisc(vol_disc_idx);
   assert(jac.shape()[0] == vol_disc->getNumSolPtsPerElement());
   assert(jac.shape()[1] == vol_disc->getNumSolPtsPerElement());
@@ -13,7 +17,13 @@ void Assembler::assembleVolume(int vol_disc_idx, int elnum, const ArrayType<Real
   //       template and virtual
   auto& dofs = m_dof_nums->getDofs(vol_disc_idx);
   for (unsigned int i=0; i < dofs.shape()[1]; ++i)
-    m_vol_dofs[i] = dofs[elnum][i];
+  {
+    auto dof = dofs[elnum][i];
+    if (!m_dof_nums->isDofActive(dof))
+      dof = -1;
+
+    m_vol_dofs[i] = dof;
+  }
 
   m_matrix->assembleValues(m_vol_dofs, jac, m_alpha);
 }
@@ -28,7 +38,13 @@ void Assembler::assembleFace(int surf_disc_idx, int facenum, const ArrayType<Rea
   auto& face_spec    = surf_disc->face_group.faces[facenum];
   auto& dofs         = m_dof_nums->getDofs(face_spec.vol_group);
   for (int i=0; i < surf_disc->getNumSolPtsPerFace(); ++i)
-    m_face_dofs[i] = dofs[face_spec.el_group][ face_nodemap[face_spec.face][i] ];
+  {
+    auto dof = dofs[face_spec.el_group][ face_nodemap[face_spec.face][i] ];
+    if (!m_dof_nums->isDofActive(dof))
+      dof = -1;
+
+    m_face_dofs[i] = dof;
+  }
 
   m_matrix->assembleValues(m_face_dofs, jac, m_alpha);
 }

@@ -44,6 +44,7 @@ class LargeMatrix
       zeroMatrix_impl();
     }
 
+    // if dof < 0, the corresponding entries are ignored
     void assembleValues(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac, Real alpha=1)
     {
 #ifndef NDEBUG
@@ -53,10 +54,14 @@ class LargeMatrix
       assert(jac.shape()[1] == dofs.size());
 
       for (unsigned int i=0; i < dofs.size(); ++i)
-        assert(dofs[i] >= 0 && dofs[i] < getMLocal());
+        assert(dofs[i] < getMLocal());
 
       // check uniqueness
-      std::vector<DofInt> dofs_copy(dofs);
+      std::vector<DofInt> dofs_copy;
+      for (unsigned int i=0; i < dofs.size(); ++i)
+        if (dofs[i] >= 0)
+          dofs_copy.push_back(i);
+
       auto it = std::unique(dofs_copy.begin(), dofs_copy.end());
       assert(it == dofs_copy.end());
 #endif
@@ -75,11 +80,21 @@ class LargeMatrix
     // factor() must have been called first
     void solve(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x)
     {
-      assertAlways(m_is_factored, "must factor matrix before using it");
+      assertAlways(m_is_factored, "must factor matrix before solving a linear system");
       solve_impl(b, x);
     }
 
+    // compute b = A * x, overwriting b
+    void matVec(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+    {
+      assert(x.shape()[0] == getNLocal());
+      assert(b.shape()[0] == getMLocal());
+      matVec_impl(x, b);
+    }
+
   protected:
+
+    bool getIsFactored() const { return m_is_factored; }
 
     virtual void zeroMatrix_impl() = 0;
 
@@ -92,6 +107,7 @@ class LargeMatrix
     // factor() must have been called first
     virtual void solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x) = 0;
 
+    virtual void matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
   private:
     DofInt m_mlocal;

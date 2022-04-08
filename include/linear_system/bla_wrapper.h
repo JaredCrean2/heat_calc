@@ -2,11 +2,48 @@
 #define BLA_WRAPPER_H
 
 #include "lapacke.h"
+#include "cblas.h"
 #include <vector>
 
 namespace linear_system {
 
 // Note: all matrices must be column major!
+
+//-----------------------------------------------------------------------------
+// GEMV
+void gemv(char trans, blasint m, blasint n, double alpha, const double* A, blasint lda, 
+          const double* x, blasint incx, double beta, double* y, blasint incy);
+
+void gemv(char trans, blasint m, blasint n, float alpha, const float* A, blasint lda, 
+          const float* x, blasint incx, float beta, float* y, blasint incy);
+
+template <typename T>
+void gemv(char trans, blasint m, blasint n, T alpha, const std::vector<T>& A, const std::vector<T>& x, T beta, std::vector<T>& y);
+
+extern template
+void gemv<double>(char trans, blasint m, blasint n, double alpha, const std::vector<double>& A, const std::vector<double>& x, double beta, std::vector<double>& y);
+
+extern template
+void gemv<float>(char trans, blasint m, blasint n, float alpha, const std::vector<float>& A, const std::vector<float>& x, float beta, std::vector<float>& y);
+
+
+//-----------------------------------------------------------------------------
+// SYMV
+void symv(char uplo, blasint n, double alpha, const double* A, blasint lda, 
+          const double* x, blasint incx, double beta, double* y, blasint incy);
+
+void symv(char uplo, blasint n, float alpha, const float* A, blasint lda, 
+          const float* x, blasint incx, float beta, float* y, blasint incy);
+
+template <typename T>
+void symv(char uplo, blasint n, T alpha, const std::vector<T>& A, const std::vector<T>& x, T beta, std::vector<T>& y);
+
+extern template
+void symv<double>(char uplo, blasint n, double alpha, const std::vector<double>& A, const std::vector<double>& x, double beta, std::vector<double>& y);
+
+extern template
+void symv<float>(char uplo, blasint n, float alpha, const std::vector<float>& A, const std::vector<float>& x, float beta, std::vector<float>& y);
+
 
 //-----------------------------------------------------------------------------
 // GESV
