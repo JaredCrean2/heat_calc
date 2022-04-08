@@ -263,6 +263,8 @@ TEST_F(StandardDiscTester, BasisVals2D_interpolation)
 
 TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 {
+  // Note: this tests Dirichlet surfaces and Neumann surfaces where the flux
+  //       does not depend on the solution
   using Rng = std::mt19937;
   Rng rng;
   const int seed = 42;
@@ -274,6 +276,8 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
   opts.factor_in_place = false;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric = false;
+  std::vector<bool> dirichlet_surfs = {true, false, true, false, true, false};
+
 
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
@@ -290,7 +294,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
       auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
                             { return src_func(x, y, z, t, degree); };
 
-      setup(2*sol_degree, sol_degree);
+      setup(2*sol_degree, sol_degree, dirichlet_surfs);
 
       auto num_dofs  = disc->getDofNumbering()->getNumDofs();
       auto mat       = std::make_shared<linear_system::LargeMatrixDense>(num_dofs, num_dofs, opts);
