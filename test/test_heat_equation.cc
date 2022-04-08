@@ -1,5 +1,7 @@
 
 #include "gtest/gtest.h"
+#include <random>
+
 #include "discretization/DirichletBC_defs.h"
 #include "discretization/NeumannBC_defs.h"
 #include "discretization/disc_vector.h"
@@ -261,17 +263,24 @@ TEST_F(StandardDiscTester, BasisVals2D_interpolation)
 
 TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 {
-  Real eps = 1e-6;
+  using Rng = std::mt19937;
+  Rng rng;
+  const int seed = 42;
+  const Real eps = 1e-6;
+  std::uniform_real_distribution<Real> uniform_rng(-1, 1);
+  const int nvectors = 10;
+
   linear_system::LargeMatrixOpts opts;
   opts.factor_in_place = false;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric = false;
 
-  for (int sol_degree=1; sol_degree <= 2; ++sol_degree)
+  for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
     std::cout << "testing sol degree " << sol_degree << std::endl;
     for (int degree=0; degree <= sol_degree; ++degree)
     {
+      rng.seed(seed);
       std::cout << "  testing polynomial degree " << degree << std::endl;
       auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
                           { return ex_sol(x, y, z, t, degree); };
@@ -295,7 +304,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 
       heat->computeJacobian(u_vec, 0.0, assembler);
 
-      for (int i=0; i < num_dofs; ++i)
+      for (int i=0; i < nvectors; ++i)
       {
         //std::cout << "\ntesting dof " << i << std::endl;
         setSolution(ex_sol_l, deriv_l, src_func_l);
@@ -309,8 +318,9 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
         res_vec->syncArrayToVector();
 
         // apply perturbation
-        std::fill(pert_vec.begin(), pert_vec.end(), 0);
-        pert_vec[i] += 1;
+        for (unsigned int i=0; i < pert_vec.shape()[0]; ++i)
+          pert_vec[i] = uniform_rng(rng);
+
 
         for (int j=0; j < num_dofs; ++j)
           u_vec->getVector()[j] += eps * pert_vec[j];
