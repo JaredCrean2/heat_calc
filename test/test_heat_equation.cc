@@ -62,7 +62,8 @@ namespace {
 
 Real ex_sol(Real x, Real y, Real z, Real t, int degree)
 {
-  return std::pow(x, degree) + std::pow(y, degree) + std::pow(z, degree);
+  //return std::pow(x, degree) + std::pow(y, degree); // + std::pow(z, degree);
+  return std::pow(y, degree);
 }
 
 
@@ -71,9 +72,9 @@ std::array<Real, 3> ex_sol_deriv(Real x, Real y, Real z, Real t, int degree)
   std::array<Real, 3> derivs{0, 0, 0};
   if (degree > 0)
   {
-    derivs[0] = degree * std::pow(x, degree - 1);
+    //derivs[0] = degree * std::pow(x, degree - 1);
     derivs[1] = degree * std::pow(y, degree - 1);
-    derivs[2] = degree * std::pow(z, degree - 1);
+    //derivs[2] = degree * std::pow(z, degree - 1);
   }
 
   return derivs;
@@ -90,7 +91,8 @@ Real src_func_dir(Real x, int degree)
 
 Real src_func(Real x, Real y, Real z, Real t, int degree)
 {
-  return src_func_dir(x, degree); // + src_func_dir(y, degree) + src_func_dir(z, degree);
+  //return src_func_dir(x, degree) + src_func_dir(y, degree); // + src_func_dir(z, degree);
+  return src_func_dir(y, degree);
 }
 
 //TODO: what is this and why is it here
@@ -311,6 +313,8 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 
       heat->computeJacobian(u_vec, 0.0, assembler);
 
+      std::cout << "jacobian = \n" << *mat << std::endl;
+
       for (int i=0; i < nvectors; ++i)
       {
         //std::cout << "\ntesting dof " << i << std::endl;
@@ -325,8 +329,8 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
         res_vec->syncArrayToVector();
 
         // apply perturbation
-        for (unsigned int i=0; i < pert_vec.shape()[0]; ++i)
-          pert_vec[i] = uniform_rng(rng);
+        for (unsigned int j=0; j < pert_vec.shape()[0]; ++j)
+          pert_vec[j] = uniform_rng(rng);
 
 
         for (int j=0; j < num_dofs; ++j)

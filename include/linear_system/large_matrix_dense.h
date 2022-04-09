@@ -15,7 +15,9 @@ class LargeMatrixDense : public LargeMatrix
       LargeMatrix(mlocal, nlocal),
       m_opts(opts),
       m_matrix(mlocal * nlocal)
-    {}
+    {
+      std::cout << "creating LargeMatrixDense with size " << mlocal << ", " << nlocal << std::endl;
+    }
 
   protected:
     void zeroMatrix_impl() override;
