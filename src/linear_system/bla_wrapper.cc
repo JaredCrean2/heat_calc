@@ -56,17 +56,6 @@ enum CBLAS_UPLO get_cblas_uplo(char uplo)
 void gemv(char trans, blasint m, blasint n, double alpha, const double* A, blasint lda, 
           const double* x, blasint incx, double beta, double* y, blasint incy)
 {
-  std::cout << "trans = " << trans << std::endl;
-  std::cout << "m     = " << m << std::endl;
-  std::cout << "n     = " << n << std::endl;
-  std::cout << "alpha = " << alpha << std::endl;
-  std::cout << "A     = " << A << std::endl;
-  std::cout << "lda   = " << lda << std::endl;
-  std::cout << "x     = " << x << std::endl;
-  std::cout << "incx  = " << incx << std::endl;
-  std::cout << "beta  = " << beta << std::endl;
-  std::cout << "y     = " << y << std::endl;
-  std::cout << "incy  = " << incy << std::endl;
   cblas_dgemv(CblasColMajor, get_cblas_trans(trans), m, n, alpha, A, lda, x, incx, beta, y, incy);
 }
 

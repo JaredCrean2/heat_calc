@@ -37,6 +37,7 @@ void DiscVector::markArrayModified()
 // Dirichlet values are not present in the vector
 void DiscVector::syncVectorToArray()
 {
+  //std::cout << "\nEntered syncVectorToArray" << std::endl;
   if (!m_is_vec_modified)
   {
     std::cerr << "Warning: called syncVectorToArray when vector has not been modified, array will not be updated" << std::endl;
@@ -56,7 +57,10 @@ void DiscVector::syncVectorToArray()
       {
         auto dof = dof_nums[el][node];
         if (dof_numbering->isDofActive(dof))
+        {
+          //std::cout << "dof " << dof << " -> " << el << ", " << node << ", value = " << m_vec[dof] << std::endl;
           array_i[el][node] = m_vec[dof];
+        }
       }
   }
 

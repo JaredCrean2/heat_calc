@@ -109,6 +109,7 @@ void DiscVector::syncArrayToVector(Func func, const bool zero_vec)
 template <typename T>
 void DiscVector::setFunc(T func)
 {
+  //std::cout << "\nEntered DiscVector::setFunc" << std::endl;
   auto dof_numbering = m_disc->getDofNumbering();
   for (int i=0; i < m_disc->getNumVolDiscs(); ++i)
   {
@@ -122,8 +123,17 @@ void DiscVector::setFunc(T func)
                          disc->vol_group.getTPMapperCoord().getNodemap(),
                          disc->vol_group.getTPMapperSol().getNodemap());
     ArrayType<Real, 2> coords_sol(boost::extents[disc->getNumSolPtsPerElement()][3]);
+
+    //auto& node_xi = disc->vol_group.ref_el_sol->getNodeXi();
+    //for (int i=0; i < disc->getNumSolPtsPerElement(); ++i)
+    //  std::cout << "node " << i << " xi coords = " << node_xi[i][0] << ", " << node_xi[i][1] << ", " << node_xi[i][2] << std::endl;
+
     for (int el=0; el < disc->getNumElems(); ++el)
     {
+      //std::cout << "element " << el << std::endl;
+      //for (int i=0; i < disc->getNumCoordPtsPerElement(); ++i)
+      //  std::cout << "coord point " << i << " = " << disc->vol_group.coords[el][i][0] << ", " << disc->vol_group.coords[el][i][1] << ", " << disc->vol_group.coords[el][i][2] << std::endl;
+
       for (int d=0; d < 3; ++d)
       {
         auto coords_el = disc->vol_group.coords[boost::indices[el][range()][d]];
@@ -135,7 +145,11 @@ void DiscVector::setFunc(T func)
       {
         auto val = func(coords_sol[node][0], coords_sol[node][1],
                         coords_sol[node][2]);
+        
         auto dof = dof_nums[el][node];
+        //std::cout << "el " << el << ", node " << node << " -> dof " << dof << ", has coordinates " 
+        //           << coords_sol[node][0] << ", " << coords_sol[node][1] << ", " << coords_sol[node][2] 
+        //           << ", function value " << val << std::endl;
         array_i[el][node] = val;
         if (dof_numbering->isDofActive(dof))
           m_vec[dof] = val;

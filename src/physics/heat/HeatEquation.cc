@@ -14,7 +14,13 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 {
   rhs->set(0);
   if (!(u->isArrayCurrent()))
+  {
+    //std::cout << "syncing u vector to array" << std::endl;
     u->syncVectorToArray();
+  }
+
+  //std::cout << "u array = " << std::endl;
+  //printArray(u);
 
   //std::cout << "before setting dirichlet values, u = " << std::endl;
   //printArray(u);
@@ -466,7 +472,7 @@ void printArray(DiscVectorPtr vec)
                                 std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
         int nspaces = std::max(40 - coord_str.size(), size_t(1));
         std::string space_str(nspaces, ' ');
-        std::cout << coord_str << space_str << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+        std::cout << "el " << el << " " << coord_str << space_str << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
 
         val_sum += arr_i[el][j];
         el_sum += arr_i[el][j];
@@ -511,7 +517,7 @@ void printVector(DiscVectorPtr vec)
                                   std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
           int nspaces = std::max(40 - coord_str.size(), size_t(1));
           std::string space_str(nspaces, ' ');
-          std::cout << coord_str << space_str << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+          std::cout << "el " << el << " " << coord_str << space_str << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
 
          // std::cout << "coords = " << sol_coords[j][0] << ", " << sol_coords[j][1] << ", " << sol_coords[j][2]
          //           << ",  arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;

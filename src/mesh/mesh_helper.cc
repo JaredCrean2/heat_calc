@@ -170,19 +170,28 @@ void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_num
   //node_nums.resize(0);
   node_nums.resize(apf_data.m_ref_el_sol->getNumNodesTotal());
   apf::Downward down;
+  //std::vector<int> order(node_nums.size());
   for (int dim=0; dim <= 3; ++dim)
   {
     int ndown = apf_data.m->getDownward(e, dim, down);
-
-    int nnodes_dim = apf_data.sol_shape->countNodesOn(apf_data.m->getType(down[0]));
+    apf::Mesh::Type etype = apf_data.m->getType(down[0]);
+    //apf::EntityShape* eshape = apf_data.sol_shape->getEntityShape(etype);
+    int nnodes_dim = apf_data.sol_shape->countNodesOn(etype);
     for (int i=0; i < ndown; ++i)
+    {
+      int entity_ref_el = apf_data.m_ref_el_sol->getREEntityIndex(dim, i);
+      //eshape->alignSharedNodes(apf_data.m, e, down[i], order.data());
       for (int j=0; j < nnodes_dim; ++j)
       {
-        int entity_ref_el = apf_data.m_ref_el_sol->getREEntityIndex(dim, i);
-        int node = apf_data.m_ref_el_sol->getNodeIndex(dim, entity_ref_el, j);
+        //TODO: this isn't right for 3rd order and above: the jth node on the apf entity
+        //      might not be the jth node on the RE entity, because orientations might not
+        //      be the same
+        int apf_canonical_node = j; // order[j];
+        int node = apf_data.m_ref_el_sol->getNodeIndex(dim, entity_ref_el, apf_canonical_node);
         assert(node >= 0 && node < node_nums.size());
         node_nums[node] = apf::getNumber(apf_data.dof_nums, down[i], j, 0);
       }
+    }
   }
 }
 

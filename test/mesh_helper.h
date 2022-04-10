@@ -28,21 +28,24 @@ class StandardMeshBase
       spec = getStandardMeshSpec();
       spec.nx = 4; spec.ny = 5, spec.nz = 6;
 
-      spec.nx = 2; spec.ny = 1, spec.nz = 1;
-      spec.xmin = 0; spec.ymin = 0; spec.zmin = 0;
-      spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
+      //spec.nx = 2; spec.ny = 1, spec.nz = 1;
+      //spec.xmin = 0; spec.ymin = 0; spec.zmin = 0;
+      //spec.xmax = 1; spec.ymax = 1; spec.zmax = 1;
       setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
     }
 
 
-    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
+    virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& meshspec,
                        const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
     {
+      spec = meshspec;
       quad = getGaussianQuadrature(quad_degree);
 
       mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
       mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};
       mesh = makeStandardMesh(spec, sol_degree, is_surf_dirichlet);
+      
+
     }
 
     Mesh::MeshSpec spec;

@@ -1,6 +1,7 @@
 #ifndef REFERENCE_ELEMENT_APF_H
 #define REFERENCE_ELEMENT_APF_H
 
+#include "error_handling.h"
 #include "mesh/reference_element_interface.h"
 
 #include "apfMesh.h"
@@ -54,6 +55,67 @@ class EntityShapeRefEl : public EntityShape
     }
 
     int countNodes() const {return m_nnodes;}
+
+    void alignSharedNodes(apf::Mesh* m, MeshEntity*elem, MeshEntity* boundary, int order[])
+    {
+      assertAlways(apf::Mesh::typeDimension[m->getType(boundary)] == m_dim, "the boundary entity should be the same dimension as the EntityShape");
+      int which, rotate;
+      bool flip;
+      apf::getAlignment(m, elem, boundary, which, flip, rotate);
+      
+      int nodes_per_direction = m_ref_el->getNumNodes(m_dim);
+      if (m_dim == 0)
+      {
+        assertAlways(!flip && rotate == 0, "flip and rotate must be zero for vertices");
+        assertAlways(nodes_per_direction >= 0 && nodes_per_direction <= 1, "There can be either zero or one nodes per direction on vertices");
+        if (nodes_per_direction == 1)
+          order[0] = 0;
+      } else if (m_dim == 1)
+      {
+        assertAlways(rotate == 0, "rotate must be zero for edges");
+        if (flip)
+          for (int i=0; i < nodes_per_direction; ++i)
+            order[i] = nodes_per_direction - i - 1;
+        else
+          for (int i=0; i < nodes_per_direction; ++i)
+            order[i] = i;
+      } else  // face
+      {
+        for (int node=0; node < nodes_per_direction; ++node)
+        {
+          // Note: this is based on how the face nodes are defined in tensor product order
+          const int i = node % nodes_per_direction;
+          const int j = node / nodes_per_direction;
+          int i2 = -1, j2 = -1;
+          if (!flip)
+          {
+            switch (rotate)
+            {
+              case 0: {i2 = i; j2 = j; break;}
+              case 1: {i2 = j; j2 = nodes_per_direction - i - 1; break;}
+              case 2: {i2 = nodes_per_direction - i - 1; j2 = nodes_per_direction - j - 1; break;}
+              case 3: {i2 = nodes_per_direction - j - 1; j2 = i; break; }
+              default:
+                throw std::runtime_error("rotate value not recognized");
+            };
+          } else
+          {
+            switch (rotate)
+            {
+              case 0: {i2 = i; j2 = nodes_per_direction -j - 1; break;}
+              case 1: {i2 = nodes_per_direction - j - 1; j2 = nodes_per_direction - i - 1; break;}
+              case 2: {i2 = nodes_per_direction - i - 1; j2 = j; break;}
+              case 3: {i2 = j; j2 = i; break; }
+              default:
+                throw std::runtime_error("rotate value not recognized");
+            };
+          }
+
+          assert(i2 >= 0 && j2 >= 0);
+          order[node] = i2 + nodes_per_direction * j2;
+        }
+      }
+    }
 
   private:
     std::shared_ptr<reference_element::ReferenceElement> m_ref_el;
