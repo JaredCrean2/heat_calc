@@ -31,7 +31,7 @@ target_include_directories(heat_lib PUBLIC
                           "${Boost_INCLUDE_DIRS}"
 )
 
-target_link_libraries(heat_lib PUBLIC mesh Blas Lapack)
+target_link_libraries(heat_lib PUBLIC mesh Blas Lapack Petsc)
 
 set(ALL_LIBS ${ALL_LIBS} heat_lib PARENT_SCOPE)
 message("ALL_LIBS = ${ALL_LIBS}")

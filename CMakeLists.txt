@@ -5,6 +5,7 @@ project(RetirementCalc)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 set(Boost_USE_MULTITHREADED, OFF)
 find_package(Boost)
@@ -86,8 +87,25 @@ set_property(TARGET Lapack PROPERTY
 
              
 
-            
-
+# find PETSc
+find_package(PETSc)
+if (PETSC_FOUND)
+  add_library(Petsc SHARED IMPORTED GLOBAL)
+  target_include_directories(Petsc INTERFACE ${PETSC_INCLUDES})
+  set_property(TARGET Petsc PROPERTY IMPORTED_LOCATION ${PETSC_LIBRARIES})
+else()
+  message("Unable to locate PETSc")
+endif()
+#find_package(PkgConfig REQUIRED)
+#message("about to search for petsc")
+#pkg_check_modules(PETSc REQUIRED IMPORTED_TARGET)
+##pkg_check_modules(PETSc REQUIRED)
+#message("Found PETSc = ${PETSc_FOUND}")
+#message("PETSc_LIBRARIES = ${PETSc_LIBRARIES}")
+#message("PETSc_INCLUDE_DIRS = ${PETSc_INCLUDE_DIRS}")
+#message("Found PETSc libraries: ${PETSc_LIBRARY_DIRS}")
+#get_target_property(PETSC_INCLUDE_DIRS PkgConfig::PETSc INCLUDE_DIRECTORIES)
+#message("include dirs = ${PETSC_INCLUDE_DIRS}")
 
 
 
