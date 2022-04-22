@@ -5,7 +5,7 @@ namespace linear_system {
 static_assert(std::is_signed<DofInt>::value, "DofInt must be a signed integral type");
 
 
-void Assembler::assembleVolume(int vol_disc_idx, int elnum, const ArrayType<Real, 2>& jac)
+void Assembler::assembleVolume(int vol_disc_idx, int elnum, ArrayType<Real, 2>& jac)
 {
 
   auto vol_disc = m_disc->getVolDisc(vol_disc_idx);
@@ -23,12 +23,15 @@ void Assembler::assembleVolume(int vol_disc_idx, int elnum, const ArrayType<Real
       dof = -1;
 
     m_vol_dofs[i] = dof;
+
+    for (unsigned int j=0; j < dofs.shape()[1]; ++j)
+      jac[i][j] *= m_alpha;
   }
 
-  m_matrix->assembleValues(m_vol_dofs, jac, m_alpha);
+  m_matrix->assembleValues(m_vol_dofs, jac);
 }
 
-void Assembler::assembleFace(int surf_disc_idx, int facenum, const ArrayType<Real, 2>& jac)
+void Assembler::assembleFace(int surf_disc_idx, int facenum, ArrayType<Real, 2>& jac)
 {
   auto surf_disc = m_disc->getSurfDisc(surf_disc_idx);
   assert(jac.shape()[0] == surf_disc->getNumSolPtsPerFace());
@@ -44,9 +47,12 @@ void Assembler::assembleFace(int surf_disc_idx, int facenum, const ArrayType<Rea
       dof = -1;
 
     m_face_dofs[i] = dof;
+
+    for (int j=0; j < surf_disc->getNumSolPtsPerFace(); ++j)
+      jac[i][j] *= m_alpha;
   }
 
-  m_matrix->assembleValues(m_face_dofs, jac, m_alpha);
+  m_matrix->assembleValues(m_face_dofs, jac);
 }
 
 }  // namespace

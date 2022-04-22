@@ -45,7 +45,7 @@ class LargeMatrix
     }
 
     // if dof < 0, the corresponding entries are ignored
-    void assembleValues(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac, Real alpha=1)
+    void assembleValues(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac)
     {
 #ifndef NDEBUG
       assert(!m_is_factored);
@@ -66,8 +66,11 @@ class LargeMatrix
       assert(it == dofs_copy.end());
 #endif
 
-      assembleValues_impl(dofs, jac, alpha);
+      assembleValues_impl(dofs, jac);
     }
+        
+    void finishMatrixAssembly() { finishMatrixAssembly_impl(); };
+
 
     // factor the matrix/update the preconditioner.
     void factor()
@@ -98,7 +101,9 @@ class LargeMatrix
 
     virtual void zeroMatrix_impl() = 0;
 
-    virtual void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac, Real alpha) = 0;
+    virtual void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac) = 0;
+
+    virtual void finishMatrixAssembly_impl() {};
 
     // factor the matrix/update the preconditioner.
     virtual void factor_impl() = 0;

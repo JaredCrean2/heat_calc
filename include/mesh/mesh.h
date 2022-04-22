@@ -364,7 +364,7 @@ class MeshCG
     void getElementDofs(const VolumeGroup& vol_group, int el_idx, std::vector<Index>& nodenums);
 
     // returns all the dofs connected to the given node (including self)
-    void getDofConnectivity(const Index el, const Index node, std::vector<DofInt>);
+    void getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx, const Index node, std::vector<DofInt>& dofs);
 
   private:
     void setVolumeIndices();

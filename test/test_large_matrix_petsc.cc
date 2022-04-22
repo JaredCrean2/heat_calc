@@ -1,17 +1,57 @@
-
 #include "gtest/gtest.h"
-#include "linear_system/large_matrix_dense.h"
+#include "linear_system/large_matrix_petsc.h"
+#include "linear_system/sparsity_pattern.h"
+#include "utils/initialization.h"
 #include "test_helper.h"
 
+namespace {
 
-TEST(LargeMatrixDense, GeneralSolve)
+class SparsityPatternTest : public linear_system::SparsityPattern
 {
-  linear_system::LargeMatrixOpts opts;
+  public:
+    explicit SparsityPatternTest(int size) :
+      m_local(size, size),
+      m_offproc(size, size)
+    {}
+
+    const std::vector<PetscInt>& getDiagonalCounts() override { return m_local; }
+
+    const std::vector<PetscInt>& getDiagonalCountsSym() override { return m_local; }
+
+    const std::vector<PetscInt>& getOffProcCounts() override { return m_offproc; }
+        
+    const std::vector<PetscInt>& getOffProcCountsSym() override { return m_offproc; }
+
+  private:
+    std::vector<PetscInt> m_local;
+    std::vector<PetscInt> m_offproc;
+};
+
+linear_system::LargeMatrixOptsPetsc get_options()
+{
+  linear_system::LargeMatrixOptsPetsc opts;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric        = false;
   opts.factor_in_place           = false;
+  opts.petsc_opts["ksp_atol"] = "1e-15";
+  opts.petsc_opts["ksp_rtol"] = "1e-50";
+  opts.petsc_opts["ksp_monitor"] = "";
 
-  linear_system::LargeMatrixDense mat(3, 3, opts);
+  return opts;
+}
+
+}
+
+
+TEST(LargeMatrixPetsc, GeneralSolve)
+{
+  int argc = 0;
+  char *argv[0]; 
+  initialize(argc, argv);
+
+  auto opts = get_options();
+  auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
+  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -25,6 +65,7 @@ TEST(LargeMatrixDense, GeneralSolve)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 
@@ -32,14 +73,12 @@ TEST(LargeMatrixDense, GeneralSolve)
     EXPECT_NEAR(x[i], x_ex[i], 1e-13);
 }
 
-TEST(LargeMatrixDense, AssembleValuesAdditive)
-{
-  linear_system::LargeMatrixOpts opts;
-  opts.is_structurally_symmetric = false;
-  opts.is_value_symmetric        = false;
-  opts.factor_in_place           = false;
 
-  linear_system::LargeMatrixDense mat(3, 3, opts);
+TEST(LargeMatrixPetsc, AssembleValuesAdditive)
+{
+  auto opts = get_options();
+  auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
+  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -57,6 +96,7 @@ TEST(LargeMatrixDense, AssembleValuesAdditive)
 
   mat.assembleValues(dofs, vals);
   mat.assembleValues(dofs, vals2);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 
@@ -65,14 +105,11 @@ TEST(LargeMatrixDense, AssembleValuesAdditive)
 }
 
 
-TEST(LargeMatrixDense, AssembleValuesIgnore)
+TEST(LargeMatrixPetsc, AssembleValuesIgnore)
 {
-  linear_system::LargeMatrixOpts opts;
-  opts.is_structurally_symmetric = false;
-  opts.is_value_symmetric        = false;
-  opts.factor_in_place           = false;
-
-  linear_system::LargeMatrixDense mat(3, 3, opts);
+  auto opts = get_options();
+  auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
+  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -87,6 +124,7 @@ TEST(LargeMatrixDense, AssembleValuesIgnore)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 
@@ -95,14 +133,11 @@ TEST(LargeMatrixDense, AssembleValuesIgnore)
 }
 
 
-TEST(LargeMatrixDense, ZeroMatrix)
+TEST(LargeMatrixPetsc, ZeroMatrix)
 {
-  linear_system::LargeMatrixOpts opts;
-  opts.is_structurally_symmetric = false;
-  opts.is_value_symmetric        = false;
-  opts.factor_in_place           = false;
-
-  linear_system::LargeMatrixDense mat(3, 3, opts);
+  auto opts = get_options();
+  auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
+  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -116,6 +151,7 @@ TEST(LargeMatrixDense, ZeroMatrix)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 
@@ -129,6 +165,7 @@ TEST(LargeMatrixDense, ZeroMatrix)
       vals[i][j] *= 2;
 
   mat.assembleValues(dofs, vals);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 
@@ -137,14 +174,15 @@ TEST(LargeMatrixDense, ZeroMatrix)
 }
 
 
-TEST(LargeMatrixDense, FactorInPlace)
+TEST(LargeMatrixPetsc, FactorInPlace)
 {
-  linear_system::LargeMatrixOpts opts;
-  opts.is_structurally_symmetric = false;
-  opts.is_value_symmetric        = false;
-  opts.factor_in_place           = true;
+  auto opts = get_options();
+  opts.factor_in_place  = true;
+  opts.petsc_opts["ksp_type"] = "preonly";
+  opts.petsc_opts.erase("ksp_monitor");
+  auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
+  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
-  linear_system::LargeMatrixDense mat(3, 3, opts);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -158,6 +196,7 @@ TEST(LargeMatrixDense, FactorInPlace)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 
@@ -165,14 +204,15 @@ TEST(LargeMatrixDense, FactorInPlace)
     EXPECT_NEAR(x[i], x_ex[i], 1e-13);
 }
 
-TEST(LargeMatrixDense, SPD)
+
+TEST(LargeMatrixPetsc, SPD)
 {
-  linear_system::LargeMatrixOpts opts;
+  auto opts = get_options();
   opts.is_structurally_symmetric = true;
   opts.is_value_symmetric        = true;
-  opts.factor_in_place           = false;
-
-  linear_system::LargeMatrixDense mat(3, 3, opts);
+  opts.petsc_opts["pc_type"] = "icc";
+  auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
+  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -186,35 +226,7 @@ TEST(LargeMatrixDense, SPD)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
-  mat.factor();
-  mat.solve(b, x);
-
-  for (int i=0; i < 3; ++i)
-    EXPECT_NEAR(x[i], x_ex[i], 1e-5);
-}
-
-
-TEST(LargeMatrixDense, SPDInPlace)
-{
-  linear_system::LargeMatrixOpts opts;
-  opts.is_structurally_symmetric = true;
-  opts.is_value_symmetric        = true;
-  opts.factor_in_place           = true;
-
-  linear_system::LargeMatrixDense mat(3, 3, opts);
-
-  EXPECT_EQ(mat.getMLocal(), 3);
-  EXPECT_EQ(mat.getNLocal(), 3);
-  
-  std::vector<DofInt> dofs{0, 1, 2};
-  auto vals = make_mat(3, 3, {10, 2, 3,
-                              2, 12, 5,
-                              3, 5, 20});
-  auto b = make_vec({1, 2, 3});
-  auto x_ex = make_vec({0.043027, 0.111276, 0.115727});
-  ArrayType<Real, 1> x(boost::extents[3]);
-
-  mat.assembleValues(dofs, vals);
+  mat.finishMatrixAssembly();
   mat.factor();
   mat.solve(b, x);
 

@@ -32,7 +32,8 @@ target_link_libraries(verification_tests
                      pthread 
                      mesh
                      heat_lib
-                     SCOREC::core)
+                     SCOREC::core
+                     MPI::MPI_CXX)
 
 message("Linking to ALL_LIBS = ${ALL_LIBS}")
 #target_link_libraries(unit_tests PUBLIC SCOREC::core)

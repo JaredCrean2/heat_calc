@@ -9,6 +9,13 @@
 
 namespace reference_element {
 
+struct NodeLocation
+{
+  int dim;
+  int entity_index;
+  int node_index;
+};
+
 class ReferenceElement
 {
   public:
@@ -102,6 +109,28 @@ class ReferenceElement
       assert(node >= 0   && node < getNumNodes(dim));
 
       return getNodeIndex(dim, entity * getNumNodes(dim) + node);
+    }
+
+    // given a node in the range [0, getNumNodesTotal), returns the
+    // {dimension, entity index within dimension, node on entity}
+    // entity is in the RE ordering
+    NodeLocation getNodeLocation(int node)
+    {
+      int offset = 0, dim;
+      for (dim=0; dim <= 3; ++dim)
+      {
+        int offset_tmp = getNumEntities(dim) * getNumNodes(dim);
+        if (node < offset + offset_tmp)
+          break;
+
+        offset += offset_tmp;
+      }
+
+      int node_on_dim = node - offset;
+      int entity = node_on_dim / getNumNodes(dim);
+      int node_on_entity = node_on_dim % getNumNodes(dim);
+
+      return {dim, entity, node_on_entity};
     }
 
     // given the dimension and apf index, get the ReferenceElement index

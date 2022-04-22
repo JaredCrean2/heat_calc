@@ -5,6 +5,7 @@ set(src_files EpwReader.cc
               utils/quadrature.cc 
               utils/legendre.cc
               utils/error_handling.cc
+              utils/initialization.cc
               discretization/volume_discretization.cc 
               discretization/surface_discretization.cc
               discretization/discretization.cc
@@ -19,6 +20,7 @@ set(src_files EpwReader.cc
               linear_system/bla_wrapper.cc
               linear_system/large_matrix.cc
               linear_system/large_matrix_dense.cc
+              linear_system/large_matrix_petsc.cc
               )
 
 add_subdirectory(mesh)
@@ -31,7 +33,7 @@ target_include_directories(heat_lib PUBLIC
                           "${Boost_INCLUDE_DIRS}"
 )
 
-target_link_libraries(heat_lib PUBLIC mesh Blas Lapack Petsc)
+target_link_libraries(heat_lib PUBLIC mesh Blas Lapack Petsc MPI::MPI_CXX)
 
 set(ALL_LIBS ${ALL_LIBS} heat_lib PARENT_SCOPE)
 message("ALL_LIBS = ${ALL_LIBS}")

@@ -248,4 +248,32 @@ void MeshCG::getElementDofs(const VolumeGroup& vol_group, int el_idx, std::vecto
   getDofNums(m_apf_data, m_elements[elnum_global], nodenums);
 }
 
+void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx, const Index node, std::vector<DofInt>& dofs)
+{
+
+  auto node_location = m_apf_data.m_ref_el_sol->getNodeLocation(node);
+  int entity_apf = m_apf_data.m_ref_el_sol->getApfEntityIndex(node_location.dim, node_location.entity_index);
+  apf::MeshEntity* el = vol_group.m_elements[el_idx];
+  apf::Downward down;
+  int ndown = m_apf_data.m->getDownward(el, node_location.dim, down);
+  assert(entity_apf < ndown);
+  apf::MeshEntity* entity = down[entity_apf];
+
+  apf::Adjacent other_els;
+  m_apf_data.m->getAdjacent(entity, 3, other_els);
+
+  dofs.resize(0);
+  std::vector<DofInt> dofs_el;
+  for (auto& other_el : other_els)
+  {
+    getDofNums(m_apf_data, other_el, dofs_el);
+    for (auto& dof : dofs_el)
+      dofs.push_back(dof);
+  }
+
+  auto it = std::unique(dofs.begin(), dofs.end());
+  dofs.erase(it, dofs.end());
+}
+
+
 } // namespace

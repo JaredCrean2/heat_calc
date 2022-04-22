@@ -33,10 +33,10 @@ class Assembler
 
     // jac is df_i/du_j, where i, j in [0, numSolPtsPerElement)
     // assembla alpha * jac into the matrix
-    void assembleVolume(int vol_disc_idx, int elnum, const ArrayType<Real, 2>& jac);
+    void assembleVolume(int vol_disc_idx, int elnum, ArrayType<Real, 2>& jac);
 
     // jac is df_i/du_j, where i, j in [0, numSolPtsPerFace]
-    void assembleFace(int surf_disc_idx, int facenum, const ArrayType<Real, 2>& jac);
+    void assembleFace(int surf_disc_idx, int facenum, ArrayType<Real, 2>& jac);
 
     void zeroMatrix() { m_matrix->zeroMatrix(); }
 

@@ -8,7 +8,7 @@ void LargeMatrixDense::zeroMatrix_impl()
   std::fill(m_matrix.begin(), m_matrix.end(), 0);
 }
 
-void LargeMatrixDense::assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac, Real alpha)
+void LargeMatrixDense::assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac)
 {
   unsigned int nvals = dofs.size();
   for (int j=0; j < nvals; ++j)
@@ -18,7 +18,7 @@ void LargeMatrixDense::assembleValues_impl(const std::vector<DofInt>& dofs, cons
 
     for (int i=0; i < nvals; ++i)
       if (dofs[i] >= 0)
-        m_matrix[getIdx(dofs[i], dofs[j])] += alpha * jac[i][j];
+        m_matrix[getIdx(dofs[i], dofs[j])] += jac[i][j];
   }
 }
 

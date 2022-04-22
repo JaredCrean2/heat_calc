@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
+find_package(MPI REQUIRED)
+
 set(Boost_USE_MULTITHREADED, OFF)
 find_package(Boost)
 if (Boost_FOUND)

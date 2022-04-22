@@ -10,9 +10,11 @@ BUILDTYPE="Release"
 
 
 cmake \
--D CMAKE_C_COMPILER=`which mpicc` \
+-D CMAKE_C_COMPILER=`which clang` \
+-D CMAKE_CXX_COMPILER=`which clang++` \
+-D MPI_C_COMPILER=`which mpicc` \
+-D MPI_CXX_COMPILER=`which mpicxx` \
 -D CMAKE_EXPORT_COMPILE_COMMANDS=1 \
--D CMAKE_CXX_COMPILER=`which mpicxx` \
 -D CMAKE_BUILD_TYPE=$BUILDTYPE \
 -D CMAKE_CXX_FLAGS="$CXXFLAGS $ASAN_FLAGS" \
 -D BLAS_ROOT="$HOME/build/OpenBLAS_install/" \
