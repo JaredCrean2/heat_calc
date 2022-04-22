@@ -8,8 +8,13 @@
 #include "linear_system/large_matrix.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/basis_vals.h"
-#include "linear_system/large_matrix_dense.h"
+#include "linear_system/large_matrix_petsc.h"
+#include "linear_system/sparsity_pattern_mesh.h"
 #include "mesh_helper.h"
+
+#include "mpi.h"
+#include "petscerror.h"
+
 
 namespace {
 
@@ -27,7 +32,7 @@ namespace {
       using StandardDiscSetup::setup;
 
       virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
-                         const linear_system::LargeMatrixOpts& matrix_opts,
+                         const linear_system::LargeMatrixOptsPetsc& matrix_opts,
                          const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
       {
         StandardDiscSetup::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
@@ -38,8 +43,10 @@ namespace {
         res_vec     = makeDiscVector(disc);
 
         auto num_dofs     = disc->getDofNumbering()->getNumDofs();
+        std::cout << "num_dofs = " << num_dofs << std::endl;
         this->matrix_opts = matrix_opts;
-        mat               = std::make_shared<linear_system::LargeMatrixDense>(num_dofs, num_dofs, matrix_opts);
+        auto sparsity     = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
+        mat               = std::make_shared<linear_system::LargeMatrixPetsc>(num_dofs, num_dofs, matrix_opts, sparsity);
         assembler         = std::make_shared<linear_system::Assembler>(disc, mat);
       }
 
@@ -115,7 +122,7 @@ namespace {
 
       ArrayType<Real, 2> computeSlopes()
       {
-        assert(m_errors.size() >= 2);
+        assert(m_errors_l2.size() >= 2);
         ArrayType<Real, 2> slopes(boost::extents[m_errors_l2.size()][2]);
         slopes[0][0] = 0; slopes[0][1] = 0;
         for (unsigned int i=1; i < m_errors_l2.size(); ++i)
@@ -136,7 +143,7 @@ namespace {
       DiscVectorPtr u_vec;
       DiscVectorPtr u_solve_vec;
       DiscVectorPtr res_vec;
-      linear_system::LargeMatrixOpts matrix_opts;
+      linear_system::LargeMatrixOptsPetsc matrix_opts;
       linear_system::LargeMatrixPtr mat;
       linear_system::AssemblerPtr assembler;
 
@@ -145,6 +152,24 @@ namespace {
       std::vector<Real> m_errors_max;
       std::vector<Real> m_h_values;
   };
+
+
+  linear_system::LargeMatrixOptsPetsc get_options()
+  {
+    linear_system::LargeMatrixOptsPetsc opts;
+    opts.is_structurally_symmetric = false;
+    opts.is_value_symmetric        = false;
+    opts.factor_in_place           = false;
+    opts.petsc_opts["ksp_atol"] = "1e-15";
+    opts.petsc_opts["ksp_rtol"] = "1e-50";
+    opts.petsc_opts["ksp_monitor"] = "";
+    //opts.petsc_opts["info"] = "";
+    //PetscOptionsSetValue(nullptr, "-log_view", "");
+    //PetscOptionsSetValue(nullptr, "-on_error_abort", "");
+    //PetscPushErrorHandler(PetscAbortErrorHandler, nullptr);
+
+    return opts;
+  }
 }
 
 TEST(VerificaitonTest, Foo)
@@ -154,11 +179,8 @@ TEST(VerificaitonTest, Foo)
 
 TEST_F(HeatMMSConvergenceTester, Exponential)
 {
-  const int sol_degree = 2;
-  linear_system::LargeMatrixOpts opts;
-  opts.factor_in_place = false;
-  opts.is_structurally_symmetric = false;
-  opts.is_value_symmetric = false;
+  const int sol_degree = 1;
+  auto opts = get_options();
   auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
                       { return std::exp(x + y + z); };
 
@@ -168,9 +190,13 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
                         { return -3*std::exp(x + y + z); };
 
   int nmeshes = 3;
-  auto meshspec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 3, 3, 3);
+  int nelem = 3;
   for (int i=0; i < nmeshes; ++i)
   {
+    nelem = (i + 1) * 3;
+    auto meshspec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, nelem, nelem, nelem);
+
+    std::cout << "mesh " << i << std::endl;
     setup(2*sol_degree, sol_degree, meshspec, opts);
     setSolution(ex_sol_l, deriv_l, src_func_l);
     int num_dofs = u_vec->getNumDofs();
@@ -180,6 +206,7 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
 
     heat->computeJacobian(u_vec, 0.0, assembler);
 
+    mat->finishMatrixAssembly();
     mat->factor();
     solve(mat, res_vec, u_solve_vec);
 
@@ -190,10 +217,6 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
     
 
     computeErrorNorm(u_vec, u_solve_vec);
-
-    meshspec.nx *= 2;
-    meshspec.ny *= 2;
-    meshspec.nz *= 2;
   }
 
   auto slopes = computeSlopes();

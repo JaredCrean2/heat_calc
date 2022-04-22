@@ -4,4 +4,6 @@
 using ArgvType = char*[];
 void initialize(int& argc, ArgvType argv);
 
+void finalize();
+
 #endif

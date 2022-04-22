@@ -10,11 +10,8 @@ class SparsityPatternMesh : public SparsityPattern
 {
   public:
     SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh) :
-      m_local_dofs(mesh->getNumDofs(), 0),
-      m_remote_dofs(mesh->getNumDofs(), 0)
-    {
-
-    }
+      m_mesh(mesh)
+    {}
 
     const std::vector<PetscInt>& getDiagonalCounts() override
     { 
@@ -61,6 +58,7 @@ class SparsityPatternMesh : public SparsityPattern
       std::vector<DofInt> el_dofs, connected_dofs;
       for (int i=0; i < m_mesh->getNumVolumeGroups(); ++i)
       {
+        //std::cout << "\nvolume group " << i << std::endl;
         auto vol_group = m_mesh->getElements(i);
         for (int el=0; el < vol_group.getNumElems(); ++el)
         {
@@ -68,22 +66,37 @@ class SparsityPatternMesh : public SparsityPattern
           for (int j=0; j < vol_group.getNumSolPtsPerElement(); ++j)
             if (m_mesh->isDofActive(el_dofs[j]))
             {
+              //TODO: skip dofs already processed
+              //std::cout << "element " << el << ", node " << j << std::endl;
               DofInt dof_j = el_dofs[j];
               m_mesh->getDofConnectivity(vol_group, el, j, connected_dofs);
 
-              int count = connected_dofs.size();
+              int count = 0;
               if (symmetric)
               {
                 // count dofs on diagonal + upper triangle
-                count = 0;
                 for (auto& dof : connected_dofs)
-                  count += dof >= dof_j ? 1 : 0;
+                  count += dof >= dof_j && m_mesh->isDofActive(dof) ? 1 : 0;
+              } else
+              {
+                for (auto& dof : connected_dofs)
+                {
+                  //std::cout << std::boolalpha << "connected dof " << dof << ", isActive = " << m_mesh->isDofActive(dof) << std::endl;
+                  count += m_mesh->isDofActive(dof) ? 1 : 0;
+
+                }
               }
 
-              m_local_dofs[dof_j] = count;
+              local_dofs[dof_j]  = count;
+              remote_dofs[dof_j] = 0;
             }
         }
       }
+
+      if (symmetric)
+        m_computed_symmetric = true;
+      else
+        m_computed_nonsymmetric = true;
     }
 
     bool m_computed_nonsymmetric = false;

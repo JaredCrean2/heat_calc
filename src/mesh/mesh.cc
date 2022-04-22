@@ -255,8 +255,12 @@ void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx
   int entity_apf = m_apf_data.m_ref_el_sol->getApfEntityIndex(node_location.dim, node_location.entity_index);
   apf::MeshEntity* el = vol_group.m_elements[el_idx];
   apf::Downward down;
+#ifdef NDEBUG
+  m_apf_data.m->getDownward(el, node_location.dim, down);
+#else
   int ndown = m_apf_data.m->getDownward(el, node_location.dim, down);
   assert(entity_apf < ndown);
+#endif
   apf::MeshEntity* entity = down[entity_apf];
 
   apf::Adjacent other_els;
@@ -271,6 +275,7 @@ void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx
       dofs.push_back(dof);
   }
 
+  std::sort(dofs.begin(), dofs.end());
   auto it = std::unique(dofs.begin(), dofs.end());
   dofs.erase(it, dofs.end());
 }

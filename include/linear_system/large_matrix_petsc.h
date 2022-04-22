@@ -15,7 +15,7 @@ struct LargeMatrixOptsPetsc : public LargeMatrixOpts
     static int i;
     opts_prefix = std::string("prefix") + std::to_string(i++);
   }
-  
+
   std::string opts_prefix;  // prefix to add to options when putting into Petsc database
   std::map<std::string, std::string> petsc_opts;  // options themselves (keys should *not* include opts_preifx)
 };
@@ -64,7 +64,7 @@ class LargeMatrixPetsc : public LargeMatrix
       // TODO: MatSetOption(m_A, MAT_ROWS_SORTED) and similarly for MAT_COLUMNS_SORTED (see page 56 of manual)
 
       MatXAIJSetPreallocation(m_A, 1, sparsity_pattern->getDiagonalCounts().data(), sparsity_pattern->getOffProcCounts().data(),
-                              sparsity_pattern->getDiagonalCountsSym().data(), sparsity_pattern->getOffProcCountsSym().data());
+                                      sparsity_pattern->getDiagonalCountsSym().data(), sparsity_pattern->getOffProcCountsSym().data());
       
 
       KSPCreate(PETSC_COMM_WORLD, &m_ksp);
@@ -101,6 +101,7 @@ class LargeMatrixPetsc : public LargeMatrix
 
     void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac) override
     {
+
       MatSetValues(m_A, dofs.size(), dofs.data(), dofs.size(), dofs.data(), jac.data(), ADD_VALUES);
     }
     //TODO: do some fancy enable-if stuff to avoid copying DofInt to a PetscInt array if unnecessary
@@ -117,9 +118,11 @@ class LargeMatrixPetsc : public LargeMatrix
     {
       if (m_new_matrix_values)
       {
+        std::cout << "factoring preconditioner" << std::endl;
         PCSetReusePreconditioner(m_pc, PETSC_FALSE);
         PCSetUp(m_pc);
         PCSetReusePreconditioner(m_pc, PETSC_TRUE);
+        std::cout << "finished factoring preconditioner" << std::endl;
       }
     }
 
@@ -129,7 +132,9 @@ class LargeMatrixPetsc : public LargeMatrix
     {
       if (m_new_matrix_values)
       {
+        std::cout << "about to call KSPSetUp" << std::endl;
         KSPSetUp(m_ksp);
+        std::cout << "finished calling KSPSetUp" << std::endl;
         m_new_matrix_values = false;
       }
 

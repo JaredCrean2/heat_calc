@@ -6,5 +6,7 @@ int main(int argc, char* argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);
   initialize(argc, argv);
-  return RUN_ALL_TESTS();
+  auto val = RUN_ALL_TESTS();
+  finalize();
+  return val;
 }

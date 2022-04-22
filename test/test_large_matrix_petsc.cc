@@ -176,6 +176,8 @@ TEST(LargeMatrixPetsc, FactorInPlace)
   opts.factor_in_place  = true;
   opts.petsc_opts["ksp_type"] = "preonly";
   opts.petsc_opts.erase("ksp_monitor");
+  opts.petsc_opts.erase("ksp_atol");
+  opts.petsc_opts.erase("ksp_rtol");
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 
