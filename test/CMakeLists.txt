@@ -20,7 +20,7 @@ target_link_libraries(unit_tests
 
 file(GLOB verification_src_files ./verification/*.cc)
 
-add_executable(verification_tests ${verification_src_files} mesh_helper.cc)
+add_executable(verification_tests ${verification_src_files} mesh_helper.cc gtest_main.cc test_helper.cc)
 target_include_directories(verification_tests PUBLIC
   "${PROJECT_BINARY_DIR}"
   "${PROJECT_SOURCE_DIR}/include"

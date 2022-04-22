@@ -45,10 +45,6 @@ linear_system::LargeMatrixOptsPetsc get_options()
 
 TEST(LargeMatrixPetsc, GeneralSolve)
 {
-  int argc = 0;
-  char *argv[0]; 
-  initialize(argc, argv);
-
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
