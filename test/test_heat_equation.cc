@@ -26,7 +26,7 @@ namespace {
       }
 
       template <typename Tex, typename Tderiv, typename Tsrc>
-      void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src)
+      void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
       {
         heat = std::make_shared<Heat::HeatEquation>(disc);
         u_vec = makeDiscVector(disc);
@@ -36,7 +36,7 @@ namespace {
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
           heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
-          heat->addVolumeGroupParams(Heat::VolumeGroupParams(1, 1, 1));
+          heat->addVolumeGroupParams(params);
         }
 
         for (int i=0; i < disc->getNumSurfDiscs(); ++i)
@@ -142,6 +142,8 @@ TEST_F(HeatMMSTester, Constant)
 
 TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 {
+  Real kappa = 2;
+  Heat::VolumeGroupParams params{kappa, 3, 4};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
 
@@ -153,13 +155,17 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
                           { return ex_sol(x, y, z, t, degree); };
 
       auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
-                          { return ex_sol_deriv(x, y, z, t, degree); };
+                         { 
+                           auto vals = ex_sol_deriv(x, y, z, t, degree);
+                           for (auto& v : vals)
+                             v *= kappa;
+                           return vals;
+                         };
       auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                            { return src_func(x, y, z, t, degree); };
+                            { return kappa * src_func(x, y, z, t, degree); };
 
       setup(2*sol_degree, sol_degree);
-
-      setSolution(ex_sol_l, deriv_l, src_func_l);
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
@@ -176,7 +182,8 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
-  //std::vector<bool> dirichlet_surfs = {false, true, false, true, true, true};
+  Real kappa = 2;
+  Heat::VolumeGroupParams params{kappa, 3, 4};
   std::vector<bool> dirichlet_surfs = {false, false, true, true, true, true};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
@@ -189,13 +196,18 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
                           { return ex_sol(x, y, z, t, degree); };
 
       auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
-                          { return ex_sol_deriv(x, y, z, t, degree); };
+                         { 
+                           auto vals = ex_sol_deriv(x, y, z, t, degree);
+                           for (int i=0; i < 3; ++i)
+                             vals[i] *= kappa;
+                           return vals;
+                         };
 
       auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                            { return src_func(x, y, z, t, degree); };
+                            { return kappa * src_func(x, y, z, t, degree); };
 
       setup(2*sol_degree, sol_degree, dirichlet_surfs);
-      setSolution(ex_sol_l, deriv_l, src_func_l);
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
@@ -282,7 +294,8 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric = false;
   std::vector<bool> dirichlet_surfs = {true, false, true, false, true, false};
-
+  Real kappa = 2;
+  Heat::VolumeGroupParams params{kappa, 3, 4};
 
   //TODO: sol_degree = 3 does not work because the retrieval of
   //      dofs from apf does not work correctly
@@ -297,9 +310,14 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
                           { return ex_sol(x, y, z, t, degree); };
 
       auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
-                          { return ex_sol_deriv(x, y, z, t, degree); };
+                         { 
+                           auto vals = ex_sol_deriv(x, y, z, t, degree);
+                           for (auto& v : vals)
+                             v *= kappa;
+                            return vals;
+                         };
       auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                            { return src_func(x, y, z, t, degree); };
+                            { return kappa * src_func(x, y, z, t, degree); };
 
       setup(2*sol_degree, sol_degree, dirichlet_surfs);
 
@@ -311,7 +329,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
       std::vector<Real> product_fd(num_dofs);
       ArrayType<Real, 1>  product_jac(boost::extents[num_dofs]);
       
-      setSolution(ex_sol_l, deriv_l, src_func_l);
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
       heat->computeJacobian(u_vec, 0.0, assembler);
 
@@ -321,7 +339,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
       {
         //std::cout << "testing vector " << i << std::endl;
         //std::cout << "about to call setSolution" << std::endl;
-        setSolution(ex_sol_l, deriv_l, src_func_l);
+        setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
         //std::cout << "initially, u = " << std::endl;
         //for (int j=0; j < num_dofs; ++j)

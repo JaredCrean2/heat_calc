@@ -22,18 +22,19 @@ class VolumeGroupParams
     Real Cp;    // specific heat capacityh (J/(kg K))
 };
 
-// solves heat equation dT/dt = d/dx (alpha dT/dx) + S
-// where alpha = kappa / (rho Cp)
+// solves heat equation rho Cp dT/dt = d/dx (kappa dT/dx) + S
 // and S is a source term
 // To allow nonlinear problems to be solves, the equation is implemented as
 // dT/dt - d/dx (alpha dT/dx) - S = 0, where this module only evaluates
 // the final two terms on the left hand side.
 // In weak form:
-//  \int w dT/dt - \int w d/dx (alpha dT/dx) - \int w S dOmega = 0
-//  \int w dT/dt dOmega + \int dw/dx alpha dT/dx dOmega - \int w alpha dT/dx n_i dGamma + - \int w S dOmega = 0
-//  \int w dT/dt dOmega + \int dw/dx alpha dT/dx dOmega - \int w h dGamma_h + - \int w S dOmega = 0
+//  \int w rho Cp dT/dt - \int w d/dx (kappa dT/dx) - \int w S dOmega = 0
+//  \int w rho Cp dT/dt dOmega + \int dw/dx kappa dT/dx dOmega - \int w kappa dT/dx n_i dGamma + - \int w S dOmega = 0
+//  \int w rho Cp dT/dt dOmega + \int dw/dx kappa dT/dx dOmega - \int w h dGamma_h + - \int w S dOmega = 0
 // where h is the prescibes heat flux, Gamma is the boundary, and Gamma_h is the portion of the boundary
 // where the heat flux is prescribed
+// Note that w = 0 on Gamma_d, the portion of the boundary where the solution is specified, and
+// Gamma_d \union Gamma_h = Gamma
 class HeatEquation : public PhysicsModel
 {
   public:
