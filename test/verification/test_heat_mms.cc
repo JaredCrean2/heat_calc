@@ -51,12 +51,12 @@ namespace {
       }
 
       template <typename Tex, typename Tderiv, typename Tsrc>
-      void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src)
+      void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
       {
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
           heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
-          heat->addVolumeGroupParams(Heat::VolumeGroupParams(1, 1, 1));
+          heat->addVolumeGroupParams(params);
         }
 
         for (int i=0; i < disc->getNumSurfDiscs(); ++i)
@@ -77,16 +77,15 @@ namespace {
       void computeErrorNorm(DiscVectorPtr u_ex, DiscVectorPtr u_sol)
       {
         int num_dofs = u_ex->getNumDofs();
-        auto err = makeDiscVector(disc);
-        auto tmp = makeDiscVector(disc);
+        auto err     = makeDiscVector(disc);
+        auto tmp     = makeDiscVector(disc);
 
-        auto& u_ex_vec = u_ex->getVector();
+        auto& u_ex_vec  = u_ex->getVector();
         auto& u_sol_vec = u_sol->getVector();
-        auto& err_vec = err->getVector();
+        auto& err_vec   = err->getVector();
         for (int i=0; i < num_dofs; ++i)
-        {
           err_vec[i] = u_ex_vec[i] - u_sol_vec[i];          
-        }
+
         err->markVectorModified();
 
         heat->applyMassMatrix(err, tmp);
@@ -181,6 +180,8 @@ TEST(VerificationTest, Foo)
 
 TEST_F(HeatMMSConvergenceTester, Exponential)
 {
+  Real kappa = 2;
+  Heat::VolumeGroupParams params{kappa, 3, 4};
   for (int sol_degree=1; sol_degree <=2; ++sol_degree)
   {
     auto opts = get_options();
@@ -188,9 +189,9 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
                         { return std::exp(x + y + z); };
 
     auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
-                        { return {std::exp(x + y + z), std::exp(x + y + z), std::exp(x + y + z)}; };
+                       { return {kappa * std::exp(x + y + z), kappa * std::exp(x + y + z), kappa * std::exp(x + y + z)}; };
     auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                          { return -3*std::exp(x + y + z); };
+                          { return -3 * kappa * std::exp(x + y + z); };
 
     int nmeshes = 4;
     int nelem_start = 3;
@@ -201,7 +202,7 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
 
       std::cout << "mesh " << i << " with " << std::pow(nelem, 3) << " elements" << std::endl;
       setup(2*sol_degree, sol_degree, meshspec, opts);
-      setSolution(ex_sol_l, deriv_l, src_func_l);
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
       int num_dofs = u_vec->getNumDofs();
 
       heat->computeRhs(u_vec, 0.0, res_vec);
