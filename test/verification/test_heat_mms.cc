@@ -136,8 +136,14 @@ namespace {
 
       std::vector<Real> getErrorsL2() const { return m_errors_l2; }
       std::vector<Real> getErrorsMax() const { return m_errors_max; }
-
       std::vector<Real> getHValues() const { return m_h_values; }
+
+      void resetErrors()
+      {
+        m_errors_l2.resize(0);
+        m_errors_max.resize(0);
+        m_h_values.resize(0);
+      }
 
       HeatPtr heat;
       DiscVectorPtr u_vec;
@@ -160,7 +166,7 @@ namespace {
     opts.is_structurally_symmetric = false;
     opts.is_value_symmetric        = false;
     opts.factor_in_place           = false;
-    opts.petsc_opts["ksp_atol"] = "1e-15";
+    opts.petsc_opts["ksp_atol"] = "1e-8";
     opts.petsc_opts["ksp_rtol"] = "1e-50";
     opts.petsc_opts["ksp_monitor"] = "";
 
@@ -168,68 +174,72 @@ namespace {
   }
 }
 
-TEST(VerificaitonTest, Foo)
+TEST(VerificationTest, Foo)
 {
   EXPECT_TRUE(true);
 }
 
 TEST_F(HeatMMSConvergenceTester, Exponential)
 {
-  const int sol_degree = 1;
-  auto opts = get_options();
-  auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                      { return std::exp(x + y + z); };
-
-  auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
-                      { return {std::exp(x + y + z), std::exp(x + y + z), std::exp(x + y + z)}; };
-  auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                        { return -3*std::exp(x + y + z); };
-
-  int nmeshes = 4;
-  int nelem_start = 3;
-  for (int i=0; i < nmeshes; ++i)
+  for (int sol_degree=1; sol_degree <=2; ++sol_degree)
   {
-    int nelem = nelem_start * std::pow(2, i);
-    auto meshspec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, nelem, nelem, nelem);
+    auto opts = get_options();
+    auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { return std::exp(x + y + z); };
 
-    std::cout << "mesh " << i << " with " << std::pow(nelem, 3) << " elements" << std::endl;
-    setup(2*sol_degree, sol_degree, meshspec, opts);
-    setSolution(ex_sol_l, deriv_l, src_func_l);
-    int num_dofs = u_vec->getNumDofs();
+    auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                        { return {std::exp(x + y + z), std::exp(x + y + z), std::exp(x + y + z)}; };
+    auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                          { return -3*std::exp(x + y + z); };
 
-    heat->computeRhs(u_vec, 0.0, res_vec);
-    res_vec->syncArrayToVector();
-
-    heat->computeJacobian(u_vec, 0.0, assembler);
-
-    mat->finishMatrixAssembly();
-    mat->factor();
-    solve(mat, res_vec, u_solve_vec);
-
-    auto& u_solve = u_solve_vec->getVector();
-    for (int j=0; j < num_dofs; ++j)
-      u_solve[j] = u_vec->getVector()[j] - u_solve[j];
-    u_solve_vec->markVectorModified();
-    
-
-    computeErrorNorm(u_vec, u_solve_vec);
-  }
-
-  auto slopes = computeSlopes();
-  auto errors_l2 = getErrorsL2();
-  auto errors_max = getErrorsMax();
-
-  for (unsigned int i=0; i < slopes.size(); ++i)
-  {
-    Real ratio_l2 = 0, ratio_max = 0;
-    if (i > 0)
+    int nmeshes = 4;
+    int nelem_start = 3;
+    for (int i=0; i < nmeshes; ++i)
     {
-      ratio_l2 = errors_l2[i-1] / errors_l2[i];
-      ratio_max = errors_max[i-1] / errors_max[i];
+      int nelem = nelem_start * std::pow(2, i);
+      auto meshspec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, nelem, nelem, nelem);
+
+      std::cout << "mesh " << i << " with " << std::pow(nelem, 3) << " elements" << std::endl;
+      setup(2*sol_degree, sol_degree, meshspec, opts);
+      setSolution(ex_sol_l, deriv_l, src_func_l);
+      int num_dofs = u_vec->getNumDofs();
+
+      heat->computeRhs(u_vec, 0.0, res_vec);
+      res_vec->syncArrayToVector();
+
+      heat->computeJacobian(u_vec, 0.0, assembler);
+
+      mat->finishMatrixAssembly();
+      mat->factor();
+      solve(mat, res_vec, u_solve_vec);
+
+      auto& u_solve = u_solve_vec->getVector();
+      for (int j=0; j < num_dofs; ++j)
+        u_solve[j] = u_vec->getVector()[j] - u_solve[j];
+      u_solve_vec->markVectorModified();
+      
+
+      computeErrorNorm(u_vec, u_solve_vec);
     }
 
-    std::cout << "mesh " << i << ": slope_l2 = " << slopes[i][0] << ", slope_max = " << slopes[i][1] << ", ratio_l2 = " << ratio_l2 << ", ratio_max = " << ratio_max << std::endl;
-  }
+    auto slopes = computeSlopes();
+    auto errors_l2 = getErrorsL2();
+    auto errors_max = getErrorsMax();
 
-  //TODO: make mesh finer
+    for (unsigned int i=0; i < slopes.size(); ++i)
+    {
+      Real ratio_l2 = 0, ratio_max = 0;
+      if (i > 0)
+      {
+        ratio_l2 = errors_l2[i-1] / errors_l2[i];
+        ratio_max = errors_max[i-1] / errors_max[i];
+      }
+
+      std::cout << "mesh " << i << ": slope_l2 = " << slopes[i][0] << ", slope_max = " << slopes[i][1] << ", ratio_l2 = " << ratio_l2 << ", ratio_max = " << ratio_max << std::endl;
+    }
+
+    // for some reason, p=2 converges at a rate of 4
+    EXPECT_NEAR(slopes[slopes.size()-1][0], 2*sol_degree, 0.1);
+    resetErrors();
+  }
 }
