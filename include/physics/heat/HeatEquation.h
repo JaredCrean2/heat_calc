@@ -62,7 +62,7 @@ void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorP
 
 void applyMassMatrix(const HeatEquation& physics, DiscVectorPtr vec_in, DiscVectorPtr vec_out);
 
-void applyMassMatrix(const VolDiscPtr vol_disc, const DofNumberingPtr dof_numbering,
+void applyMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const DofNumberingPtr dof_numbering,
                      const ArrayType<Real, 2>& arr_in, ArrayType<Real, 2>& arr_out);
 
 void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorPtr rhs);
