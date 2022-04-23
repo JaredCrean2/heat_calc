@@ -267,6 +267,7 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
     zeroMatrix(du_dx);
     computedNdx(basis_vals, dxidx, el, dN_dx);
 
+    //TODO: is there a tensor-product form of this?
     for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
       for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
         for (int d=0; d < 3; ++d)
@@ -279,10 +280,9 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
         auto& rev_nodemap = basis_vals.getRevNodemapOut();
         int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
         Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+        auto fac = alpha * weight / detJ[el][k];
         for (int d=0; d < 3; ++d)
-        {
-          rhs_arr[el][i] += alpha * dN_dx[i][k][d] * weight * du_dx[k][d] / detJ[el][k];
-        }
+          rhs_arr[el][i] += fac * dN_dx[i][k][d] * du_dx[k][d];
       }
   }
 }

@@ -80,11 +80,7 @@ class SparsityPatternMesh : public SparsityPattern
               } else
               {
                 for (auto& dof : connected_dofs)
-                {
-                  //std::cout << std::boolalpha << "connected dof " << dof << ", isActive = " << m_mesh->isDofActive(dof) << std::endl;
                   count += m_mesh->isDofActive(dof) ? 1 : 0;
-
-                }
               }
 
               local_dofs[dof_j]  = count;

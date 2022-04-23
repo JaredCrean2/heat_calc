@@ -12,8 +12,8 @@ struct LargeMatrixOptsPetsc : public LargeMatrixOpts
 {
   LargeMatrixOptsPetsc()
   {
-    static int i;
-    opts_prefix = std::string("prefix") + std::to_string(i++);
+    static int i = 0;
+    opts_prefix = std::string("prefix") + std::to_string(i++) + "_";
   }
 
   std::string opts_prefix;  // prefix to add to options when putting into Petsc database

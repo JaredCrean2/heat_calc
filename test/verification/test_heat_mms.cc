@@ -163,10 +163,6 @@ namespace {
     opts.petsc_opts["ksp_atol"] = "1e-15";
     opts.petsc_opts["ksp_rtol"] = "1e-50";
     opts.petsc_opts["ksp_monitor"] = "";
-    //opts.petsc_opts["info"] = "";
-    //PetscOptionsSetValue(nullptr, "-log_view", "");
-    //PetscOptionsSetValue(nullptr, "-on_error_abort", "");
-    //PetscPushErrorHandler(PetscAbortErrorHandler, nullptr);
 
     return opts;
   }
@@ -189,14 +185,14 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
   auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
                         { return -3*std::exp(x + y + z); };
 
-  int nmeshes = 3;
-  int nelem = 3;
+  int nmeshes = 4;
+  int nelem_start = 3;
   for (int i=0; i < nmeshes; ++i)
   {
-    nelem = (i + 1) * 3;
+    int nelem = nelem_start * std::pow(2, i);
     auto meshspec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, nelem, nelem, nelem);
 
-    std::cout << "mesh " << i << std::endl;
+    std::cout << "mesh " << i << " with " << std::pow(nelem, 3) << " elements" << std::endl;
     setup(2*sol_degree, sol_degree, meshspec, opts);
     setSolution(ex_sol_l, deriv_l, src_func_l);
     int num_dofs = u_vec->getNumDofs();
