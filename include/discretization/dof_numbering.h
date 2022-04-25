@@ -1,8 +1,11 @@
 #ifndef DISC_DOF_NUMBERING_H
 #define DISC_DOF_NUMBERING_H
 
-#include "mesh/mesh.h"
 #include "discretization/volume_discretization.h"
+
+namespace Mesh {
+  class MeshCG;
+}
 
 struct ElementNode
 {
@@ -24,13 +27,7 @@ struct Assign2
 class DofNumbering
 {
   public:
-    explicit DofNumbering(std::shared_ptr<Mesh::MeshCG> mesh) :
-    m_num_dofs(mesh->getNumDofs())
-    {
-      for (int i=0; i < mesh->getNumVolumeGroups(); ++i)
-        setDofs(mesh, i);
-    }
-
+    explicit DofNumbering(std::shared_ptr<Mesh::MeshCG> mesh);
 
     // returns array numElems in volume group x numSolPtsPerElement giving
     // dof numbers for given block
@@ -53,7 +50,6 @@ class DofNumbering
     {
       return getDirichletNodes(vol_disc->getIdx());
     }
-
 
     bool isDofActive(Index dof) const
     {

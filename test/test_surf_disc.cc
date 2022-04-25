@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "mesh/mesh.h"
+//#include "mesh/mesh.h"
 #include "mesh_helper.h"
 #include "discretization/surface_discretization.h"
 #include "mesh/mesh_generator.h"
@@ -85,7 +85,7 @@ TEST_F(SurfaceTester, Normals)
   face_areas[1] = dy*dz; face_areas[3] = dy*dz;
   face_areas[4] = dx*dy; face_areas[5] = dx*dy;
 
-  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+  for (unsigned int i=0; i < surf_discs.size(); ++i)
   {
     auto surf_i = surf_discs[i];
 
@@ -141,7 +141,7 @@ TEST_F(SurfaceTester, integrateFaceScalar)
   active_coords[4][0] = 0; active_coords[4][1] = 1;
   active_coords[5][0] = 0; active_coords[5][1] = 1;
 
-  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+  for (unsigned int i=0; i < surf_discs.size(); ++i)
   {
     auto surf_i = surf_discs[i];
     auto& quad = surf_i->quad;
@@ -177,7 +177,7 @@ TEST_F(SurfaceTester, integrateFaceVector)
   std::vector<int> active_coords{1, 0, 1, 0, 2, 2};
   std::vector<int> face_sign{-1, 1, 1, -1, -1, 1};
 
-  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+  for (unsigned int i=0; i < surf_discs.size(); ++i)
   {
     auto surf_i = surf_discs[i];
     auto& quad = surf_i->quad;

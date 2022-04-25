@@ -2,7 +2,12 @@
 #define SPARSITY_PATTERN_MESH_H
 
 #include "linear_system/sparsity_pattern.h"
-#include "mesh/mesh.h"
+#include <memory>
+
+namespace Mesh
+{
+  class MeshCG;
+}
 
 namespace linear_system {
 

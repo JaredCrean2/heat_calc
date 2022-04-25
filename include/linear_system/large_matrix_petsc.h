@@ -4,7 +4,8 @@
 #include "large_matrix.h"
 #include "sparsity_pattern.h"
 #include "petscksp.h"
-#include <petscmat.h>
+#include "petscmat.h"
+#include <map>
 
 namespace linear_system {
 

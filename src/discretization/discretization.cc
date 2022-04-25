@@ -1,4 +1,5 @@
 #include "discretization/discretization.h"
+#include "mesh/mesh.h"
 
 Discretization::Discretization(std::shared_ptr<Mesh::MeshCG> mesh,
           const int volume_quad_accuracy, const int surface_quad_accuracy) :

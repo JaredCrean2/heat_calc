@@ -2,7 +2,7 @@
 #define SURFACE_DISCRETIZATION_H
 
 #include "lagrange.h"
-#include "mesh/mesh.h"
+#include "mesh/face_group.h"
 #include "utils/lagrange2d.h"
 #include "utils/quadrature.h"
 #include "discretization/volume_discretization.h"

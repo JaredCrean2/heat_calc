@@ -5,10 +5,14 @@
 #include <memory>
 
 #include "discretization/dof_numbering.h"
-#include "mesh/mesh.h"
+//#include "mesh/mesh.h"
 #include "discretization/surface_discretization.h"
 #include "discretization/volume_discretization.h"
 
+namespace Mesh
+{
+  class MeshCG;
+}
 
 
 class Discretization

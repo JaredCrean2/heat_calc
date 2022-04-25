@@ -12,7 +12,7 @@ set(src_files EpwReader.cc
               discretization/DirichletBC.cc
               discretization/dof_numbering.cc
               discretization/disc_vector.cc
-              discretization/model.cc
+              #discretization/model.cc
               physics/PhysicsModel.cc
               physics/heat/HeatEquation.cc
               physics/heat/basis_vals.cc

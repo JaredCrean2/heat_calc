@@ -1,5 +1,6 @@
 
 #include "discretization/disc_vector.h"
+#include "mesh/mesh.h"
 
 DiscVector::DiscVector(DiscPtr disc) : 
   m_disc(disc),

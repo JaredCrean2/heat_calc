@@ -1,4 +1,6 @@
 #include "linear_system/sparsity_pattern_mesh.h"
+#include "mesh/mesh.h"
+
 
 namespace linear_system {
 

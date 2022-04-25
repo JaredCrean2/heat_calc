@@ -2,7 +2,6 @@
 #define HEAT_EQUATION_H
 
 #include "lagrange_basis.h"
-#include "mesh/mesh.h"
 #include "physics/PhysicsModel.h"
 #include "quadrature.h"
 

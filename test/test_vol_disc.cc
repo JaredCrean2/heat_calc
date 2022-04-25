@@ -4,6 +4,7 @@
 #include "mesh_helper.h"
 #include "discretization/volume_discretization.h"
 #include "mesh/mesh_generator.h"
+#include "mesh/mesh.h"
 
 TEST(VolDisc, dxidx)
 {

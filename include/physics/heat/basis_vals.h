@@ -3,7 +3,8 @@
 
 #include "ProjectDefs.h"
 #include "lagrange_basis.h"
-#include "mesh/mesh.h"
+//#include "mesh/mesh.h"
+#include "mesh/tensor_product_mapper.h"
 #include "mesh/reference_element.h"
 #include "mesh/reference_element_geometry.h"
 

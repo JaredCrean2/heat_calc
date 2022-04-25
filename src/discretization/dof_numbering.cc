@@ -1,5 +1,13 @@
 #include <cassert>
 #include "discretization/dof_numbering.h"
+#include "mesh/mesh.h"
+
+DofNumbering::DofNumbering(std::shared_ptr<Mesh::MeshCG> mesh) :
+m_num_dofs(mesh->getNumDofs())
+{
+  for (int i=0; i < mesh->getNumVolumeGroups(); ++i)
+    setDofs(mesh, i);
+}
 
 void DofNumbering::setDofs(std::shared_ptr<Mesh::MeshCG> mesh, int vol_idx)
 {

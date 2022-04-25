@@ -1,5 +1,5 @@
 #include "discretization/volume_discretization.h"
-#include "mesh/mesh.h"
+#include "mesh/volume_group.h"
 #include "utils/lagrange.h"
 #include <iostream>
 
