@@ -6,6 +6,8 @@
 #include "mesh/reference_element_interface.h"
 #include "mesh/reference_element_apf.h"
 
+#ifdef MESH_USE_MDS_NUMBERING
+
 namespace {
 class MdsNumberingTester : public testing::Test
 {
@@ -164,3 +166,4 @@ TEST_F(MdsNumberingTester, Accessors)
   EXPECT_EQ(apf::countComponents(numbering), ncomp);
 }
 
+#endif

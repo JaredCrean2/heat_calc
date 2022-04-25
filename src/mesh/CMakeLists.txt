@@ -11,7 +11,8 @@ add_library(mesh mesh_generator.cc
                  reference_element_nodes.cc
                  reference_element_interface.cc
                  reference_element_apf.cc
-                 apfShapeHex.cc)
+                 apfShapeHex.cc
+                 apfMDSField.cc)
 
 target_include_directories(mesh PUBLIC
                           "${PROJECT_BINARY_DIR}/include"  # needed for configured header

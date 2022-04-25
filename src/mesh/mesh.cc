@@ -1,4 +1,6 @@
 #include "mesh/mesh.h"
+#include "memory.h"
+#include "mesh/apfMDSField.h"
 #include "mesh/mesh_helper.h"
 #include "mesh/dof_numbering.h"
 #include "mesh/apfShapeHex.h"
@@ -70,11 +72,24 @@ void MeshCG::setSurfaceIndices()
   }
 }
 
+#ifdef MESH_USE_MDS_NUMBERING
+apf::ApfMDSNumbering* createNumbering(apf::Mesh2* mesh, const char* name, apf::FieldShape* shape, int components)
+{
+  return apf::createNumberingMDS(mesh, name, shape, components);
+}
+#else
+apf::Numbering* createNumbering(apf::Mesh2* mesh, const char* name, apf::FieldShape* shape, int components)
+{
+  return apf::createNumbering(mesh, name, shape, components);
+}
+#endif
+
 
 void MeshCG::setApfData()
 {
-  m_apf_data.sol_shape = Mesh::getLagrange(m_dof_numbering.sol_degree);
-  m_apf_data.coord_shape = Mesh::getLagrange(m_dof_numbering.coord_degree);
+  //TODO: make this the constructor of ApfData
+  //m_apf_data.sol_shape = Mesh::getLagrange(m_dof_numbering.sol_degree);
+  //m_apf_data.coord_shape = Mesh::getLagrange(m_dof_numbering.coord_degree);
 
   auto sol_shape   = apf::getHexFieldShape(m_ref_el_sol);
   auto coord_shape = apf::getHexFieldShape(m_ref_el_coord);
@@ -92,17 +107,23 @@ void MeshCG::setApfData()
   m_dof_numbering.coord_nodes_per_element =
     apf::countElementNodes(m_apf_data.coord_shape, apf::Mesh::HEX);
 
-  m_apf_data.dof_nums = apf::createNumberingMDS(m_apf_data.m, "dof_nums",
-                                          m_apf_data.sol_shape, 1);
-  m_apf_data.el_nums = apf::createNumberingMDS(m_apf_data.m, "el_nums",
-                                        apf::getConstant(3), 1);
-  m_apf_data.is_dirichlet = apf::createNumberingMDS(m_apf_data.m, "is_dirichlet",
-                                              m_apf_data.sol_shape, 1);
-  m_apf_data.vol_groups = apf::createNumberingMDS(m_apf_data.m, "vol_group",  //TODO: is this needed?
-                                               apf::getConstant(3), 1);
+  m_apf_data.dof_nums     = createNumbering(m_apf_data.m, "dof_nums",
+                                            m_apf_data.sol_shape, 1);
+  m_apf_data.el_nums      = createNumbering(m_apf_data.m, "el_nums",
+                                            apf::getConstant(3), 1);
+  m_apf_data.is_dirichlet = createNumbering(m_apf_data.m, "is_dirichlet",
+                                            m_apf_data.sol_shape, 1);
+  m_apf_data.vol_groups   = createNumbering(m_apf_data.m, "vol_group",  //TODO: is this needed?
+                                            apf::getConstant(3), 1);
+
+  using DeleteNumbering = void (*)(ApfData::NumberingType*);
+  DeleteNumbering deleter   = &apf::destroyNumbering;
+  m_apf_data.m_dof_nums     = makeSharedWithDeleter(m_apf_data.dof_nums, deleter);
+  m_apf_data.m_el_nums      = makeSharedWithDeleter(m_apf_data.el_nums, deleter);
+  m_apf_data.m_is_dirichlet = makeSharedWithDeleter(m_apf_data.is_dirichlet, deleter);
+  m_apf_data.m_vol_groups   = makeSharedWithDeleter(m_apf_data.vol_groups, deleter);
 
   setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);
-
 }
 
 void MeshCG::createVolumeGroups()

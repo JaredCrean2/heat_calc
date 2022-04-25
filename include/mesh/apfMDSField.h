@@ -1,6 +1,7 @@
 #ifndef APF_MDS_FIELD_H
 #define APF_MDS_FIELD_H
 
+#include "ProjectDefs.h"
 #include "apfMesh.h"
 #include "apfMesh2.h"
 #include "apfMDS.h"
@@ -11,6 +12,8 @@
 #include <vector>
 #include <cassert>
 #include <iostream>
+
+#ifdef MESH_USE_MDS_NUMBERING
 
 // a faster implementation of apf::Fields/apf::Numbering specific to the
 // MDS data structure
@@ -191,19 +194,11 @@ class ApfMDSNumberingSpec : public ApfMDSField<int, MeshWrapper>
 
 namespace apf {
 
-
-
 using ApfMDSNumbering = fast_field::ApfMDSNumberingSpec<fast_field::MDSMeshWrapper>;
 
-inline ApfMDSNumbering* createNumberingMDS(Mesh2* mesh, const char* name, FieldShape* shape, int component)
-{
-  return new ApfMDSNumbering(mesh, name, shape, component);
-}
+ApfMDSNumbering* createNumberingMDS(Mesh2* mesh, const char* name, FieldShape* shape, int component);
 
-inline void destroyNumbering(ApfMDSNumbering* n)
-{
-  delete n;
-}
+void destroyNumbering(ApfMDSNumbering* n);
 
 inline void fix(ApfMDSNumbering* n, MeshEntity*e, int node, int component, bool fixed)
 {
@@ -230,20 +225,11 @@ inline int getNumber(ApfMDSNumbering* n, MeshEntity*e, int node, int component)
   return (*n)(e, node, component);
 }
 
-inline FieldShape* getShape(ApfMDSNumbering* n)
-{
-  return n->getFieldShape();
-}
+FieldShape* getShape(ApfMDSNumbering* n);
 
-inline const char* getName(ApfMDSNumbering* n)
-{
-  return n->getName().c_str();
-}
+const char* getName(ApfMDSNumbering* n);
 
-inline Mesh* getMesh(ApfMDSNumbering* n)
-{
-  return n->getMesh();
-}
+Mesh* getMesh(ApfMDSNumbering* n);
 
 inline int countComponents(ApfMDSNumbering* n)
 {
@@ -252,4 +238,5 @@ inline int countComponents(ApfMDSNumbering* n)
 
 }
 
+#endif
 #endif

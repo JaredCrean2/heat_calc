@@ -10,6 +10,8 @@ using DofInt = int;      // for degrees of freedom
 using Index = int;       // for element/face numbers
 using LocalIndex = int;  // for local to the element numbering
 
+//TODO: make a generated header
+#define MESH_USE_MDS_NUMBERING
 
 /*
 //TODO: there is another way to do this with variadic templates

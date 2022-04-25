@@ -5,6 +5,7 @@
 #include <deque>
 #include <queue>
 
+#include "ProjectDefs.h"
 #include "apf.h"
 #include "apfNumbering.h"
 #include "apfMesh2.h"
@@ -16,7 +17,11 @@ namespace Mesh{
 // number dofs using adjacency-based algorithm
 class AdjacencyNumberer
 {
+#ifdef MESH_USE_MDS_NUMBERING
   using NumberingType = apf::ApfMDSNumbering;
+#else
+  using NumberingType = apf::Numbering;
+#endif
   public:
     AdjacencyNumberer(apf::Mesh2* m, NumberingType* dof_nums,
                       NumberingType* el_nums, NumberingType* is_dirichlet
@@ -29,8 +34,13 @@ class AdjacencyNumberer
       m_ncomp = apf::countComponents(dof_nums);
       numberElements(m_local);
       countNodes(m_local, m_is_dirichlet, m_num_nodes, m_num_dirichlet);
+#ifdef MESH_USE_MDS_NUMBERING
       m_node_status = apf::createNumberingMDS(m_local, "dof_status",
                                            apf::getShape(dof_nums), 1);
+#else
+      m_node_status = apf::createNumbering(m_local, "dof_status",
+                                           apf::getShape(dof_nums), 1);
+#endif
       numberdofs(m_ncomp*(m_num_nodes + m_num_dirichlet), m_ncomp);
     }
 
