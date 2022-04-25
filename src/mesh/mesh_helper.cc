@@ -115,7 +115,7 @@ int countNumEls(ApfData& apf_data, const MeshEntityGroupSpec& vol_group)
   return numel;
 }
 
-void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpec>& vol_groups, apf::Numbering* group_nums)
+void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpec>& vol_groups, ApfData::NumberingType* group_nums)
 {
   apf::MeshIterator* it = m->begin(3);
   apf::MeshEntity* e;
@@ -133,7 +133,7 @@ void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpe
   m->end(it);
 }
 
-void getGroupElements(ApfData apf_data, MeshEntityGroupSpec& volume_group,
+void getGroupElements(ApfData& apf_data, MeshEntityGroupSpec& volume_group,
                       std::vector<apf::MeshEntity*>& elements)
 {
   apf::MeshIterator* it = apf_data.m->begin(3);
@@ -149,7 +149,7 @@ void getGroupElements(ApfData apf_data, MeshEntityGroupSpec& volume_group,
   apf_data.m->end(it);
 }
 
-void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+void getDofNums(ApfData& apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements,
                 ArrayType<Index, 2>& nodenums)
 {
@@ -165,7 +165,7 @@ void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
   }
 }
 
-void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_nums)
+void getDofNums(ApfData& apf_data, apf::MeshEntity* e, std::vector<int>& node_nums)
 {
   //node_nums.resize(0);
   node_nums.resize(apf_data.m_ref_el_sol->getNumNodesTotal());
@@ -196,7 +196,7 @@ void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_num
 }
 
 
-void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+void getCoords(ApfData& apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements,
                ArrayType<Real, 3>& coords)
 {

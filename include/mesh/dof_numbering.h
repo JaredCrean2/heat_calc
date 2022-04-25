@@ -9,15 +9,17 @@
 #include "apfNumbering.h"
 #include "apfMesh2.h"
 #include "apfShape.h"
+#include "mesh/apfMDSField.h"
 
 namespace Mesh{
 
 // number dofs using adjacency-based algorithm
 class AdjacencyNumberer
 {
+  using NumberingType = apf::ApfMDSNumbering;
   public:
-    AdjacencyNumberer(apf::Mesh2* m, apf::Numbering* dof_nums,
-                      apf::Numbering* el_nums, apf::Numbering* is_dirichlet
+    AdjacencyNumberer(apf::Mesh2* m, NumberingType* dof_nums,
+                      NumberingType* el_nums, NumberingType* is_dirichlet
                      ) :
       m_local(m),
       m_dof_nums(dof_nums),
@@ -27,7 +29,7 @@ class AdjacencyNumberer
       m_ncomp = apf::countComponents(dof_nums);
       numberElements(m_local);
       countNodes(m_local, m_is_dirichlet, m_num_nodes, m_num_dirichlet);
-      m_node_status = apf::createNumbering(m_local, "dof_status",
+      m_node_status = apf::createNumberingMDS(m_local, "dof_status",
                                            apf::getShape(dof_nums), 1);
       numberdofs(m_ncomp*(m_num_nodes + m_num_dirichlet), m_ncomp);
     }
@@ -49,12 +51,12 @@ class AdjacencyNumberer
   private:
     bool hasNode(apf::Mesh2* m, apf::MeshEntity* e);
     int nodeCount(apf::Mesh2* m_local, apf::MeshEntity* e);
-    bool shouldNumber(apf::Numbering* m_is_dirichlet, apf::MeshEntity* e,
+    bool shouldNumber(NumberingType* m_is_dirichlet, apf::MeshEntity* e,
                       int node, int component);
     void addQueues(std::queue<apf::MeshEntity*> & q1, std::queue<apf::MeshEntity*> & q2);
     apf::MeshEntity* getStartEntity(apf::Mesh2* m);
     void printType(apf::Mesh* m, apf::MeshEntity* e);
-    void countNodes(apf::Mesh2* m, apf::Numbering* is_dirichlet, int& num_nodes, int& num_dirichlet);
+    void countNodes(apf::Mesh2* m, NumberingType* is_dirichlet, int& num_nodes, int& num_dirichlet);
     void numberdofs(int ndof, int comp);
     bool isQueued(apf::MeshEntity* e, int node);
     bool isLabeled(apf::MeshEntity* e, int node);
@@ -73,10 +75,10 @@ class AdjacencyNumberer
 
 
     apf::Mesh2* m_local;
-    apf::Numbering* m_dof_nums;
-    apf::Numbering* m_el_nums;
-    apf::Numbering* m_is_dirichlet;
-    apf::Numbering* m_node_status;
+    NumberingType* m_dof_nums;
+    NumberingType* m_el_nums;
+    NumberingType* m_is_dirichlet;
+    NumberingType* m_node_status;
     int m_num_nodes = 0;
     int m_num_dirichlet = 0;
     int m_node_label = 0;

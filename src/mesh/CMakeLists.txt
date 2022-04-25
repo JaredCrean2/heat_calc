@@ -20,7 +20,7 @@ target_include_directories(mesh PUBLIC
                           "${Boost_INCLUDE_DIRS}"
                           )
 
-target_link_libraries(mesh PUBLIC SCOREC::core MPI::MPI_CXX)
+target_link_libraries(mesh PUBLIC SCOREC::core SCOREC::mds MPI::MPI_CXX)
 
 #TODO: setup interface linking
 

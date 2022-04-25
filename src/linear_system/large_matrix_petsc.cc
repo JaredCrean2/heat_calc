@@ -5,8 +5,19 @@ namespace linear_system {
 LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern) :
   LargeMatrix(mlocal, nlocal),
   m_opts(opts)
-{
+{  
+  bool is_symmetric_mattype = false;
+  if (opts.petsc_opts.count("mat_type") == 0)
+  {
+    std::cout << "setting mat type" << std::endl;
+    opts.petsc_opts["mat_type"] = opts.is_value_symmetric ? "sbaij" : "aij";
+  } else
+  {
+    if (opts.petsc_opts["mat_type"] == "sbaij")
+      is_symmetric_mattype = true;
+  }  
   setPetscOptions(opts);
+
 
   VecCreate(PETSC_COMM_WORLD, &m_x);
   PetscObjectSetName((PetscObject)m_x, (opts.opts_prefix + "_Solution").c_str());
@@ -25,6 +36,7 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   MatSetSizes(m_A, getMLocal(), getNLocal(), PETSC_DECIDE, PETSC_DECIDE);
   MatSetOptionsPrefix(m_A, opts.opts_prefix.c_str());
   MatSetFromOptions(m_A);
+  //TODO: what happens if MAT_SYMMETRIC is true but a non-symmetric matrix format is used?
   if (opts.is_value_symmetric)
     MatSetOption(m_A, MAT_SYMMETRIC, PETSC_TRUE);
   else if (opts.is_structurally_symmetric)
@@ -39,8 +51,20 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   // TODO: MAT_SORTED_FULL for preallocation
   // TODO: MatSetOption(m_A, MAT_ROWS_SORTED) and similarly for MAT_COLUMNS_SORTED (see page 56 of manual)
 
-  MatXAIJSetPreallocation(m_A, 1, sparsity_pattern->getDiagonalCounts().data(), sparsity_pattern->getOffProcCounts().data(),
-                                  sparsity_pattern->getDiagonalCountsSym().data(), sparsity_pattern->getOffProcCountsSym().data());
+  const PetscInt *diagonal_counts = nullptr, *offproc_counts=nullptr;
+  const PetscInt *diagonal_counts_sym = nullptr, *offproc_counts_sym=nullptr;
+  if (is_symmetric_mattype)
+  {
+    diagonal_counts_sym = sparsity_pattern->getDiagonalCountsSym().data();
+    offproc_counts_sym  = sparsity_pattern->getOffProcCountsSym().data();
+  } else
+  {
+    diagonal_counts = sparsity_pattern->getDiagonalCounts().data();
+    offproc_counts  = sparsity_pattern->getOffProcCounts().data();
+  }
+    
+  MatXAIJSetPreallocation(m_A, 1, diagonal_counts, offproc_counts,
+                                  diagonal_counts_sym, offproc_counts_sym);
   
 
   KSPCreate(PETSC_COMM_WORLD, &m_ksp);

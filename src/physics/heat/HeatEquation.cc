@@ -335,9 +335,10 @@ void computeVolumeTerm2Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& p
         for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
         {
           int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
-          Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+          //TODO: store 1/detJ in an array to avoid the division here
+          Real weight = alpha * vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k) / detJ[el][k];
           for (int d=0; d < 3; ++d)
-            dR_du[i][j] += alpha * dN_dx[i][k][d] * weight * dN_dx[j][k][d] / detJ[el][k];
+            dR_du[i][j] += dN_dx[i][k][d] * weight * dN_dx[j][k][d]; // / detJ[el][k];
         } 
       }
 

@@ -30,7 +30,7 @@ int AdjacencyNumberer::nodeCount(apf::Mesh2* m_local, apf::MeshEntity* e)
 
 // determine if a dof should be numbered or not
 // Takes into account whether m_is_dirichlet is NULL or not
-bool AdjacencyNumberer::shouldNumber(apf::Numbering* m_is_dirichlet, apf::MeshEntity* e,
+bool AdjacencyNumberer::shouldNumber(NumberingType* m_is_dirichlet, apf::MeshEntity* e,
                   int node, int component)
 {
   bool ret = true;
@@ -120,7 +120,7 @@ void AdjacencyNumberer::printType(apf::Mesh* m_local, apf::MeshEntity* e)
     }
 }
 
-void AdjacencyNumberer::countNodes(apf::Mesh2* m_local, apf::Numbering* is_dirichlet, int& num_nodes, int& num_dirichlet)
+void AdjacencyNumberer::countNodes(apf::Mesh2* m_local, NumberingType* is_dirichlet, int& num_nodes, int& num_dirichlet)
 {
   apf::FieldShape* fshape = apf::getShape(is_dirichlet);
 

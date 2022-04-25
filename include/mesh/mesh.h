@@ -7,11 +7,13 @@
 #include "mesh/reference_element.h"  //TODO: remove this
 #include "mesh/reference_element_interface.h"
 #include "mesh/reference_element_apf.h"
+#include "mesh/apfMDSField.h"
 
 #include <apf.h>
 #include <apfMesh.h>
 #include <apfMesh2.h>
 #include <apfNumbering.h>
+#include <apfMDS.h>
 #include <vector>
 #include <iostream>
 
@@ -245,9 +247,10 @@ struct FaceGroup
 struct ApfData
 {
   using FSPtr = std::shared_ptr<apf::FieldShapeRefEl>;
+  using NumberingType = apf::ApfMDSNumbering;
 
-  explicit ApfData(apf::Mesh2* m, apf::Numbering* dof_nums=nullptr,
-                   apf::Numbering* is_dirichlet=nullptr,
+  explicit ApfData(apf::Mesh2* m, NumberingType* dof_nums=nullptr,
+                   NumberingType* is_dirichlet=nullptr,
                    FSPtr sol_shape=nullptr,
                    FSPtr coord_shape=nullptr) :
     m(m), dof_nums(dof_nums), 
@@ -257,15 +260,34 @@ struct ApfData
     m_shared(makeSharedWithDeleter(m, apf::destroyMesh)),
     m_sol_shape(sol_shape),
     m_coord_shape(coord_shape)
-  {}
+  {
+    apf::reorderMdsMesh(m);
+  }
+
+  ApfData(const ApfData&) = delete;
+
+  ApfData& operator=(const ApfData&) = delete;
+
+  ~ApfData()
+  {
+    //TODO: more smart pointers
+    if (dof_nums)
+      apf::destroyNumbering(dof_nums);
+    if (el_nums)
+      apf::destroyNumbering(el_nums);
+    if (is_dirichlet)
+      apf::destroyNumbering(is_dirichlet);
+    if (vol_groups)
+      apf::destroyNumbering(vol_groups);
+  }
 
   apf::Mesh2* m;
-  apf::Numbering* dof_nums;
-  apf::Numbering* el_nums;
-  apf::Numbering* is_dirichlet;  // if dof is dirichlet
+  NumberingType* dof_nums = nullptr;
+  NumberingType* el_nums = nullptr;
+  NumberingType* is_dirichlet = nullptr;  // if dof is dirichlet
   apf::FieldShape* sol_shape;    // FieldShape of solution
   apf::FieldShape* coord_shape;  // FieldShape of cooordinate field
-  apf::Numbering* vol_groups;    // volume group numbering of elements
+  NumberingType* vol_groups = nullptr;    // volume group numbering of elements
 
   // unfortunately, the apf API takes raw pointers rather than shared
   // pointers for everything, so we keep the raw pointer above, and also

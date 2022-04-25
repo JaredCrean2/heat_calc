@@ -8,6 +8,7 @@
 #include "mpi.h"
 
 #include "apfShape.h"
+#include <apfNumbering.h>
 
 namespace Mesh {
 
@@ -91,13 +92,13 @@ void MeshCG::setApfData()
   m_dof_numbering.coord_nodes_per_element =
     apf::countElementNodes(m_apf_data.coord_shape, apf::Mesh::HEX);
 
-  m_apf_data.dof_nums = apf::createNumbering(m_apf_data.m, "dof_nums",
+  m_apf_data.dof_nums = apf::createNumberingMDS(m_apf_data.m, "dof_nums",
                                           m_apf_data.sol_shape, 1);
-  m_apf_data.el_nums = apf::createNumbering(m_apf_data.m, "el_nums",
+  m_apf_data.el_nums = apf::createNumberingMDS(m_apf_data.m, "el_nums",
                                         apf::getConstant(3), 1);
-  m_apf_data.is_dirichlet = apf::createNumbering(m_apf_data.m, "is_dirichlet",
+  m_apf_data.is_dirichlet = apf::createNumberingMDS(m_apf_data.m, "is_dirichlet",
                                               m_apf_data.sol_shape, 1);
-  m_apf_data.vol_groups = apf::createNumbering(m_apf_data.m, "vol_group",  //TODO: is this needed?
+  m_apf_data.vol_groups = apf::createNumberingMDS(m_apf_data.m, "vol_group",  //TODO: is this needed?
                                                apf::getConstant(3), 1);
 
   setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);
@@ -248,6 +249,7 @@ void MeshCG::getElementDofs(const VolumeGroup& vol_group, int el_idx, std::vecto
   getDofNums(m_apf_data, m_elements[elnum_global], nodenums);
 }
 
+/*
 void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx, const Index node, std::vector<DofInt>& dofs)
 {
 
@@ -279,6 +281,57 @@ void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx
   auto it = std::unique(dofs.begin(), dofs.end());
   dofs.erase(it, dofs.end());
 }
+*/
+
+void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx, const Index node, std::vector<DofInt>& dofs)
+{
+  dofs.resize(0);
+  auto node_location = m_apf_data.m_ref_el_sol->getNodeLocation(node);
+  int entity_apf = m_apf_data.m_ref_el_sol->getApfEntityIndex(node_location.dim, node_location.entity_index);
+  apf::MeshEntity* el = vol_group.m_elements[el_idx];
+  apf::Downward down;
+#ifdef NDEBUG
+  m_apf_data.m->getDownward(el, node_location.dim, down);
+#else
+  int ndown = m_apf_data.m->getDownward(el, node_location.dim, down);
+  assert(entity_apf < ndown);
+#endif
+  apf::MeshEntity* entity = down[entity_apf];
+
+  apf::Adjacent other_els;
+  m_apf_data.m->getAdjacent(entity, 3, other_els);
+
+  std::array<std::vector<apf::MeshEntity*>, 4> unique_entities;
+  for (int dim=0; dim <= 3; ++dim)
+    unique_entities[dim].reserve(12*8);
+
+  for (auto& other_el : other_els)
+    for (int dim=0; dim <= 3; ++dim)
+    {
+      if (!m_apf_data.sol_shape->hasNodesIn(dim))
+        break;
+
+      int ndown = m_apf_data.m->getDownward(other_el, dim, down);
+      for (int i=0; i < ndown; ++i)
+        unique_entities[dim].push_back(down[i]);
+    }
+
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    if (!m_apf_data.sol_shape->hasNodesIn(dim))
+      break;
+
+    auto& entities_dim = unique_entities[dim];
+    std::sort(entities_dim.begin(), entities_dim.end());
+    auto it_end = std::unique(entities_dim.begin(), entities_dim.end());
+
+    //for (auto& e : unique_entities[dim])
+    for (auto it=entities_dim.begin(); it != it_end; ++it)
+      for (int j=0; j < m_ref_el_sol->getNumNodes(dim); ++j)
+        dofs.push_back(apf::getNumber(m_apf_data.dof_nums, *it, j, 0));
+  }
+}
+
 
 
 } // namespace

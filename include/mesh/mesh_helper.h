@@ -30,16 +30,16 @@ void setDofsDirichlet(ApfData& apf_data, apf::MeshEntity* e, const int val);
 // Note: this iterates over all elements in the mesh, and may be slow
 int countNumEls(ApfData& apf_data, const MeshEntityGroupSpec& vol_group);
 
-void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpec>& vol_groups, apf::Numbering* group_nums);
+void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpec>& vol_groups, ApfData::NumberingType* group_nums);
 
-void getGroupElements(ApfData apf_data, MeshEntityGroupSpec& volume_group,
+void getGroupElements(ApfData& apf_data, MeshEntityGroupSpec& volume_group,
                       std::vector<apf::MeshEntity*>& elements);
 
-void getDofNums(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+void getDofNums(ApfData& apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements_group,
                 ArrayType<Index, 2>& nodenums);
 
-void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_nums);
+void getDofNums(ApfData& apf_data, apf::MeshEntity* e, std::vector<int>& node_nums);
 
 
 //const ArrayType<LocalIndex, 3>& getTensorProductMap(const int degree);
@@ -49,7 +49,7 @@ void getDofNums(ApfData apf_data, apf::MeshEntity* e, std::vector<int>& node_num
 
 //const ArrayType<Real, 2>& getNormals();
 
-void getCoords(ApfData apf_data, const MeshEntityGroupSpec& vol_group,
+void getCoords(ApfData& apf_data, const MeshEntityGroupSpec& vol_group,
                std::vector<apf::MeshEntity*>& elements_group,
                ArrayType<Real, 3>& coords);
 

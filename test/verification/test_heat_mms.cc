@@ -193,7 +193,7 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
     auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
                           { return -3 * kappa * std::exp(x + y + z); };
 
-    int nmeshes = 4;
+    int nmeshes = 5;
     int nelem_start = 3;
     for (int i=0; i < nmeshes; ++i)
     {
