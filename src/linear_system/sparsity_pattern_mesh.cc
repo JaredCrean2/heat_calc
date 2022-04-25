@@ -9,6 +9,7 @@ void SparsityPatternMesh::computePattern(bool symmetric)
 
   local_dofs.resize(m_mesh->getNumDofs());
   remote_dofs.resize(m_mesh->getNumDofs());
+  std::fill(local_dofs.begin(), local_dofs.end(), -1);
 
   std::vector<DofInt> el_dofs, connected_dofs;
   for (int i=0; i < m_mesh->getNumVolumeGroups(); ++i)
@@ -19,7 +20,7 @@ void SparsityPatternMesh::computePattern(bool symmetric)
     {
       m_mesh->getElementDofs(vol_group, el, el_dofs);
       for (int j=0; j < vol_group.getNumSolPtsPerElement(); ++j)
-        if (m_mesh->isDofActive(el_dofs[j]))
+        if (m_mesh->isDofActive(el_dofs[j]) && local_dofs[el_dofs[j]] == -1)
         {
           //TODO: skip dofs already processed
           //std::cout << "element " << el << ", node " << j << std::endl;

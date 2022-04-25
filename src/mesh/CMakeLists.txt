@@ -11,7 +11,8 @@ add_library(mesh mesh_generator.cc
                  reference_element_nodes.cc
                  reference_element_interface.cc
                  reference_element_apf.cc
-                 apfShapeHex.cc)
+                 apfShapeHex.cc
+                 apfMDSField.cc)
 
 target_include_directories(mesh PUBLIC
                           "${PROJECT_BINARY_DIR}/include"  # needed for configured header
@@ -20,7 +21,7 @@ target_include_directories(mesh PUBLIC
                           "${Boost_INCLUDE_DIRS}"
                           )
 
-target_link_libraries(mesh PUBLIC SCOREC::core MPI::MPI_CXX)
+target_link_libraries(mesh PUBLIC SCOREC::core SCOREC::mds MPI::MPI_CXX)
 
 #TODO: setup interface linking
 

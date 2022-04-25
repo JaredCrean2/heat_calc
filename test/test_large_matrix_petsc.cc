@@ -209,6 +209,8 @@ TEST(LargeMatrixPetsc, SPD)
   opts.is_structurally_symmetric = true;
   opts.is_value_symmetric        = true;
   opts.petsc_opts["pc_type"] = "icc";
+  opts.petsc_opts["mat_type"] = "aij";  //TODO: need to update assembly procedure to filter
+                                        //      out below-diagonal entries
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
 

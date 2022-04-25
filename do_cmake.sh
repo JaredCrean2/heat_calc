@@ -5,9 +5,15 @@
 #CXXFLAGS="-O0 -Wall -g -fdebug-default-version=4"
 #BUILDTYPE="Debug"
 
-CXXFLAGS="-O3 -Wall"
+# Optimized build
+#CXXFLAGS="-O3 -Wall"
+#BUILDTYPE="Release"
+
+# VTune build
+CXXFLAGS="-O3 -g"
 BUILDTYPE="Release"
 
+# set PETSC_DIR and PETSC_ARCH to guide which Petsc installation CMake finds
 
 cmake \
 -D CMAKE_C_COMPILER=`which clang` \
