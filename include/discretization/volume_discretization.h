@@ -14,6 +14,7 @@ class VolumeDiscretization
                                   const Quadrature& quad);
     ArrayType<Real, 4> dxidx;  // num elements x numQuadPtsPerElement x 3 x 3
     ArrayType<Real, 2> detJ; // determinant of dxi/dx, num elements x numQuadPtsPerFace
+    ArrayType<Real, 2> detJInv; // determinant of dx/dxi (= 1/detJ)
     const Mesh::VolumeGroup& vol_group;
     Quadrature quad;
     // coordinate to solution interpolation
@@ -83,7 +84,7 @@ void VolumeDiscretization::getVolumeQuadCoords(const Index el, Array2D& quad_coo
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx); 
 
-void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ);
+void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ, ArrayType<Real, 2>& detJInv);
 
 template <typename Array>
 typename Array::element computeDet3x3(const Array& A)

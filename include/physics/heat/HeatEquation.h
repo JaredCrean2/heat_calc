@@ -78,6 +78,9 @@ void computeVolumeJacobian(const HeatEquation& physics, DiscVectorPtr u, linear_
 void computeVolumeTerm2Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const ArrayType<Real, 2> u_arr,
                             linear_system::AssemblerPtr assembler);
 
+void computeVolumeTerm3Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const ArrayType<Real, 2> u_arr,
+                           linear_system::AssemblerPtr assembler);
+
 void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs);
 
 void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,

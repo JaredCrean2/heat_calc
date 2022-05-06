@@ -303,7 +303,9 @@ void computeVolumeJacobian(const HeatEquation& physics, DiscVectorPtr u, linear_
     auto& u_arr   = u->getArray(i);
 
     //computeVolumeTerm(vol_disc, params, u_arr, rhs_arr);
-    computeVolumeTerm2Jac(vol_disc, params, u_arr, assembler);
+    //computeVolumeTerm2Jac(vol_disc, params, u_arr, assembler);
+    computeVolumeTerm3Jac(vol_disc, params, u_arr, assembler);
+
   }
 }
 
@@ -342,6 +344,108 @@ void computeVolumeTerm2Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& p
         } 
       }
 
+    assembler->assembleVolume(vol_disc->getIdx(), el, dR_du);
+  }
+}
+
+void computeVolumeTerm3Jac_element(const int numSolPtsPerElement, const int numQuadPtsPerElement, 
+                                          const Real alpha,
+                                          const LocalIndex* const BOOST_RESTRICT rev_nodemap,
+                                          const Real* const BOOST_RESTRICT weights,
+                                          const Real* const BOOST_RESTRICT dN_dx,
+                                          const Real* const BOOST_RESTRICT detJInv,
+                                          Real* const BOOST_RESTRICT dR_du)
+{
+
+  #pragma clang loop vectorize(enable) interleave(enable)
+  for (int i=0; i < numSolPtsPerElement; ++i)
+    #pragma clang loop vectorize(enable) interleave(enable)
+    for (int j=0; j < numSolPtsPerElement; ++j)
+    {
+      const int dR_du_idx = i * numSolPtsPerElement + j;
+      //dR_du[dR_du_idx] = 0;
+      Real val = 0;
+
+      #pragma clang loop vectorize(enable) interleave(enable)
+      for (int k=0; k < numQuadPtsPerElement; ++k)
+      {
+        int nodemap_idx = 3*k;
+        int k_i = rev_nodemap[nodemap_idx]; int k_j = rev_nodemap[nodemap_idx + 1]; int k_k = rev_nodemap[nodemap_idx + 2];
+        Real weight = alpha * weights[k_i] * weights[k_j] * weights[k_k] * detJInv[k];
+        int dN_dx_idxi = i * numQuadPtsPerElement * 3 + k * 3;
+        int dN_dx_idxj = j * numQuadPtsPerElement * 3 + k * 3;
+        #pragma clang loop vectorize(enable) interleave(enable)
+        for (int d=0; d < 3; ++d)
+          val += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+          //dR_du[dR_du_idx] += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+      } 
+      dR_du[dR_du_idx] = val;
+    }
+}
+
+void computeVolumeTerm3Jac_element2(const int numSolPtsPerElement, const int numQuadPtsPerElement, 
+                                          const Real alpha,
+                                          const Real* const BOOST_RESTRICT weights,
+                                          const Real* const BOOST_RESTRICT dN_dx,
+                                          const Real* const BOOST_RESTRICT detJInv,
+                                          Real* const BOOST_RESTRICT dR_du)
+{
+
+  #pragma clang loop vectorize(enable) interleave(enable)
+  for (int i=0; i < numSolPtsPerElement; ++i)
+    #pragma clang loop vectorize(enable) interleave(enable)
+    for (int j=0; j < numSolPtsPerElement; ++j)
+    {
+      const int dR_du_idx = i * numSolPtsPerElement + j;
+      //dR_du[dR_du_idx] = 0;
+      Real val = 0;
+
+      //#pragma clang loop vectorize(enable) interleave(enable)
+      #pragma clang loop vectorize_width(4) interleave_count(4)
+      for (int k=0; k < numQuadPtsPerElement; ++k)
+      {
+        Real weight = alpha * weights[k] * detJInv[k];
+        int dN_dx_idxi = i * numQuadPtsPerElement * 3 + k * 3;
+        int dN_dx_idxj = j * numQuadPtsPerElement * 3 + k * 3;
+        #pragma clang loop vectorize(enable) interleave(enable)
+        for (int d=0; d < 3; ++d)
+          val += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+          //dR_du[dR_du_idx] += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+      } 
+      dR_du[dR_du_idx] = val;
+    }
+}
+
+void computeVolumeTerm3Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const ArrayType<Real, 2> u_arr,
+                           linear_system::AssemblerPtr assembler)
+{
+
+  auto& dxidx = vol_disc->dxidx;
+  auto& detJInv  = vol_disc->detJInv;
+  Real alpha = params.kappa;
+  auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
+  Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
+  BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
+  const auto& rev_nodemap = basis_vals.getRevNodemapOut();
+
+  ArrayType<Real, 3> dN_dx(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumQuadPtsPerElement()][3]);
+  ArrayType<Real, 2> dR_du(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumSolPtsPerElement()]);
+  std::vector<Real> quad_weights(vol_disc->getNumQuadPtsPerElement());
+  for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+  {
+    int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+    quad_weights[k] =  vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+  }
+
+  for (int el=0; el < vol_disc->getNumElems(); ++el)
+  {
+    computedNdx(basis_vals, dxidx, el, dN_dx);
+    //computeVolumeTerm3Jac_element(vol_disc->getNumSolPtsPerElement(), vol_disc->getNumQuadPtsPerElement(), alpha,
+    //                              &(rev_nodemap[0][0]), vol_disc->quad.getWeights().data(), &(dN_dx[0][0][0]), &(detJInv[el][0]),
+    //                              &(dR_du[0][0]));
+    computeVolumeTerm3Jac_element2(vol_disc->getNumSolPtsPerElement(), vol_disc->getNumQuadPtsPerElement(), alpha,
+                                  quad_weights.data(), &(dN_dx[0][0][0]), &(detJInv[el][0]),
+                                  &(dR_du[0][0]));
     assembler->assembleVolume(vol_disc->getIdx(), el, dR_du);
   }
 }

@@ -32,7 +32,7 @@ VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, c
                                                            vol_group.getTPMapperSol().getNodemap(),
                                                            tp_mapper_quad.getNodemap());
   computeDxidx(*this, dxidx);
-  computeDetJ(*this, detJ);
+  computeDetJ(*this, detJ, detJInv);
 }
 
 void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx)
@@ -62,13 +62,17 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
 }
 
 
-void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ)
+void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ, ArrayType<Real, 2>& detJInv)
 {
   detJ.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumQuadPtsPerElement()]);
+  detJInv.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumQuadPtsPerElement()]);
 
   for (int i=0; i < vol_disc.getNumElems(); ++i)
     for (int j=0; j < vol_disc.getNumQuadPtsPerElement(); ++j)
+    {
       detJ[i][j] = computeDet3x3(vol_disc.dxidx[boost::indices[i][j][range()][range()]]);
+      detJInv[i][j] = 1.0/detJ[i][j];
+    }
 }
 
 

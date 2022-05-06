@@ -421,6 +421,12 @@ make_mesh_generator(const MeshSpec& meshspec, T&& func=&identity)
   return {meshspec, std::forward<T>(func)};
 }
 
+namespace {
+  using IdentityType = Point (*)(const Point& point);
+}
+
+extern template class MeshGenerator<IdentityType>;
+
 } // namespace
 
 #endif  // header guard

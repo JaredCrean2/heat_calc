@@ -8,4 +8,7 @@ Point identity(const Point& point)
   return {point.x, point.y, point.z};
 }
 
+template class MeshGenerator<IdentityType>;
+
+
 } // namespace

@@ -6,12 +6,12 @@
 #BUILDTYPE="Debug"
 
 # Optimized build
-#CXXFLAGS="-O3 -Wall"
-#BUILDTYPE="Release"
+CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall"
+BUILDTYPE="Release"
 
 # VTune build
-CXXFLAGS="-O3 -g"
-BUILDTYPE="Release"
+#CXXFLAGS="-Ofast -march=native -mtune=native -g -Rpass-analysis=loop-vectorize -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -ffast-math"
+#BUILDTYPE="Release"
 
 # set PETSC_DIR and PETSC_ARCH to guide which Petsc installation CMake finds
 
