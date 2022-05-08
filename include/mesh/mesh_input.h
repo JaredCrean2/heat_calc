@@ -17,6 +17,12 @@ struct Point
   double z;
 };
 
+inline std::ostream& operator<<(std::ostream& os, const Point& pt)
+{
+  os << pt.x << ", " << pt.y << ", " << pt.z;
+  return os;
+}
+
 struct ModelEntitySpec
 {
   explicit ModelEntitySpec(const int dim=0, const int tag=0) :

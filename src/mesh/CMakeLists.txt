@@ -1,6 +1,7 @@
 message("Processing mesh directory")
 
 add_library(mesh mesh_generator.cc
+                 mesh_generator_multi.cc
                  mesh_helper.cc
                  mesh.cc
                  dof_numbering.cc
@@ -11,6 +12,7 @@ add_library(mesh mesh_generator.cc
                  reference_element_nodes.cc
                  reference_element_interface.cc
                  reference_element_apf.cc
+                 gmiDataStructure.cc
                  apfShapeHex.cc
                  apfMDSField.cc)
 
