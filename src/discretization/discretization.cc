@@ -16,3 +16,5 @@ Discretization::Discretization(std::shared_ptr<Mesh::MeshCG> mesh,
   for (int i=0; i < mesh->getNumSurfaces(); ++i)
     m_surf_discs[i] = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), surf_quad, m_vol_discs);
 }
+
+int Discretization::getNumBCSurfDiscs() const { return m_mesh->getNumBCSurfaces(); }

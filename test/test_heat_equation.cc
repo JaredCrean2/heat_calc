@@ -39,9 +39,56 @@ namespace {
           heat->addVolumeGroupParams(params);
         }
 
-        for (int i=0; i < disc->getNumSurfDiscs(); ++i)
+        for (int i=0; i < disc->getNumBCSurfDiscs(); ++i)
         {
-          auto surf = disc->getSurfDisc(i);
+          auto surf = disc->getBCSurfDisc(i);
+          if (surf->getIsDirichlet())
+            heat->addDirichletBC(makeDirichletBCMMS(surf, ex_sol));
+          else
+            heat->addNeumannBC(makeNeumannBCMMS(surf, deriv));
+        }
+
+
+        res_vec->set(0);
+        auto f = [&](Real x, Real y, Real z)
+                    { return ex_sol(x, y, z, 0); };
+        u_vec->setFunc(f);
+      }
+
+      HeatPtr heat;
+      DiscVectorPtr u_vec;
+      DiscVectorPtr res_vec;
+  };
+
+
+  class HeatMMSTesterMulti : public StandardDiscSetupMulti,
+                             public testing::Test
+  {
+    protected:
+      using HeatPtr = std::shared_ptr<Heat::HeatEquation>;
+
+      HeatMMSTesterMulti()
+      {
+        setup(3, 1);
+      }
+
+      template <typename Tex, typename Tderiv, typename Tsrc>
+      void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
+      {
+        heat = std::make_shared<Heat::HeatEquation>(disc);
+        u_vec = makeDiscVector(disc);
+        res_vec = makeDiscVector(disc);
+
+
+        for (int i=0; i < disc->getNumVolDiscs(); ++i)
+        {
+          heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+          heat->addVolumeGroupParams(params);
+        }
+
+        for (int i=0; i < disc->getNumBCSurfDiscs(); ++i)
+        {
+          auto surf = disc->getBCSurfDisc(i);
           if (surf->getIsDirichlet())
             heat->addDirichletBC(makeDirichletBCMMS(surf, ex_sol));
           else
@@ -179,6 +226,45 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
   }
 }
 
+TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
+{
+  Real kappa = 2;
+  Heat::VolumeGroupParams params{kappa, 3, 4};
+  for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
+  {
+
+    std::cout << "testing sol degree " << sol_degree << std::endl;
+    for (int degree=0; degree <= sol_degree; ++degree)
+    {
+      std::cout << "  testing polynomial degree " << degree << std::endl;
+      auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                          { return ex_sol(x, y, z, t, degree); };
+
+      auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                         { 
+                           auto vals = ex_sol_deriv(x, y, z, t, degree);
+                           for (auto& v : vals)
+                             v *= kappa;
+                           return vals;
+                         };
+      auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                            { return kappa * src_func(x, y, z, t, degree); };
+
+      setup(2*sol_degree, sol_degree);
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
+
+      heat->computeRhs(u_vec, 0.0, res_vec);
+      res_vec->syncArrayToVector();
+
+      auto& vec = res_vec->getVector();
+      for (int i=0; i < vec.shape()[0]; ++i)
+      {
+        EXPECT_LE(std::abs(vec[i]), 1e-12);
+      }
+    }
+  }
+}
+
 
 TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
@@ -207,6 +293,51 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
                             { return kappa * src_func(x, y, z, t, degree); };
 
       setup(2*sol_degree, sol_degree, dirichlet_surfs);
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
+
+      heat->computeRhs(u_vec, 0.0, res_vec);
+      res_vec->syncArrayToVector();
+
+      auto& vec = res_vec->getVector();
+      for (int i=0; i < vec.shape()[0]; ++i)
+      {
+        EXPECT_LE(std::abs(vec[i]), 1e-12);
+      }
+    }
+  }
+}
+
+
+TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
+{
+  Real kappa = 2;
+  Heat::VolumeGroupParams params{kappa, 3, 4};
+  std::vector<bool> dirichlet_surfs(11);
+  for (int i=0; i < 11; ++i)
+    dirichlet_surfs[i] = i % 3 == 0;
+
+  for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
+  {
+    std::cout << "testing sol degree " << sol_degree << std::endl;
+    //for (int degree=0; degree <= sol_degree; ++degree)
+    for (int degree=0; degree <= sol_degree; ++degree)
+    {
+      std::cout << "  testing polynomial degree " << degree << std::endl;
+      auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                          { return ex_sol(x, y, z, t, degree); };
+
+      auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                         { 
+                           auto vals = ex_sol_deriv(x, y, z, t, degree);
+                           for (int i=0; i < 3; ++i)
+                             vals[i] *= kappa;
+                           return vals;
+                         };
+
+      auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                            { return kappa * src_func(x, y, z, t, degree); };
+
+      setup(2*sol_degree, sol_degree, getStandardMeshSpecs(), dirichlet_surfs);
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
       heat->computeRhs(u_vec, 0.0, res_vec);

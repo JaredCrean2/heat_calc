@@ -35,7 +35,7 @@ MeshCG::MeshCG(apf::Mesh2* m,
   m_apf_data(m),
   m_volume_spec(volume_group_spec),
   m_bc_spec(bc_spec),
-  m_all_face_spec(other_surface_spec),
+  m_all_face_spec(bc_spec),
   m_ref_el_coord(reference_element::getLagrangeHexReferenceElement(coord_degree)),
   m_ref_el_sol(reference_element::getLagrangeHexReferenceElement(solution_degree)),
   m_tensor_product_coord_map(m_ref_el_coord),
@@ -45,7 +45,7 @@ MeshCG::MeshCG(apf::Mesh2* m,
   m_dof_numbering.sol_degree   = solution_degree;
   m_dof_numbering.coord_degree = coord_degree;
   setVolumeIndices();
-  setSurfaceIndices();
+  setSurfaceIndices(other_surface_spec);
   setApfData();
   createVolumeGroups();
   createFaceGroups();
@@ -58,10 +58,25 @@ void MeshCG::setVolumeIndices()
     m_volume_spec[i].setIdx(i);
 }
 
-void MeshCG::setSurfaceIndices()
+void MeshCG::setSurfaceIndices(const std::vector<MeshEntityGroupSpec>& other_surface_spec)
 {
   // assign indices to surfaces, also copies the surfaces from bc_spec
   // into all_faces_spec (which initially contains only non-bc surfaces)
+
+  for (auto& surf_spec : other_surface_spec)
+  {
+    m_all_face_spec.push_back(surf_spec);
+    if (surf_spec.getIsDirichlet())
+      throw std::runtime_error("non-BC surfaces cannot be marked as Dirichlet");
+  }
+
+  for (SInt i=0; i < m_bc_spec.size(); ++i)
+    m_bc_spec[i].setIdx(i);
+
+  for (SInt i=0; i < m_all_face_spec.size(); ++i)
+    m_all_face_spec[i].setIdx(i);
+
+  /*
   for (SInt i=0; i < m_all_face_spec.size(); ++i)
     m_all_face_spec[i].setIdx(i + m_bc_spec.size());
 
@@ -70,6 +85,7 @@ void MeshCG::setSurfaceIndices()
     m_bc_spec[j].setIdx(j);
     m_all_face_spec.push_back(m_bc_spec[j]);
   }
+  */
 }
 
 #ifdef MESH_USE_MDS_NUMBERING
@@ -185,9 +201,10 @@ void MeshCG::createFaceGroups()
 */
   for (auto& surf : m_all_face_spec)
   {
+    bool is_boundary_surface = surf.getIdx() < m_bc_spec.size();
     m_all_faces.emplace_back(surf.getIdx(), m_ref_el_coord, m_ref_el_sol,
                              m_tensor_product_coord_map, m_tensor_product_sol_map,
-                             /*tp_nodemap,*/ surf.getIsDirichlet());
+                             /*tp_nodemap,*/ surf.getIsDirichlet(), is_boundary_surface);
     auto& face_group = m_all_faces.back();
 
     //TODO: consider doing adjacency based search (starting with min

@@ -20,6 +20,8 @@ class SurfaceDiscretization
 
     bool getIsDirichlet() const { return face_group.getIsDirichlet(); }
 
+    bool getIsBoundarySurface() const { return face_group.getIsBoundarySurface();}
+
     int getNumFaces() const { return face_group.getNumFaces();}
 
     const Mesh::FaceSpec& getFaceSpec(int face) { return face_group.faces[face]; }

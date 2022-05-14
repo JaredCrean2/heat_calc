@@ -28,7 +28,15 @@ class Discretization
 
     int getNumSurfDiscs() const { return m_surf_discs.size(); }
 
+    int getNumBCSurfDiscs() const;
+
     SurfDiscPtr getSurfDisc(const int i) { return m_surf_discs.at(i); }
+
+    SurfDiscPtr getBCSurfDisc(const int i)
+    { 
+      assertAlways(i < getNumBCSurfDiscs(), "invalid index for BC surface discretization");
+      return m_surf_discs.at(i); 
+    }
 
     std::shared_ptr<Mesh::MeshCG> getMesh() const { return m_mesh; }
 

@@ -26,12 +26,14 @@ struct FaceGroup
             //ArrayType<LocalIndex, 2> nodemap_coord,
             //ArrayType<LocalIndex, 2> nodemap_sol,
             //const ArrayType<LocalIndex, 2> face_tp_nodemap_coord,
-            bool is_dirichlet) :
+            bool is_dirichlet,
+            bool is_boundary_surface) :
     ref_el_coord(ref_el_coord),
     ref_el_sol(ref_el_sol),
     //face_tp_nodemap_coord(face_tp_nodemap_coord),
     m_idx(idx),
     m_is_dirichlet(is_dirichlet),
+    m_is_boundary_surface(is_boundary_surface),
     m_tp_mapper_coord(tp_mapper_coord),
     m_tp_mapper_sol(tp_mapper_sol)
   {
@@ -54,6 +56,8 @@ struct FaceGroup
 
   bool getIsDirichlet() const { return m_is_dirichlet; }
 
+  bool getIsBoundarySurface() const { return m_is_boundary_surface; }
+
   int getNumFaces() const { return faces.size();}
 
   int getNumCoordPtsPerFace() const { return ref_el_coord->getNumFaceNodes(); }
@@ -74,6 +78,7 @@ struct FaceGroup
   private:
     const int m_idx;
     const bool m_is_dirichlet;
+    const bool m_is_boundary_surface;
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;
 };

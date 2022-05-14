@@ -119,7 +119,7 @@ class MeshCG
   private:
     void setVolumeIndices();
 
-    void setSurfaceIndices();
+    void setSurfaceIndices(const std::vector<MeshEntityGroupSpec>& other_surface_spec);
 
     void setApfData();
 

@@ -79,13 +79,13 @@ std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const std::vector<Mesh::MeshSpec>
     else
     {
       surface_groups.emplace_back(std::string("surface") + std::to_string(i));
+      surface_groups.back().setIsDirichlet(is_surf_dirichlet[idx]);
       idx++;
     }
     int vol_group = i < 6 ? 0 : 1;
 
     auto& group = i == 2 ? internal_groups.back() : surface_groups.back();
     group.addModelEntity(Mesh::ModelEntitySpec(2, i), Mesh::ModelEntitySpec(3, vol_group));
-    group.setIsDirichlet(is_surf_dirichlet[idx]);
   }
 
   auto mesh = std::make_shared<Mesh::MeshCG>(m, volume_groups, surface_groups,
