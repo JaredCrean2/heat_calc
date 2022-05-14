@@ -107,7 +107,6 @@ TEST_F(MeshGenerator2BlockTester, EntityClassificationCounts)
   for (int i=0; i < 12; ++i)
     expected_counts[0][i][0] = 1;
 
-  std::cout << "meshspec1.nx = " << m_meshspec1.nx << std::endl;
   // mesh verts classified on geometric edges
   expected_counts[1][0][0]  = m_meshspec1.nx - 1;
   expected_counts[1][1][0]  = m_meshspec1.ny - 1;

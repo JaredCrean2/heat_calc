@@ -85,7 +85,6 @@ class MeshGeneratorMulti
       for (unsigned int block=0; block < m_meshspecs.size(); ++block)
       {
         setBlock(block);
-        int nverts = 0;
         int jstart = block == 0 ? 0 : 1;
 
         for (int i=0; i < m_meshspec->nx+1; ++i)
@@ -93,17 +92,13 @@ class MeshGeneratorMulti
             for (int k=0; k < m_meshspec->nz+1; ++k)
             {
               int j2 = j + m_yidx_offset;
-              std::cout << "creating vertex at global indices " << i << ", " << j2 << ", " << k << std::endl;
 
               Point p = computeVertCoords(i, j, k);
               apf::Vector3 p2(p.x, p.y, p.z);
               auto me = getVertModelEntity(i, j, k);
               m_verts[i][j2][k] = m_mesh->createVert(me);
               m_mesh->setPoint(m_verts[i][j2][k], 0, p2);
-              nverts++;
             }
-
-        std::cout << "block " << block << " created " << nverts << " vertices" <<  std::endl;
       }
     }
 
@@ -176,8 +171,6 @@ class MeshGeneratorMulti
       // interior
       else
         me = ModelEntitySpec(3, m_current_block);
-
-      std::cout << "classifying vert on model entity " << me.dim << ", " << me.tag << std::endl;
 
       return m_mesh->findModelEntity(me.dim, me.tag);
     }
@@ -459,13 +452,10 @@ class MeshGeneratorMulti
               verts[5] = m_verts[i+1][j2][k+1];
               verts[6] = m_verts[i+1][j2+1][k+1];
               verts[7] = m_verts[i][j2+1][k+1];
-              std::cout << "creating element at global indices " << i << ", " << j2 << ", " << k << std::endl;
               for (int i=0; i < 8; ++i)
               {
                 apf::Vector3 pt;
                 m_mesh->getPoint(verts[i], 0, pt);
-                auto me_spec = getMESpec(m_mesh->toModel(verts[i]));
-                std::cout << "vert " << i << " at point " << pt[0] << ", " << pt[1] << ", " << pt[2] << " on model entity " << me_spec.dim << ", " << me_spec.tag << std::endl;
               }
               
               apf::buildElement(m_mesh, me, apf::Mesh::HEX, verts);
@@ -511,7 +501,6 @@ class MeshGeneratorMulti
             int tag = m_block_geometric_entities[dim].get()[j];
             if (!m_gmi_topo->hasEntityByTag(dim, tag))
             {
-              std::cout << "creating geometric entity with dim " << dim << ", tag " << tag << std::endl;
               m_gmi_topo->createEntity(dim, tag);
             }
           }
@@ -573,7 +562,6 @@ class MeshGeneratorMulti
 
     void setBlock(int idx)
     {
-      std::cout << "inside setBlock with idx " << idx << std::endl;
       assert(idx >= 0 && unsigned(idx) < m_meshspecs.size());
       m_current_block = idx;
 
@@ -584,18 +572,12 @@ class MeshGeneratorMulti
         idx_offset += m_meshspecs[i].ny;
         coord_offset += m_meshspecs[i].ymax - m_meshspecs[i].ymin;
       }
-      std::cout << "idx_offset   = " << idx_offset << std::endl;
-      std::cout << "coord_offset = " << coord_offset << std::endl;
+
       m_coords_min[0] = m_meshspecs[0].xmin;
       m_coords_min[1] = coord_offset;
       m_coords_min[2] = m_meshspecs[0].ymin;
       m_yidx_offset   = idx_offset;
       m_meshspec      = &(m_meshspecs[idx]);
-      std::cout << "setting block " << idx << ", which has dx = " << (m_meshspec->xmax - m_meshspec->xmin)/m_meshspec->nx
-                << ", dy = " << (m_meshspec->ymax - m_meshspec->ymin)/m_meshspec->ny
-                << ", dz = " << (m_meshspec->zmax - m_meshspec->zmin)/m_meshspec->nz
-                << std::endl;
-
 
       setGeometricVerts(idx);
       setGeometricEdges(idx);
