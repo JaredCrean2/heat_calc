@@ -152,7 +152,7 @@ class GMITopo
     GMIEntity* gmiFind(int dim, int tag)
     {
       if (m_tag_to_index[dim].count(tag) == 0)
-        throw std::runtime_error("to GMIEntity of dim" + std::to_string(dim) + ", tag " + std::to_string(tag));
+        throw std::runtime_error("unable to find GMIEntity of dim " + std::to_string(dim) + ", tag " + std::to_string(tag));
       
       return &(getEntityByTag(dim, tag));
     }

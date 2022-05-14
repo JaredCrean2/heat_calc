@@ -85,6 +85,7 @@ class MeshGeneratorMulti
       for (unsigned int block=0; block < m_meshspecs.size(); ++block)
       {
         setBlock(block);
+        int nverts = 0;
         int jstart = block == 0 ? 0 : 1;
 
         for (int i=0; i < m_meshspec->nx+1; ++i)
@@ -99,7 +100,10 @@ class MeshGeneratorMulti
               auto me = getVertModelEntity(i, j, k);
               m_verts[i][j2][k] = m_mesh->createVert(me);
               m_mesh->setPoint(m_verts[i][j2][k], 0, p2);
+              nverts++;
             }
+
+        std::cout << "block " << block << " created " << nverts << " vertices" <<  std::endl;
       }
     }
 
@@ -287,13 +291,13 @@ class MeshGeneratorMulti
         me = ModelEntitySpec(1, m_block_geometric_edges[5]);
       // faces
       else if (i == 0)
-        me = ModelEntitySpec(2, m_block_geometric_edges[3]);
+        me = ModelEntitySpec(2, m_block_geometric_faces[3]);
       else if (k == 0)
-        me = ModelEntitySpec(2, m_block_geometric_edges[4]);
+        me = ModelEntitySpec(2, m_block_geometric_faces[4]);
       else if (i == xmax)
-        me = ModelEntitySpec(2, m_block_geometric_edges[1]);
+        me = ModelEntitySpec(2, m_block_geometric_faces[1]);
       else if (k == zmax)
-        me = ModelEntitySpec(2, m_block_geometric_edges[5]);
+        me = ModelEntitySpec(2, m_block_geometric_faces[5]);
       // interior
       else
         me = ModelEntitySpec(3, m_current_block);
@@ -506,13 +510,14 @@ class MeshGeneratorMulti
           {
             int tag = m_block_geometric_entities[dim].get()[j];
             if (!m_gmi_topo->hasEntityByTag(dim, tag))
+            {
+              std::cout << "creating geometric entity with dim " << dim << ", tag " << tag << std::endl;
               m_gmi_topo->createEntity(dim, tag);
+            }
           }
 
         m_gmi_topo->createEntity(3, i);
       }
-
-      std::array<std::set<int>, 3> seen_tags;
 
       for (unsigned int i=0; i < m_meshspecs.size(); ++i)
       {
@@ -521,21 +526,16 @@ class MeshGeneratorMulti
           for (int j=0; j < m_block_geometric_entities[dim].get().size(); ++j)
           {
             int tag = m_block_geometric_entities[dim].get()[j];
-            if (seen_tags[dim].count(tag) == 0)
+            auto& entity = m_gmi_topo->getEntityByTag(dim, tag);
+            if (dim == 2)
             {
-              seen_tags[dim].insert(tag);
-              auto& entity = m_gmi_topo->getEntityByTag(dim, tag);
-
-              if (dim == 2)
-              {
-                auto& element = m_gmi_topo->getEntityByTag(3, i);
-                entity.addUpward(element);
-                element.addDownward(entity);
-              } else
-              {
-                auto& upward_block_indices = dim == 0 ? verts_to_edges[j] : edges_to_faces[j];
-                createConnectivity(entity, upward_block_indices);
-              }
+              auto& element = m_gmi_topo->getEntityByTag(3, i);
+              entity.addUpward(element);
+              element.addDownward(entity);
+            } else
+            {
+              auto& upward_block_indices = dim == 0 ? verts_to_edges[j] : edges_to_faces[j];
+              createConnectivity(entity, upward_block_indices);
             }
           }
       }
@@ -546,6 +546,15 @@ class MeshGeneratorMulti
     //TODO: make GMIEntity non-copyable
     }
 
+    bool hasUpwardAdjacency(const mesh_gmi::GMIEntity& entity, const mesh_gmi::GMIEntity& entity_up)
+    {
+      for (int i=0; i < entity.countUpward(); ++i)
+        if (entity.getUpwardIndex(i) == entity_up.getIndex())
+          return true;
+      
+      return false;
+    }
+
     void createConnectivity(mesh_gmi::GMIEntity& entity, const std::vector<int>& upward_block_indices)
     {
       int dim = entity.getDim();
@@ -553,8 +562,11 @@ class MeshGeneratorMulti
       {
         int tag = m_block_geometric_entities[dim+1].get()[upward_block_indices[i]];
         auto& up_entity = m_gmi_topo->getEntityByTag(dim+1, tag);
-        entity.addUpward(up_entity);
-        up_entity.addDownward(entity);
+        if (!hasUpwardAdjacency(entity, up_entity))
+        {
+          entity.addUpward(up_entity);
+          up_entity.addDownward(entity);
+        }
       }
     }
 
