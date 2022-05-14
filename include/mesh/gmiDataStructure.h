@@ -97,6 +97,18 @@ class GMITopo
       return m_entities[dim].back();
     }
 
+    bool hasEntityByIndex(int dim, int idx)
+    {
+      assert(dim >=0 && dim <= 3);
+      return idx >= 0 && size_t(idx) < m_entities[dim].size();
+    }
+
+    bool hasEntityByTag(int dim, int tag)
+    {
+      assert(dim >= 0 && dim <= 3);
+      return m_tag_to_index[dim].count(tag) > 0;
+    }
+
     GMIEntity& getEntityByIndex(int dim, int idx)
     {
       assert(dim >=0 && dim <= 3);
