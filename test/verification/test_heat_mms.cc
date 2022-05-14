@@ -247,8 +247,9 @@ namespace {
         }
         val_l2 = std::sqrt(val_l2);
 
-        int nelems = specs[0].nx * (specs[0].ny + specs[1].ny) + specs[0].nz;
-        recordError(val_l2, val_max, nelems);
+        //int nelems = specs[0].nx * (specs[0].ny + specs[1].ny) + specs[0].nz;
+        Real h = 1.0/specs[0].nx;
+        recordError(val_l2, val_max, h);
       }
 
       HeatPtr heat;
@@ -368,8 +369,8 @@ TEST_F(HeatMMSMultiConvergenceTester, Exponential)
     for (int i=0; i < nmeshes; ++i)
     {
       int nelem = nelem_start * std::pow(2, i);
-      auto meshspec1 = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, nelem, nelem, nelem);
-      auto meshspec2 = Mesh::getMeshSpec(0, 1, 1, 2, 0, 1, nelem, (nelem + 1), nelem);
+      auto meshspec1 = Mesh::getMeshSpec(0, 1, 0, 0.5, 0, 1, nelem, nelem, nelem);
+      auto meshspec2 = Mesh::getMeshSpec(0, 1, 0.5, 1, 0, 1, nelem, (nelem + 1), nelem);
 
       std::cout << "mesh " << i << " with " << std::pow(nelem, 3) << " elements" << std::endl;
       setup(2*sol_degree, sol_degree, {meshspec1, meshspec2}, opts);
@@ -397,6 +398,7 @@ TEST_F(HeatMMSMultiConvergenceTester, Exponential)
     auto slopes = computeSlopes();
     auto errors_l2 = getErrorsL2();
     auto errors_max = getErrorsMax();
+    auto h_vals = getHValues();
 
     for (unsigned int i=0; i < slopes.size(); ++i)
     {
@@ -407,11 +409,11 @@ TEST_F(HeatMMSMultiConvergenceTester, Exponential)
         ratio_max = errors_max[i-1] / errors_max[i];
       }
 
-      std::cout << "mesh " << i << ": slope_l2 = " << slopes[i][0] << ", slope_max = " << slopes[i][1] << ", ratio_l2 = " << ratio_l2 << ", ratio_max = " << ratio_max << std::endl;
+      std::cout << "mesh " << i << ": slope_l2 = " << slopes[i][0] << ", slope_max = " << slopes[i][1] << ", ratio_l2 = " << ratio_l2 << ", ratio_max = " << ratio_max  << ", h_value = " << h_vals[i] << std::endl;
     }
 
     // for some reason, p=2 converges at a rate of 4
-    EXPECT_NEAR(slopes[slopes.size()-1][0], 2*sol_degree, 0.1);
+    EXPECT_NEAR(slopes[slopes.size()-1][0], 2*sol_degree, 0.25);
     resetErrors();
   }
 }
