@@ -12,17 +12,6 @@ class MeshGenerator2BlockTester : public ::testing::Test
   protected:
     MeshGenerator2BlockTester()
     {
-      /*
-      m_meshspec1 = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 3, 4, 5);
-      m_meshspec2 = m_meshspec1;
-      m_meshspec2.ymin = m_meshspec1.ymax;
-      m_meshspec2.ymax = 2;
-      m_meshspec2.ny = 6;
-
-      auto generator = Mesh::make_mesh_generator({m_meshspec1, m_meshspec2}, &Mesh::identity);
-      m_mesh = generator.generate();
-      */
-
       m_meshspec1 = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 3, 4, 5);
       m_meshspec2 = Mesh::getMeshSpec(0, 1, 1, 2, 0, 1, 3, 5, 5);
       std::vector<Mesh::MeshSpec> meshspecs{m_meshspec1, m_meshspec2};
@@ -33,10 +22,7 @@ class MeshGenerator2BlockTester : public ::testing::Test
 
     ~MeshGenerator2BlockTester() 
     {
-      //auto model = m_mesh->getModel();
-      //m_mesh->destroyNative();
       apf::destroyMesh(m_mesh);
-      //gmi_destroy(model);
     }
 
     apf::Mesh2* m_mesh;

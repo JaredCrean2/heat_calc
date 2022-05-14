@@ -1,5 +1,6 @@
 #include "mesh_helper.h"
 #include "mesh/mesh_generator.h"
+#include "mesh/mesh_generator_multi.h"
 #include "mesh/mesh.h"
 #include "mesh/mesh_input.h"
 #include "utils/error_handling.h"
@@ -13,6 +14,14 @@ Mesh::MeshSpec getStandardMeshSpec()
   Mesh::MeshSpec meshspec = Mesh::getMeshSpec(0, 2, 0, 2, 0, 2, 5, 5, 5);
 
   return meshspec;
+}
+
+std::vector<Mesh::MeshSpec> getStandardMeshSpecs()
+{
+  Mesh::MeshSpec meshspec1 = Mesh::getMeshSpec(0, 2, 0, 2, 0, 2, 5, 5, 5);
+  Mesh::MeshSpec meshspec2 = Mesh::getMeshSpec(0, 2, 2, 4, 0, 2, 5, 6, 5);
+
+  return {meshspec1, meshspec2};
 }
 
 
@@ -40,6 +49,47 @@ std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec, i
   std::vector<Mesh::MeshEntityGroupSpec> other_surfaces;
   auto mesh = std::make_shared<Mesh::MeshCG>(m, volume_groups, surface_groups,
                                        other_surfaces, sol_degree, 1);
+
+  return mesh;
+}
+
+std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const std::vector<Mesh::MeshSpec>& meshspec, int sol_degree, const std::vector<bool>& is_surf_dirichlet)
+{
+  assertAlways(is_surf_dirichlet.size() == 11, "is_surf_dirichlet must have length 11");
+
+  auto generator = Mesh::make_mesh_generator(meshspec, &(Mesh::identity));
+  auto m = generator.generate();
+
+  // make volume groups
+  std::vector<Mesh::MeshEntityGroupSpec> volume_groups;
+  for (int i=0; i < 2; ++i) 
+  {
+    Mesh::MeshEntityGroupSpec volume_group(std::string("volume") + std::to_string(i));
+    volume_group.addModelEntity(Mesh::ModelEntitySpec(3, i));
+    volume_groups.push_back(volume_group);
+  }
+
+  // make surface groups
+  std::vector<Mesh::MeshEntityGroupSpec> surface_groups, internal_groups;
+  int idx = 0;
+  for (int i=0; i < 12; ++i)
+  {
+    if (i == 2)
+      internal_groups.emplace_back(std::string("surface") + std::to_string(i));
+    else
+    {
+      surface_groups.emplace_back(std::string("surface") + std::to_string(i));
+      idx++;
+    }
+    int vol_group = i < 6 ? 0 : 1;
+
+    auto& group = i == 2 ? internal_groups.back() : surface_groups.back();
+    group.addModelEntity(Mesh::ModelEntitySpec(2, i), Mesh::ModelEntitySpec(3, vol_group));
+    group.setIsDirichlet(is_surf_dirichlet[idx]);
+  }
+
+  auto mesh = std::make_shared<Mesh::MeshCG>(m, volume_groups, surface_groups,
+                                             internal_groups, sol_degree, 1);
 
   return mesh;
 }
@@ -97,5 +147,35 @@ void StandardDiscSetup::setup(const int quad_degree, int sol_degree, const Mesh:
                               const std::vector<bool>& is_surf_dirichlet)
 {
   StandardMeshBase::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
+  disc = std::make_shared<Discretization>(mesh, quad_degree, quad_degree);
+}
+
+// StandardDiscSetupMulti
+//-----------------------------------------------------------------------------
+
+void StandardDiscSetupMulti::setup(const int quad_degree, int sol_degree, const std::vector<Mesh::MeshSpec>& specs,
+                                   const std::vector<bool>& is_surf_dirichlet)
+{
+  this->specs = specs;
+  quad = getGaussianQuadrature(quad_degree);
+
+  mesh_dim_mins = {specs[0].xmin, specs[0].ymin, specs[0].zmin};
+  mesh_dim_maxs = {specs[0].xmax, specs.back().ymax, specs[0].zmax};
+  mesh = makeStandardMesh(specs, sol_degree, is_surf_dirichlet);
+
+  vol_discs.resize(0);
+  for (int i=0; i < mesh->getNumVolumeGroups(); ++i)
+  {
+    Mesh::VolumeGroup& vol_group = mesh->getElements(0);
+    vol_discs.push_back(std::make_shared<VolumeDiscretization>(vol_group, quad));
+  }
+
+  surf_discs.resize(0);
+  for (Index i=0; i < mesh->getNumSurfaces(); ++i)
+  {
+    auto surf_i = std::make_shared<SurfaceDiscretization>(mesh->getFaces(i), quad, vol_discs); 
+    surf_discs.push_back(surf_i);
+  }
+
   disc = std::make_shared<Discretization>(mesh, quad_degree, quad_degree);
 }

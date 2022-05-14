@@ -16,8 +16,15 @@ namespace Mesh
 
 Mesh::MeshSpec getStandardMeshSpec();
 
+std::vector<Mesh::MeshSpec> getStandardMeshSpecs();
+
+
 std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& spec = getStandardMeshSpec(), int sol_degree=1,
                                 const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true});
+
+std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const std::vector<Mesh::MeshSpec>& meshspec, int sol_degree, 
+                                               const std::vector<bool>& is_surf_dirichlet={true, true, true, true, true, true, true, true, true, true, true});
+
 
 // creates a single block mesh with all dirichlet BCs
 class StandardMeshBase
@@ -68,6 +75,28 @@ class StandardDiscSetup : public StandardMeshBase
                        const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true}) override;
 
   DiscPtr disc;
+};
+
+#include "mesh/mesh.h"
+
+// creates mesh and a Discretization
+class StandardDiscSetupMulti
+{
+  public:
+    virtual ~StandardDiscSetupMulti() {}
+
+    void setup(const int quad_degree, int sol_degree, const std::vector<Mesh::MeshSpec>& specs = getStandardMeshSpecs(),
+               const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true, true, true, true, true, true});
+
+    std::vector<Mesh::MeshSpec> specs;
+    std::array<Real, 3> mesh_dim_mins;
+    std::array<Real, 3> mesh_dim_maxs;
+    std::shared_ptr<Mesh::MeshCG> mesh;
+    Quadrature quad{getGaussianQuadrature(0)};
+
+    std::vector<VolDiscPtr> vol_discs;
+    std::vector<SurfDiscPtr> surf_discs;
+    DiscPtr disc;
 };
 
 #endif
