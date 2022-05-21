@@ -11,8 +11,12 @@ class SparsityPatternTest : public linear_system::SparsityPattern
   public:
     explicit SparsityPatternTest(int size) :
       m_local(size, size),
-      m_offproc(size, size)
-    {}
+      m_offproc(size, size),
+      m_owned_to_local_dofs(size)
+    {
+      for (int i=0; i < size; ++i)
+        m_owned_to_local_dofs[i] = i;
+    }
 
     const std::vector<PetscInt>& getDiagonalCounts() override { return m_local; }
 
@@ -22,9 +26,17 @@ class SparsityPatternTest : public linear_system::SparsityPattern
         
     const std::vector<PetscInt>& getOffProcCountsSym() override { return m_offproc; }
 
+    const std::vector<PetscInt>& getGhostGlobalIndices() override { return m_ghost_dofs; }
+
+    const std::vector<PetscInt>& getGhostLocalIndices() override { return m_ghost_dofs; }
+
+    const std::vector<PetscInt>& getOwnedToLocalInfo() override { return m_owned_to_local_dofs; };
+
   private:
     std::vector<PetscInt> m_local;
     std::vector<PetscInt> m_offproc;
+    std::vector<PetscInt> m_ghost_dofs;
+    std::vector<PetscInt> m_owned_to_local_dofs;
 };
 
 linear_system::LargeMatrixOptsPetsc get_options()

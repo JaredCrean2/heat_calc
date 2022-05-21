@@ -22,6 +22,12 @@ class SparsityPattern
         
     // similar to the above, but returns the count for only the upper triangle
     virtual const std::vector<PetscInt>& getOffProcCountsSym() = 0;
+
+    virtual const std::vector<PetscInt>& getGhostGlobalIndices() = 0;
+
+    virtual const std::vector<PetscInt>& getGhostLocalIndices() = 0;
+
+    virtual const std::vector<PetscInt>& getOwnedToLocalInfo() = 0;
 };
 
 } // namespace

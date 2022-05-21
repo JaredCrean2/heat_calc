@@ -20,8 +20,6 @@
 
 namespace fast_field {
 
-//TODO: call reorderMdsMesh to make sure the MDS indexing is correct
-
 class MDSMeshWrapper
 {
   public:
@@ -29,7 +27,7 @@ class MDSMeshWrapper
       mesh(m)
     {}
 
-    using LargeInt = mds_id; //TODO: mds_id?
+    using LargeInt = mds_id;
 
     apf::Mesh2* mesh;
 
@@ -97,7 +95,7 @@ class ApfMDSField
 
     virtual ~ApfMDSField() {}
 
-    apf::Mesh* getMesh() {return m_meshwrapper.mesh; }
+    apf::Mesh2* getMesh() {return m_meshwrapper.mesh; }
 
     const std::string& getName() const { return m_name;}
 
@@ -235,6 +233,8 @@ inline int countComponents(ApfMDSNumbering* n)
 {
   return n->getNumComponents();
 }
+
+void synchronize(ApfMDSNumbering* n);
 
 }
 

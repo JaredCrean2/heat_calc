@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # ASAN flags
-#ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
-#CXXFLAGS="-O0 -Wall -g -fdebug-default-version=4"
-#BUILDTYPE="Debug"
+ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
+CXXFLAGS="-O2 -Wall -g -fdebug-default-version=4"
+BUILDTYPE="Debug"
 
 # Optimized build
-CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall"
-BUILDTYPE="Release"
+#CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall"
+#BUILDTYPE="Release"
 
 # VTune build
 #CXXFLAGS="-Ofast -march=native -mtune=native -g -Rpass-analysis=loop-vectorize -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -ffast-math"

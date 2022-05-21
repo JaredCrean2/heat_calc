@@ -1,8 +1,20 @@
 #include "linear_system/assembler.h"
+#include "mesh/mesh.h"
 
 namespace linear_system {
 
 static_assert(std::is_signed<DofInt>::value, "DofInt must be a signed integral type");
+
+Assembler::Assembler(DiscPtr disc, LargeMatrixPtr mat) :
+  m_disc(disc),
+  m_dof_nums(disc->getDofNumbering()),
+  m_alpha(1),
+  m_vol_dofs(disc->getVolDisc(0)->getNumSolPtsPerElement()),
+  m_face_dofs(disc->getSurfDisc(0)->getNumSolPtsPerFace()),
+  m_matrix(mat)
+{
+  disc->getMesh()->getLocalToGlobalDofs(m_local_dof_to_global);
+}
 
 
 void Assembler::assembleVolume(int vol_disc_idx, int elnum, ArrayType<Real, 2>& jac)
@@ -21,6 +33,8 @@ void Assembler::assembleVolume(int vol_disc_idx, int elnum, ArrayType<Real, 2>& 
     auto dof = dofs[elnum][i];
     if (!m_dof_nums->isDofActive(dof))
       dof = -1;
+    else
+      dof = m_local_dof_to_global[dof];
 
     m_vol_dofs[i] = dof;
 
@@ -46,7 +60,7 @@ void Assembler::assembleFace(int surf_disc_idx, int facenum, ArrayType<Real, 2>&
     if (!m_dof_nums->isDofActive(dof))
       dof = -1;
 
-    m_face_dofs[i] = dof;
+    m_face_dofs[i] = m_local_dof_to_global[dof];
 
     for (int j=0; j < surf_disc->getNumSolPtsPerFace(); ++j)
       jac[i][j] *= m_alpha;

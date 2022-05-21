@@ -2,6 +2,7 @@
 #define MESH_APF_DATA_H
 
 #include "apf.h"
+#include "pumi.h"
 #include "apfNumbering.h"
 #include "mesh/reference_element_interface.h"
 #include "mesh/reference_element_apf.h"
@@ -38,6 +39,9 @@ struct ApfData
     m_sol_shape(sol_shape),
     m_coord_shape(coord_shape)
   {
+
+    int num_layers = 1;
+    pumi_ghost_createLayer(m, 0, 3, num_layers, 0);
     apf::reorderMdsMesh(m);
   }
 
@@ -46,12 +50,13 @@ struct ApfData
   ApfData& operator=(const ApfData&) = delete;
 
   apf::Mesh2* m;
-  NumberingType* dof_nums       = nullptr;
-  NumberingType* el_nums        = nullptr;
-  NumberingType* is_dirichlet   = nullptr;  // if dof is dirichlet
+  NumberingType* dof_nums        = nullptr;
+  NumberingType* global_dof_nums = nullptr;
+  NumberingType* el_nums         = nullptr;
+  NumberingType* is_dirichlet    = nullptr;  // if dof is dirichlet
   apf::FieldShape* sol_shape;    // FieldShape of solution
   apf::FieldShape* coord_shape;  // FieldShape of cooordinate field
-  NumberingType* vol_groups     = nullptr;    // volume group numbering of elements
+  NumberingType* vol_groups      = nullptr;    // volume group numbering of elements
 
   // unfortunately, the apf API takes raw pointers rather than shared
   // pointers for everything, so we keep the raw pointer above, and also
@@ -62,6 +67,7 @@ struct ApfData
   REPtr m_ref_el_coord;
   REPtr m_ref_el_sol;
   std::shared_ptr<NumberingType> m_dof_nums;
+  std::shared_ptr<NumberingType> m_global_dof_nums;
   std::shared_ptr<NumberingType> m_el_nums;
   std::shared_ptr<NumberingType> m_is_dirichlet;
   std::shared_ptr<NumberingType> m_vol_groups;

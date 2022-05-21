@@ -1,5 +1,5 @@
 #include "mesh/apfMDSField.h"
-
+#include "mesh/apfMDSFieldSynchronize.h"
 #ifdef MESH_USE_MDS_NUMBERING
 
 namespace apf {
@@ -28,6 +28,14 @@ const char* getName(ApfMDSNumbering* n)
 Mesh* getMesh(ApfMDSNumbering* n)
 {
   return n->getMesh();
+}
+
+
+void synchronize(ApfMDSNumbering* n)
+{
+  // TODO: need to initialize PCU
+  auto syncer = fast_field::make_field_synchronizer(*n);
+  syncer.synchronize();
 }
 
 }

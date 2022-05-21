@@ -31,13 +31,15 @@ bool initialize();
 
 struct DofNumbering
 {
-  int sol_degree              = 0;
-  int coord_degree            = 0;
-  int num_dofs                = 0;
-  int num_dofs_total          = 0;
-  int nodes_per_element       = 0;
-  int coord_nodes_per_element = 0;
-  int nodes_per_face          = 0;
+  int sol_degree                        = 0;
+  int coord_degree                      = 0;
+  int num_dofs_local                    = 0;
+  int num_dofs_owned                    = 0;
+  int num_dofs_total                    = 0;  // local + dirichlet dofs
+  int local_owned_to_global_dof_offset  = 0;
+  int nodes_per_element                 = 0;
+  int coord_nodes_per_element           = 0;
+  int nodes_per_face                    = 0;
 };
 
 class MeshCG
@@ -102,19 +104,36 @@ class MeshCG
     //---------------------------------------------------------------------
     // dof functions
 
-    // gets total number of dofs, including dirichlet BC dofs
+    // gets total number of local dofs, including dirichlet BC dofs
     Index getNumTotalDofs() const {return m_dof_numbering.num_dofs_total;}
 
-    // gets number of dofs, exluding dirichlet BC dofs
-    Index getNumDofs() const {return m_dof_numbering.num_dofs;}
+    // gets number of local dofs, exluding dirichlet BC dofs
+    Index getNumDofs() const {return m_dof_numbering.num_dofs_local;}
+
+    // get number of owned dofs, excluding dirichlet BC dofs
+    Index getNumOwnedDofs() const { return m_dof_numbering.num_dofs_owned; }
 
     // returns true if dof appears in the linear system (ie. not Dirichlet)
-    bool isDofActive(const Index dof) const { return dof < getNumDofs();}
+    // dof must be a *local* dof
+    bool isDofActive(const Index dof) const
+    { 
+      assert(dof >= 0 && dof < getNumTotalDofs());
+      return dof < getNumDofs();
+    }
 
+    // returns the local dofs on a given element
     void getElementDofs(const VolumeGroup& vol_group, int el_idx, std::vector<Index>& nodenums);
 
-    // returns all the dofs connected to the given node (including self)
+    // returns all the local dofs connected to the given node (including self)
     void getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx, const Index node, std::vector<DofInt>& dofs);
+
+    // for non-owned dofs, gives both the global dof number and the corresponding local dof number
+    void getGhostDofInfo(std::vector<DofInt>& global_dofs, std::vector<DofInt>& local_dofs);
+    
+    // returns a vector v such that v[owned_dof_num] = local_dof_num
+    void getOwnedLocalDofInfo(std::vector<DofInt>& owned_local_dofs);
+
+    void getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs);
 
   private:
     void setVolumeIndices();

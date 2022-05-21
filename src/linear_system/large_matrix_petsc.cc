@@ -1,10 +1,13 @@
 #include "linear_system/large_matrix_petsc.h"
+#include <petscvec.h>
 
 namespace linear_system {
 
 LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern) :
   LargeMatrix(mlocal, nlocal),
-  m_opts(opts)
+  m_opts(opts),
+  m_owned_dof_to_local(sparsity_pattern->getOwnedToLocalInfo()),
+  m_ghost_dofs_to_local(sparsity_pattern->getGhostLocalIndices())
 {  
   bool is_symmetric_mattype = false;
   if (opts.petsc_opts.count("mat_type") == 0)
@@ -19,13 +22,16 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   setPetscOptions(opts);
 
 
-  VecCreate(PETSC_COMM_WORLD, &m_x);
+  const auto& ghost_global_dofs = sparsity_pattern->getGhostGlobalIndices();
+  //VecCreate(PETSC_COMM_WORLD, &m_x);
+  VecCreateGhost(PETSC_COMM_WORLD, getNLocal(), PETSC_DECIDE, ghost_global_dofs.size(), ghost_global_dofs.data(), &m_x);
   PetscObjectSetName((PetscObject)m_x, (opts.opts_prefix + "_Solution").c_str());
   VecSetOptionsPrefix(m_x, opts.opts_prefix.c_str());
-  VecSetSizes(m_x, getNLocal(), PETSC_DECIDE);
+  //VecSetSizes(m_x, getNLocal(), PETSC_DECIDE);
   VecSetFromOptions(m_x);
 
   VecCreate(PETSC_COMM_WORLD, &m_b);
+  //VecCreateGhost(PETSC_COMM_WORLD, getMLocal(), PETSC_DECIDE, ghost_global_dofs.size(), ghost_global_dofs.data(), &m_b);
   PetscObjectSetName((PetscObject)m_b, (opts.opts_prefix + "_rhs").c_str());
   VecSetOptionsPrefix(m_b, opts.opts_prefix.c_str());
   VecSetSizes(m_b, getMLocal(), PETSC_DECIDE);
@@ -106,6 +112,8 @@ void LargeMatrixPetsc::factor_impl()
 
 void LargeMatrixPetsc::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x)
 {
+  assertAlways(b.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
+  assertAlways(x.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
   if (m_new_matrix_values)
   {
     std::cout << "about to call KSPSetUp" << std::endl;
@@ -114,8 +122,8 @@ void LargeMatrixPetsc::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1
     m_new_matrix_values = false;
   }
 
-  copyVec(b, m_b);
-  copyVec(x, m_x);
+  copyVec(b, m_b, false);
+  copyVec(x, m_x, true);
 
   KSPSolve(m_ksp, m_b, m_x);
   
@@ -129,34 +137,88 @@ void LargeMatrixPetsc::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1
     throw std::runtime_error(std::string("KSP failed to converge for reason: ") + reason_str);
   }
   
-  copyVec(m_x, x);
+  copyVec(m_x, x, true);
 }
 
 void LargeMatrixPetsc::matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
 {
-  copyVec(x, m_x);
+  assertAlways(b.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
+  assertAlways(x.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
+  
+  copyVec(x, m_x, true);
   MatMult(m_A, m_x, m_b);
-  copyVec(m_b, b);
+  copyVec(m_b, b, false);
 }
 
 
-void LargeMatrixPetsc::copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out)
+void LargeMatrixPetsc::copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out, bool set_ghosts)
 {
+  Vec vec_out_local;
+  if (set_ghosts)
+    VecGhostGetLocalForm(vec_out, &vec_out_local);
+  else
+    vec_out_local = vec_out;
+
+
   PetscScalar* vec_p;
-  int len = vec_in.shape()[0];
-  VecGetArray(vec_out, &vec_p);
-  std::copy(&(vec_in[0]), &(vec_in[0]) + len, vec_p);
-  VecRestoreArray(vec_out, &vec_p);
+  VecGetArray(vec_out_local, &vec_p);
+  //int len = vec_in.shape()[0];
+  //std::copy(&(vec_in[0]), &(vec_in[0]) + len, vec_p);
+  for (size_t owned_dof=0; owned_dof < m_owned_dof_to_local.size(); ++owned_dof)
+  {
+    auto local_dof = m_owned_dof_to_local[owned_dof];
+    vec_p[owned_dof] = vec_in[local_dof];
+  }
+
+  if (set_ghosts)
+  {
+    for (size_t ghost_idx=0; ghost_idx < m_ghost_dofs_to_local.size(); ++ghost_idx)
+    {
+      auto local_dof = m_ghost_dofs_to_local[ghost_idx];
+      vec_p[ghost_idx + m_owned_dof_to_local.size()] = vec_in[local_dof];
+    }
+  }
+
+  VecRestoreArray(vec_out_local, &vec_p);
+  if (set_ghosts)
+    VecGhostRestoreLocalForm(vec_out, &vec_out_local);
 }
 
 
-void LargeMatrixPetsc::copyVec(const Vec vec_in, ArrayType<Real, 1>& vec_out)
+void LargeMatrixPetsc::copyVec(const Vec vec_in, ArrayType<Real, 1>& vec_out, bool set_ghosts)
 {
-  PetscScalar* vec_p;
-  int len = vec_out.shape()[0];
-  VecGetArray(vec_in, &vec_p);
-  std::copy(vec_p, vec_p + len, &(vec_out[0]));
-  VecRestoreArray(vec_in, &vec_p);
+  Vec vec_in_local;
+  if (set_ghosts)
+  {
+    VecGhostGetLocalForm(vec_in, &vec_in_local);
+    VecGhostUpdateBegin(vec_in, INSERT_VALUES, SCATTER_FORWARD);
+  } else
+    vec_in_local = vec_in;
+  
+  const PetscScalar* vec_p;
+  //int len = vec_out.shape()[0];
+  VecGetArrayRead(vec_in_local, &vec_p);
+  //std::copy(vec_p, vec_p + len, &(vec_out[0]));
+
+  for (size_t owned_dof=0; owned_dof < m_owned_dof_to_local.size(); ++owned_dof)
+  {
+    auto local_dof = m_owned_dof_to_local[owned_dof];
+    vec_out[local_dof] = vec_p[owned_dof];
+  }
+
+  if (set_ghosts)
+  {
+    VecGhostUpdateEnd(vec_in, INSERT_VALUES, SCATTER_FORWARD);
+    for (size_t ghost_idx=0; ghost_idx < m_ghost_dofs_to_local.size(); ++ghost_idx)
+    {
+      auto local_dof = m_ghost_dofs_to_local[ghost_idx];
+      vec_out[local_dof] = vec_p[ghost_idx + m_owned_dof_to_local.size()];
+    }
+  }
+
+  VecRestoreArrayRead(vec_in_local, &vec_p);
+  if (set_ghosts)
+    VecGhostRestoreLocalForm(vec_in, &vec_in_local);
 }
 
 

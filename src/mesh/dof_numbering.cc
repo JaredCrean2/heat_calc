@@ -38,6 +38,10 @@ bool AdjacencyNumberer::shouldNumber(NumberingType* m_is_dirichlet, apf::MeshEnt
   if (m_is_dirichlet)
     ret = (!apf::getNumber(m_is_dirichlet, e, node, component));
 
+  if (m_number_owned_nodes_only && !m_local->isOwned(e))
+    ret = false;
+
+
   return ret;
 
 }
@@ -134,7 +138,7 @@ void AdjacencyNumberer::countNodes(apf::Mesh2* m_local, NumberingType* is_dirich
     {
       int type = m_local->getType(e);
       for (int node=0; node < fshape->countNodesOn(type); ++node)
-        if (!apf::getNumber(is_dirichlet, e, node, 0))
+        if (shouldNumber(is_dirichlet, e, node, 0))
             num_nodes += 1;
         else
             num_dirichlet += 1;
@@ -228,12 +232,16 @@ void AdjacencyNumberer::printElNumbers(apf::Mesh2* m_local)
 
 void AdjacencyNumberer::labelNode(apf::MeshEntity* e, int node)
 {
+
   for ( int c = 0; c < m_ncomp; ++c) // loop over dof of the node
   {
     if (shouldNumber(m_is_dirichlet, e, node, c))
       apf::number(m_dof_nums, e, node, c, --m_node_label);
     else
-      apf::number(m_dof_nums, e, node, c, --m_dirichlet_label);
+    {
+      int val = m_number_dirichlet_constant ? std::numeric_limits<int>::max() : --m_dirichlet_label;
+      apf::number(m_dof_nums, e, node, c, val);
+    }
   }
 
   apf::number(m_node_status, e, node, 0, LABELED);
@@ -437,15 +445,14 @@ void AdjacencyNumberer::reorder()
 //    std::cout << "node reordering is sane" << std::endl;
   }
 
-  if (m_dirichlet_label != m_ncomp * m_num_nodes)
+  if (!m_number_dirichlet_constant && m_dirichlet_label != m_ncomp * m_num_nodes)
   {
     std::cerr << "Warning: dirichlet node numbering not sane" << std::endl;
     std::cerr << "final dirichlet label = " << m_dirichlet_label << std::endl;
-
+    assert(m_dirichlet_label == m_ncomp * m_num_nodes);
   }
 
   assert(m_node_label == 0);
-  assert(m_dirichlet_label == m_ncomp * m_num_nodes);
 }
 
 std::vector<apf::MeshEntity*> AdjacencyNumberer::getElements()

@@ -4,6 +4,13 @@
 
 namespace linear_system {
 
+SparsityPatternMesh::SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh) :
+  m_mesh(mesh)
+{
+  mesh->getGhostDofInfo(m_ghost_global_dofs, m_ghost_local_dofs); 
+  mesh->getOwnedLocalDofInfo(m_owned_dof_to_local);
+}
+
 void SparsityPatternMesh::computePattern(bool symmetric)
 {
   auto& local_dofs  = symmetric ? m_local_dofs_sym : m_local_dofs;

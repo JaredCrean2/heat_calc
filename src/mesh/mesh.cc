@@ -123,21 +123,24 @@ void MeshCG::setApfData()
   m_dof_numbering.coord_nodes_per_element =
     apf::countElementNodes(m_apf_data.coord_shape, apf::Mesh::HEX);
 
-  m_apf_data.dof_nums     = createNumbering(m_apf_data.m, "dof_nums",
-                                            m_apf_data.sol_shape, 1);
-  m_apf_data.el_nums      = createNumbering(m_apf_data.m, "el_nums",
-                                            apf::getConstant(3), 1);
-  m_apf_data.is_dirichlet = createNumbering(m_apf_data.m, "is_dirichlet",
-                                            m_apf_data.sol_shape, 1);
-  m_apf_data.vol_groups   = createNumbering(m_apf_data.m, "vol_group",  //TODO: is this needed?
-                                            apf::getConstant(3), 1);
+  m_apf_data.dof_nums        = createNumbering(m_apf_data.m, "local_dof_nums",
+                                               m_apf_data.sol_shape, 1);
+  m_apf_data.global_dof_nums = createNumbering(m_apf_data.m, "global_dof_nums",
+                                               m_apf_data.sol_shape, 1);
+  m_apf_data.el_nums         = createNumbering(m_apf_data.m, "el_nums",
+                                               apf::getConstant(3), 1);
+  m_apf_data.is_dirichlet    = createNumbering(m_apf_data.m, "is_dirichlet",
+                                               m_apf_data.sol_shape, 1);
+  m_apf_data.vol_groups      = createNumbering(m_apf_data.m, "vol_group",  //TODO: is this needed?
+                                               apf::getConstant(3), 1);
 
   using DeleteNumbering = void (*)(ApfData::NumberingType*);
-  DeleteNumbering deleter   = &apf::destroyNumbering;
-  m_apf_data.m_dof_nums     = makeSharedWithDeleter(m_apf_data.dof_nums, deleter);
-  m_apf_data.m_el_nums      = makeSharedWithDeleter(m_apf_data.el_nums, deleter);
-  m_apf_data.m_is_dirichlet = makeSharedWithDeleter(m_apf_data.is_dirichlet, deleter);
-  m_apf_data.m_vol_groups   = makeSharedWithDeleter(m_apf_data.vol_groups, deleter);
+  DeleteNumbering deleter      = &apf::destroyNumbering;
+  m_apf_data.m_dof_nums        = makeSharedWithDeleter(m_apf_data.dof_nums, deleter);
+  m_apf_data.m_global_dof_nums = makeSharedWithDeleter(m_apf_data.global_dof_nums, deleter);
+  m_apf_data.m_el_nums         = makeSharedWithDeleter(m_apf_data.el_nums, deleter);
+  m_apf_data.m_is_dirichlet    = makeSharedWithDeleter(m_apf_data.is_dirichlet, deleter);
+  m_apf_data.m_vol_groups      = makeSharedWithDeleter(m_apf_data.vol_groups, deleter);
 
   setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);
 }
@@ -145,16 +148,22 @@ void MeshCG::setApfData()
 void MeshCG::createVolumeGroups()
 {
   setDirichletNodes(m_apf_data, m_bc_spec);
-  AdjacencyNumberer reorderer(m_apf_data.m, m_apf_data.dof_nums,
-                              m_apf_data.el_nums, m_apf_data.is_dirichlet);
-  reorderer.reorder();
-  int num_dofs = reorderer.getNumDofs();
+  AdjacencyNumberer reorderer_local(m_apf_data.m, m_apf_data.dof_nums,
+                                    m_apf_data.el_nums, m_apf_data.is_dirichlet);
 
-  m_dof_numbering.num_dofs = num_dofs;
-  m_dof_numbering.num_dofs_total = reorderer.getNumTotalDofs();
-  //apf::synchronize(m_apf_data.dof_nums);
+  AdjacencyNumberer reorderer_global(m_apf_data.m, m_apf_data.global_dof_nums,
+                                     nullptr, m_apf_data.is_dirichlet, true);
+  reorderer_local.reorder();
+  reorderer_global.reorder();
+  int num_dofs_local = reorderer_local.getNumDofs();
+  int num_dofs_owned = reorderer_global.getNumDofs();
 
-  m_elements = reorderer.getElements();
+  m_dof_numbering.num_dofs_local = num_dofs_local;
+  m_dof_numbering.num_dofs_owned = num_dofs_owned;
+  m_dof_numbering.num_dofs_total = reorderer_local.getNumTotalDofs();
+  m_dof_numbering.local_owned_to_global_dof_offset = reorderer_global.getLocalOwnedToGlobalOffset();
+
+  m_elements = reorderer_local.getElements();
   m_elnums_global_to_local.resize(m_elements.size());
   m_elnums_local_to_global.resize(m_volume_spec.size());
 
@@ -369,6 +378,121 @@ void MeshCG::getDofConnectivity(const VolumeGroup& vol_group, const Index el_idx
         dofs.push_back(apf::getNumber(m_apf_data.dof_nums, *it, j, 0));
   }
 }
+
+
+// for non-owned dofs, gives both the global dof number and the corresponding local dof number
+void MeshCG::getGhostDofInfo(std::vector<DofInt>& global_dofs, std::vector<DofInt>& local_dofs)
+{
+  int ncomp = apf::countComponents(m_apf_data.dof_nums);
+  std::vector<std::pair<DofInt, DofInt>> data;
+
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    auto it = m_apf_data.m->begin(dim);
+    apf::MeshEntity* e;
+    while ( (e = m_apf_data.m->iterate(it)))
+    {
+      if (!m_apf_data.m->isOwned(e))
+      {
+        apf::Mesh::Type etype = m_apf_data.m->getType(e);
+        int nnodes_dim = m_apf_data.sol_shape->countNodesOn(etype);
+        for (int i=0; i < nnodes_dim; ++i)
+          for (int c=0; c < ncomp; ++c)
+          {
+            int local_dof_num = apf::getNumber(m_apf_data.dof_nums, e, i, c);
+            if (isDofActive(local_dof_num))
+            {
+              int global_dof_num = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
+              data.emplace_back(local_dof_num, global_dof_num);
+
+            }
+          }
+      }
+    }
+    m_apf_data.m->end(it);
+  }
+
+  //sort both vectors by global_dofs (which should correspond to an adjacency-based ordering), and should be
+  // cache friendly
+  auto compare_global = [](const std::pair<int, int>& p1, const std::pair<int, int>& p2) { return std::less<int>()(p1.second, p2.second); };
+  std::sort(data.begin(), data.end(), compare_global);
+  global_dofs.resize(data.size());
+  local_dofs.resize(data.size());
+  for (size_t i=0; i < data.size(); ++i)
+  {
+    global_dofs[i] = data[i].second;
+    local_dofs[i]  = data[i].first;
+  }
+}
+
+void MeshCG::getOwnedLocalDofInfo(std::vector<DofInt>& owned_local_dofs)
+{
+  owned_local_dofs.resize(getNumOwnedDofs());
+  int global_to_local_offset = m_dof_numbering.local_owned_to_global_dof_offset;
+  int ncomp = apf::countComponents(m_apf_data.dof_nums);
+
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    auto it = m_apf_data.m->begin(dim);
+    apf::MeshEntity* e;
+    while ( (e = m_apf_data.m->iterate(it)))
+    {
+      if (m_apf_data.m->isOwned(e))
+      {
+        apf::Mesh::Type etype = m_apf_data.m->getType(e);
+        int nnodes_dim = m_apf_data.sol_shape->countNodesOn(etype);
+        for (int i=0; i < nnodes_dim; ++i)
+          for (int c=0; c < ncomp; ++c)
+          {
+            int local_dof_num = apf::getNumber(m_apf_data.dof_nums, e, i, c);
+            if (isDofActive(local_dof_num))
+            {
+              int local_owned_dof = apf::getNumber(m_apf_data.global_dof_nums, e, i, c) - global_to_local_offset;
+              owned_local_dofs[local_owned_dof] = local_dof_num;
+            }
+          }
+      }
+    }
+
+    m_apf_data.m->end(it);
+  }
+}
+
+
+void MeshCG::getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs)
+{
+  local_to_global_dofs.resize(getNumDofs());
+  int ncomp = apf::countComponents(m_apf_data.dof_nums);
+
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    auto it = m_apf_data.m->begin(dim);
+    apf::MeshEntity* e;
+    while ( (e = m_apf_data.m->iterate(it)))
+    {
+      if (m_apf_data.m->isOwned(e))
+      {
+        apf::Mesh::Type etype = m_apf_data.m->getType(e);
+        int nnodes_dim = m_apf_data.sol_shape->countNodesOn(etype);
+        for (int i=0; i < nnodes_dim; ++i)
+          for (int c=0; c < ncomp; ++c)
+          {
+            int local_dof_num = apf::getNumber(m_apf_data.dof_nums, e, i, c);
+            if (isDofActive(local_dof_num))
+            {
+              int local_dof = apf::getNumber(m_apf_data.dof_nums, e, i, c);
+              local_to_global_dofs[local_dof] = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
+            }
+          }
+      }
+    }
+
+    m_apf_data.m->end(it);
+  }
+
+}
+
+
 
 
 

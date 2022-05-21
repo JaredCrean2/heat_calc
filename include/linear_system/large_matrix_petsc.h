@@ -39,6 +39,7 @@ class LargeMatrixPetsc : public LargeMatrix
       m_new_matrix_values = true;
     }
 
+    // dofs are *global* dofs
     void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac) override
     {
       MatSetValues(m_A, dofs.size(), dofs.data(), dofs.size(), dofs.data(), jac.data(), ADD_VALUES);
@@ -54,6 +55,7 @@ class LargeMatrixPetsc : public LargeMatrix
     // factor the matrix/update the preconditioner.
     void factor_impl() override;
 
+    // vectors are *local* vectors (owned + ghost)
     // solve Ax = b for x.  The initial value of x might be used for an initial guess.
     // factor() must have been called first
     void solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x) override;
@@ -62,9 +64,9 @@ class LargeMatrixPetsc : public LargeMatrix
 
   private:
 
-    void copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out);
+    void copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out, bool set_ghosts);
 
-    void copyVec(const Vec vec_in, ArrayType<Real, 1>& vec_out);
+    void copyVec(const Vec vec_in, ArrayType<Real, 1>& vec_out, bool set_ghosts);
 
     LargeMatrixOptsPetsc m_opts;
     Vec m_x;
@@ -73,6 +75,8 @@ class LargeMatrixPetsc : public LargeMatrix
     KSP m_ksp;
     PC m_pc;
     bool m_new_matrix_values = true;
+    std::vector<PetscInt> m_owned_dof_to_local;
+    std::vector<PetscInt> m_ghost_dofs_to_local;
 };
 
 

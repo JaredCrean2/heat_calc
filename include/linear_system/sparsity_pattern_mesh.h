@@ -14,9 +14,7 @@ namespace linear_system {
 class SparsityPatternMesh : public SparsityPattern
 {
   public:
-    SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh) :
-      m_mesh(mesh)
-    {}
+    SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh);
 
     const std::vector<PetscInt>& getDiagonalCounts() override
     { 
@@ -50,6 +48,22 @@ class SparsityPatternMesh : public SparsityPattern
       return m_remote_dofs_sym; 
     }
 
+    const std::vector<PetscInt>& getGhostGlobalIndices() override
+    {
+      return m_ghost_global_dofs;
+    }
+
+    const std::vector<PetscInt>& getGhostLocalIndices() override
+    {
+      return m_ghost_local_dofs;
+    }
+
+    const std::vector<PetscInt>& getOwnedToLocalInfo() override
+    {
+      return m_owned_dof_to_local;
+    }
+
+
   private:
     void computePattern(bool symmetric);
 
@@ -60,6 +74,9 @@ class SparsityPatternMesh : public SparsityPattern
     std::vector<PetscInt> m_remote_dofs;
     std::vector<PetscInt> m_local_dofs_sym;
     std::vector<PetscInt> m_remote_dofs_sym;
+    std::vector<PetscInt> m_ghost_global_dofs;
+    std::vector<PetscInt> m_ghost_local_dofs;
+    std::vector<PetscInt> m_owned_dof_to_local;
 };
 
 } // namespace
