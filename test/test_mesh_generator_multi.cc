@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "test_helper.h"
 #include <apf.h>
 
 #include "mesh/mesh_generator.h"
@@ -12,6 +13,8 @@ class MeshGenerator2BlockTester : public ::testing::Test
   protected:
     MeshGenerator2BlockTester()
     {
+      SERIAL_ONLY_RETURN();
+
       m_meshspec1 = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 3, 4, 5);
       m_meshspec2 = Mesh::getMeshSpec(0, 1, 1, 2, 0, 1, 3, 5, 5);
       std::vector<Mesh::MeshSpec> meshspecs{m_meshspec1, m_meshspec2};
@@ -22,10 +25,11 @@ class MeshGenerator2BlockTester : public ::testing::Test
 
     ~MeshGenerator2BlockTester() 
     {
-      apf::destroyMesh(m_mesh);
+      if (m_mesh)
+        apf::destroyMesh(m_mesh);
     }
 
-    apf::Mesh2* m_mesh;
+    apf::Mesh2* m_mesh = nullptr;
     Mesh::MeshSpec m_meshspec1;
     Mesh::MeshSpec m_meshspec2;
 };
@@ -58,6 +62,8 @@ void countClassification(apf::Mesh2* mesh, ArrayType<int, 3>& counts)
 
 TEST_F(MeshGenerator2BlockTester, EntityCounts)
 {
+  SERIAL_ONLY();
+
   int nverts_x = m_meshspec1.nx + 1;
   int nverts_y = m_meshspec1.ny + m_meshspec2.ny + 1;
   int nverts_z = m_meshspec1.nz + 1;
@@ -84,6 +90,8 @@ TEST_F(MeshGenerator2BlockTester, EntityCounts)
 
 TEST_F(MeshGenerator2BlockTester, EntityClassificationCounts)
 {
+  SERIAL_ONLY();
+  
   ArrayType<int, 3> expected_counts(boost::extents[4][20][4]);  // geometric dimension x geometric tag x mesh entity dimension
   for (int i=0; i < 4; ++i)
     for (int j=0; j < 20; ++j)

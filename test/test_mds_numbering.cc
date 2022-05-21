@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "test_helper.h"
 #include <apfMDS.h>
 #include <apfNumbering.h>
 #include "mesh/apfMDSField.h"
@@ -58,6 +59,8 @@ class MdsNumberingTester : public testing::Test
 
 TEST_F(MdsNumberingTester, IntializedUnnumbered)
 {
+  SERIAL_ONLY();
+
   setup();
   for (int dim=0; dim < 3; ++dim)
   {
@@ -80,6 +83,8 @@ TEST_F(MdsNumberingTester, IntializedUnnumbered)
 
 TEST_F(MdsNumberingTester, Number)
 {
+  SERIAL_ONLY();
+
   setup();
   int idx = 0;
   for (int dim=0; dim < 3; ++dim)
@@ -121,6 +126,8 @@ TEST_F(MdsNumberingTester, Number)
 
 TEST_F(MdsNumberingTester, Fixed)
 {
+  SERIAL_ONLY();
+
   setup();
   for (int dim=0; dim < 3; ++dim)
   {
@@ -160,6 +167,8 @@ TEST_F(MdsNumberingTester, Fixed)
 
 TEST_F(MdsNumberingTester, Accessors)
 {
+  SERIAL_ONLY();
+  
   setup();
   EXPECT_EQ(apf::getShape(numbering), fshape.get());
   EXPECT_EQ(apf::getMesh(numbering), mesh);

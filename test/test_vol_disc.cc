@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-
+#include "test_helper.h"
 #include "ProjectDefs.h"
 #include "mesh_helper.h"
 #include "discretization/volume_discretization.h"
@@ -8,6 +8,8 @@
 
 TEST(VolDisc, dxidx)
 {
+  SERIAL_ONLY();
+
   auto spec = getStandardMeshSpec();
   spec.nx = 4; spec.ny = 5, spec.nz = 6;
   auto mesh = makeStandardMesh(spec);
@@ -53,6 +55,8 @@ TEST(VolDisc, dxidx)
 
 TEST(VolDisc, MatFuncs)
 {
+  SERIAL_ONLY();
+
   ArrayType<Real, 2> A(boost::extents[3][3]), C(boost::extents[3][3]);
 
   A[0][0] = 1; A[1][0] = 4;  A[2][0] = 8;
@@ -96,6 +100,7 @@ class VolumeTester : public ::testing::Test,
   protected:
     VolumeTester()
     {
+      SERIAL_ONLY_RETURN()
       setup();
     }
 };
@@ -117,6 +122,8 @@ class VolumeTester : public ::testing::Test,
 
 TEST_F(VolumeTester, integrateVolumeScalar)
 {
+  SERIAL_ONLY();
+  
   ArrayType<Real, 2> quad_coords(boost::extents[vol_disc->getNumQuadPtsPerElement()][3]);
   ArrayType<Real, 1> vals(boost::extents[vol_disc->getNumQuadPtsPerElement()]);
   for (int degree=0; degree < 2*quad.getNumPoints() - 1; ++degree)

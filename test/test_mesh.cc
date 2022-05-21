@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-
+#include "test_helper.h"
 #include "mesh_helper.h"
 #include "mesh/mesh.h"
 
@@ -10,6 +10,8 @@ TEST(Default, All)
 
 TEST(Mesh, Entities)
 {
+  SERIAL_ONLY();
+
   auto mesh = makeStandardMesh();
   EXPECT_EQ(mesh->getNumBCSurfaces(), 6);
   EXPECT_EQ(mesh->getNumSurfaces(), 6);

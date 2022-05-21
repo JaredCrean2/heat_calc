@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "test_helper.h"
 #include "mesh/gmiDataStructure.h"
 
 namespace {
@@ -24,6 +25,8 @@ namespace {
 
 TEST(GMIDataStructure, EntityRetrieval)
 {
+  SERIAL_ONLY();
+
   mesh_gmi::GMITopo topo;
 
   for (int dim=0; dim <= 3; ++dim)
@@ -51,6 +54,8 @@ TEST(GMIDataStructure, EntityRetrieval)
 
 TEST(GMIDataStructure, Iteration)
 {
+  SERIAL_ONLY();
+
   mesh_gmi::GMITopo topo;
   int dim=1;
   topo.createEntity(dim, 2);
@@ -70,6 +75,8 @@ TEST(GMIDataStructure, Iteration)
 
 TEST(GMIDataStructure, Adjacency)
 {
+  SERIAL_ONLY();
+  
   auto topo = std::make_shared<mesh_gmi::GMITopo>();
 
   {

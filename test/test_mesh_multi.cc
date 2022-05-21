@@ -1,5 +1,6 @@
 #include "mesh_helper.h"
 #include "gtest/gtest.h"
+#include "test_helper.h"
 
 namespace {
   class MeshMultiTester : public ::testing::Test, public StandardDiscSetupMulti
@@ -8,6 +9,8 @@ namespace {
 
 TEST_F(MeshMultiTester, Counts)
 {
+  SERIAL_ONLY();
+
   setup(3, 1);
 
   EXPECT_EQ(mesh->getNumBCSurfaces(), 11);
@@ -18,6 +21,8 @@ TEST_F(MeshMultiTester, Counts)
 
 TEST_F(MeshMultiTester, DofCounts)
 {
+  SERIAL_ONLY();
+  
   setup(3, 1);
 
   int nverts_x = specs[0].nx + 1;

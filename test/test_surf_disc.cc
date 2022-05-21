@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-
+#include "test_helper.h"
 //#include "mesh/mesh.h"
 #include "mesh_helper.h"
 #include "discretization/surface_discretization.h"
@@ -14,6 +14,7 @@ class SurfaceTester : public ::testing::Test,
   protected:
     SurfaceTester()
     {
+      SERIAL_ONLY_RETURN();
       setup();
     }
 };
@@ -22,6 +23,8 @@ class SurfaceTester : public ::testing::Test,
 
 TEST_F(SurfaceTester, Counts)
 {
+  SERIAL_ONLY();
+
   int sol_degree = 1;
   int quad_degree = 3;
   setup(quad_degree, sol_degree);
@@ -67,6 +70,8 @@ TEST_F(SurfaceTester, Counts)
 
 TEST_F(SurfaceTester, Normals)
 {
+  SERIAL_ONLY();
+
   // exact normals for the standard mesh
   ArrayType<Real, 2> normals_ex(boost::extents[6][3]);
   normals_ex[0][0] =  0; normals_ex[0][1] = -1; normals_ex[0][2] =  0;
@@ -132,6 +137,8 @@ namespace {
 
 TEST_F(SurfaceTester, integrateFaceScalar)
 {
+  SERIAL_ONLY();
+
   // the coordinates that vary over each geometric face
   ArrayType<int, 2> active_coords(boost::extents[6][2]);
   active_coords[0][0] = 0; active_coords[0][1] = 2;
@@ -174,6 +181,8 @@ TEST_F(SurfaceTester, integrateFaceScalar)
 
 TEST_F(SurfaceTester, integrateFaceVector)
 {
+  SERIAL_ONLY();
+  
   std::vector<int> active_coords{1, 0, 1, 0, 2, 2};
   std::vector<int> face_sign{-1, 1, 1, -1, -1, 1};
 

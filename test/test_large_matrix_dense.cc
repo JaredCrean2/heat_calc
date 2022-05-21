@@ -6,6 +6,8 @@
 
 TEST(LargeMatrixDense, GeneralSolve)
 {
+  SERIAL_ONLY();
+
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric        = false;
@@ -34,6 +36,8 @@ TEST(LargeMatrixDense, GeneralSolve)
 
 TEST(LargeMatrixDense, AssembleValuesAdditive)
 {
+  SERIAL_ONLY();
+
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric        = false;
@@ -67,6 +71,8 @@ TEST(LargeMatrixDense, AssembleValuesAdditive)
 
 TEST(LargeMatrixDense, AssembleValuesIgnore)
 {
+  SERIAL_ONLY();
+
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric        = false;
@@ -97,6 +103,8 @@ TEST(LargeMatrixDense, AssembleValuesIgnore)
 
 TEST(LargeMatrixDense, ZeroMatrix)
 {
+  SERIAL_ONLY();
+
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric        = false;
@@ -139,6 +147,8 @@ TEST(LargeMatrixDense, ZeroMatrix)
 
 TEST(LargeMatrixDense, FactorInPlace)
 {
+  SERIAL_ONLY();
+
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = false;
   opts.is_value_symmetric        = false;
@@ -167,6 +177,8 @@ TEST(LargeMatrixDense, FactorInPlace)
 
 TEST(LargeMatrixDense, SPD)
 {
+  SERIAL_ONLY();
+
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = true;
   opts.is_value_symmetric        = true;
@@ -196,6 +208,8 @@ TEST(LargeMatrixDense, SPD)
 
 TEST(LargeMatrixDense, SPDInPlace)
 {
+  SERIAL_ONLY();
+  
   linear_system::LargeMatrixOpts opts;
   opts.is_structurally_symmetric = true;
   opts.is_value_symmetric        = true;

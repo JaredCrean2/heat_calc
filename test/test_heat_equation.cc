@@ -1,5 +1,6 @@
 
 #include "gtest/gtest.h"
+#include "test_helper.h"
 #include <random>
 
 #include "discretization/DirichletBC_defs.h"
@@ -22,6 +23,7 @@ namespace {
 
       HeatMMSTester()
       {
+        SERIAL_ONLY_RETURN()
         setup();
       }
 
@@ -69,6 +71,7 @@ namespace {
 
       HeatMMSTesterMulti()
       {
+        SERIAL_ONLY_RETURN();
         setup(3, 1);
       }
 
@@ -164,6 +167,8 @@ void getQuadTPIndices(SurfDiscPtr surf, int quad_point, int& i, int& j)
 
 TEST_F(HeatMMSTester, Constant)
 {
+  SERIAL_ONLY();
+
   auto ex_sol = [] (Real x, Real y, Real z, Real t)
                    { return 1; };
 
@@ -189,6 +194,8 @@ TEST_F(HeatMMSTester, Constant)
 
 TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 {
+  SERIAL_ONLY();
+  
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
@@ -228,6 +235,8 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
 {
+  SERIAL_ONLY();
+
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
@@ -268,6 +277,8 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
+  SERIAL_ONLY();
+
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   std::vector<bool> dirichlet_surfs = {false, false, true, true, true, true};
@@ -310,6 +321,8 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 
 TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
 {
+  SERIAL_ONLY();
+
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   std::vector<bool> dirichlet_surfs(11);
@@ -357,6 +370,8 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
 
 TEST_F(StandardDiscTester, BasisVals2D_interpolation)
 {
+  SERIAL_ONLY();
+
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
     int quad_degree = 2*sol_degree;
@@ -411,6 +426,8 @@ TEST_F(StandardDiscTester, BasisVals2D_interpolation)
 
 TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 {
+  SERIAL_ONLY();
+
   // Note: this tests Dirichlet surfaces and Neumann surfaces where the flux
   //       does not depend on the solution
   using Rng = std::mt19937;
@@ -529,8 +546,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 
 TEST_F(HeatMMSTester, MassMatrixConstant)
 {
-
-
+  SERIAL_ONLY();
 
   // test that 1^T M 1 = volume of domain
   std::vector<bool> dirichlet_surfs = {false, false, false, false, false, false};
@@ -569,6 +585,7 @@ TEST_F(HeatMMSTester, MassMatrixConstant)
 
 TEST_F(HeatMMSTester, MassMatrixPosDef)
 {
+  SERIAL_ONLY();
   // test that M is positive definite
 
   using Rng = std::mt19937;

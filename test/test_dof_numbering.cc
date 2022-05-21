@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "test_helper.h"
 #include "mesh_helper.h"
 #include <set>
 
@@ -9,6 +10,7 @@ namespace {
   protected:
     DofNumberingTester()
     {
+      SERIAL_ONLY_RETURN()
       setup();
     }
 };
@@ -18,6 +20,8 @@ namespace {
 
 TEST_F(DofNumberingTester, Total)
 {
+  SERIAL_ONLY();
+
   // count unique dofs
   auto dof_numbering = disc->getDofNumbering();
 
@@ -47,6 +51,8 @@ TEST_F(DofNumberingTester, Total)
 
 TEST_F(DofNumberingTester, Uniqueness)
 {
+  SERIAL_ONLY();
+
   // test that nodes that have the same dof number also have the same coordinates
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
@@ -77,6 +83,7 @@ TEST_F(DofNumberingTester, Uniqueness)
 
 TEST_F(DofNumberingTester, DirichletDofsCount)
 {
+  SERIAL_ONLY();
 
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
@@ -94,6 +101,7 @@ TEST_F(DofNumberingTester, DirichletDofsCount)
 
 TEST_F(DofNumberingTester, DirichletDofsUniqueness)
 {
+  SERIAL_ONLY();
 
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
@@ -112,6 +120,8 @@ TEST_F(DofNumberingTester, DirichletDofsUniqueness)
 
 TEST_F(DofNumberingTester, DirichletDofsCoords)
 {
+  SERIAL_ONLY();
+
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
 
@@ -131,6 +141,8 @@ TEST_F(DofNumberingTester, DirichletDofsCoords)
 
 TEST_F(DofNumberingTester, DirichletDofVolumeCoords)
 {
+  SERIAL_ONLY();
+  
   setup(5, 3);
   auto dof_numbering = disc->getDofNumbering();
   for (int i=0; i < disc->getNumVolDiscs(); ++i)

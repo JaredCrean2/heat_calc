@@ -57,6 +57,8 @@ linear_system::LargeMatrixOptsPetsc get_options()
 
 TEST(LargeMatrixPetsc, GeneralSolve)
 {
+  SERIAL_ONLY();
+
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
@@ -84,6 +86,8 @@ TEST(LargeMatrixPetsc, GeneralSolve)
 
 TEST(LargeMatrixPetsc, AssembleValuesAdditive)
 {
+  SERIAL_ONLY();
+
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
@@ -115,6 +119,8 @@ TEST(LargeMatrixPetsc, AssembleValuesAdditive)
 
 TEST(LargeMatrixPetsc, AssembleValuesIgnore)
 {
+  SERIAL_ONLY();
+
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
@@ -143,6 +149,8 @@ TEST(LargeMatrixPetsc, AssembleValuesIgnore)
 
 TEST(LargeMatrixPetsc, ZeroMatrix)
 {
+  SERIAL_ONLY();
+
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
   linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
@@ -184,6 +192,8 @@ TEST(LargeMatrixPetsc, ZeroMatrix)
 
 TEST(LargeMatrixPetsc, FactorInPlace)
 {
+  SERIAL_ONLY();
+
   auto opts = get_options();
   opts.factor_in_place  = true;
   opts.petsc_opts["ksp_type"] = "preonly";
@@ -217,6 +227,8 @@ TEST(LargeMatrixPetsc, FactorInPlace)
 
 TEST(LargeMatrixPetsc, SPD)
 {
+  SERIAL_ONLY();
+  
   auto opts = get_options();
   opts.is_structurally_symmetric = true;
   opts.is_value_symmetric        = true;
