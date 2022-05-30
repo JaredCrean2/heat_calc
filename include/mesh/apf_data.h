@@ -42,14 +42,11 @@ struct ApfData
     m_coord_shape(coord_shape)
   {
 
-    std::cout << "before ghosting, number of verts = " << m->count(0) << std::endl;
     pumi::instance()->mesh = m;
     pumi::instance()->model = m_pumi_geom_shared.get();
     pumi_mesh_setCount(m, nullptr);
     int num_layers = 1;
     pumi_ghost_createLayer(m, 0, 3, num_layers, 0);
-    std::cout << "after ghosting, number of verts = " << m->count(0) << std::endl;
-
     apf::reorderMdsMesh(m);
   }
 
