@@ -11,7 +11,6 @@ namespace {
   protected:
     DiscVectorTester()
     {
-      SERIAL_ONLY_RETURN()
       setup();
       disc_vec = makeDiscVector(disc);
     }
@@ -29,15 +28,11 @@ Real func(const Real x, const Real y, const Real z)
 
 TEST_F(DiscVectorTester, Sizes)
 {
-  SERIAL_ONLY();
-
   EXPECT_EQ(disc_vec->getNumArrays(), 1u);
 }
 
 TEST_F(DiscVectorTester, Accesors)
 {
-  SERIAL_ONLY();
-
   EXPECT_NO_THROW(disc_vec->getVector());
   EXPECT_NO_THROW(disc_vec->getArray(0));
 
@@ -62,8 +57,6 @@ TEST_F(DiscVectorTester, Accesors)
 
 TEST_F(DiscVectorTester, AccesorsConst)
 {
-  SERIAL_ONLY();
-
   {
     const auto disc_vec2 = disc_vec;
     EXPECT_NO_THROW(disc_vec2->getVector());
@@ -94,8 +87,6 @@ TEST_F(DiscVectorTester, AccesorsConst)
 
 TEST_F(DiscVectorTester, SetConstant)
 {
-  SERIAL_ONLY();
-
   disc_vec->set(1);
   auto& vec = disc_vec->getVector();
   for (unsigned int i=0; i < vec.shape()[0]; ++i)
@@ -109,8 +100,6 @@ TEST_F(DiscVectorTester, SetConstant)
 
 TEST_F(DiscVectorTester, SetFunc)
 {
-  SERIAL_ONLY();
-
   disc_vec->set(1.0);
   disc_vec->setFunc(func);
   auto dof_numbering = disc->getDofNumbering();
@@ -133,11 +122,8 @@ TEST_F(DiscVectorTester, SetFunc)
     }
 }
 
-//TODO: test vector <-> array
 TEST_F(DiscVectorTester, syncArrayToVector)
 {
-  SERIAL_ONLY();
-
   disc_vec->setFunc(func);
   auto& vec = disc_vec->getVector();
   for (unsigned int i=0; i < vec.shape()[0]; ++i)
@@ -162,9 +148,7 @@ TEST_F(DiscVectorTester, syncArrayToVector)
 }
 
 TEST_F(DiscVectorTester, syncVectorToArray)
-{
-  SERIAL_ONLY();
-  
+{  
   auto dof_numbering = disc->getDofNumbering();
   auto& dofs = dof_numbering->getDofs(0);
   auto& coords = disc->getVolDisc(0)->vol_group.coords;
