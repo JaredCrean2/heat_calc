@@ -71,7 +71,7 @@ class ApfMDSFieldSyncrhonizer
           {
             countReceives(e);
           } else if (mesh->isGhosted(e) && mesh->getOwner(e) == m_comm_rank)  // not sure if the getOwner condition is required,
-                                                                            // it might be implied by isGhosted
+                                                                              // it might be implied by isGhosted
           {
             mesh->getGhosts(e, copies);
             packCopies(e, copies);
@@ -133,10 +133,10 @@ class ApfMDSFieldSyncrhonizer
         if (m_send_entities[i].size() > 0)
         {
           int count = m_send_entities[i].size() * sizeof(apf::MeshEntity*);
-          MPI_Irecv(m_send_entities[i].data(), count, MPI_BYTE, i, tag, m_comm, &(send_reqs_entities[idx]));
+          MPI_Isend(m_send_entities[i].data(), count, MPI_BYTE, i, tag, m_comm, &(send_reqs_entities[idx]));
 
           count = m_send_vals[i].size() * sizeof(T);
-          MPI_Irecv(m_send_vals[i].data(), count, MPI_BYTE, i, tag, m_comm, &(send_reqs_vals[idx++]));
+          MPI_Isend(m_send_vals[i].data(), count, MPI_BYTE, i, tag, m_comm, &(send_reqs_vals[idx++]));
         }
 
       MPI_Waitall(num_recvs, recv_reqs_entities.data(), MPI_STATUSES_IGNORE);

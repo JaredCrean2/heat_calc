@@ -29,8 +29,11 @@ std::shared_ptr<Mesh::MeshCG> makeStandardMesh(const Mesh::MeshSpec& meshspec, i
 {
   assertAlways(is_surf_dirichlet.size() == 6, "is_surf_dirichlet must have length 6");
 
-  auto generator = Mesh::make_mesh_generator(meshspec, &(Mesh::identity));
-  auto m = generator.generate();
+  int comm_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+  auto m = Mesh::make_parallel_mesh(meshspec, comm_size, &(Mesh::identity));
+  //auto generator = Mesh::make_mesh_generator(meshspec, &(Mesh::identity));
+  //auto m = generator.generate();
 
   // make volume groups
   Mesh::MeshEntityGroupSpec volume_group("volume0");

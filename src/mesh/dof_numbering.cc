@@ -435,11 +435,12 @@ void AdjacencyNumberer::reorder()
       //std::cout << "element reordering is sane" << std::endl;
     }
   }
-
-  if (m_node_label != 0)
+  // TODO: this isn't right.  For a global numbering, the final node label is not
+  //       zero, its the number of nodes on all lower-rank procs 
+  if (m_node_label != m_local_owned_to_global_offset)
   {
     std::cerr << "Warning: node numbering not sane" << std::endl;
-    std::cerr << "final node label = " << m_node_label << std::endl;
+    std::cerr << "final node label = " << m_node_label << ", should be " << m_local_owned_to_global_offset << std::endl;
   } else
   {
 //    std::cout << "node reordering is sane" << std::endl;
@@ -452,7 +453,11 @@ void AdjacencyNumberer::reorder()
     assert(m_dirichlet_label == m_ncomp * m_num_nodes);
   }
 
-  assert(m_node_label == 0);
+  assert(m_node_label == m_local_owned_to_global_offset);
+
+
+  if (m_number_owned_nodes_only)
+    apf::synchronize(m_dof_nums);
 }
 
 std::vector<apf::MeshEntity*> AdjacencyNumberer::getElements()

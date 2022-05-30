@@ -44,9 +44,9 @@ class AdjacencyNumberer
       countNodes(m_local, m_is_dirichlet, m_num_nodes, m_num_dirichlet);
       m_num_local_nodes = m_num_nodes;
 
+      m_local_owned_to_global_offset = 0;
       if (global_numbering)
       {
-        m_local_owned_to_global_offset = 0;
         MPI_Exscan(&m_num_nodes, &m_local_owned_to_global_offset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
         m_num_nodes += m_local_owned_to_global_offset;
       }
@@ -58,9 +58,6 @@ class AdjacencyNumberer
                                            apf::getShape(dof_nums), 1);
 #endif
       numberdofs(m_ncomp*(m_num_nodes + m_num_dirichlet), m_ncomp);
-
-      if (global_numbering)
-        apf::synchronize(dof_nums);
     }
 
     ~AdjacencyNumberer()

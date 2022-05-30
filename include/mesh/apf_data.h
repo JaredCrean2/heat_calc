@@ -31,17 +31,25 @@ struct ApfData
                    NumberingType* is_dirichlet=nullptr,
                    FSPtr sol_shape=nullptr,
                    FSPtr coord_shape=nullptr) :
-    m(m), dof_nums(dof_nums), 
+    m(m), 
+    dof_nums(dof_nums), 
     is_dirichlet(is_dirichlet), 
     sol_shape(sol_shape.get()),
     coord_shape(coord_shape.get()),
     m_shared(makeSharedWithDeleter(m, apf::destroyMesh)),
+    m_pumi_geom_shared(std::make_shared<gModel>(m->getModel())),
     m_sol_shape(sol_shape),
     m_coord_shape(coord_shape)
   {
 
+    std::cout << "before ghosting, number of verts = " << m->count(0) << std::endl;
+    pumi::instance()->mesh = m;
+    pumi::instance()->model = m_pumi_geom_shared.get();
+    pumi_mesh_setCount(m, nullptr);
     int num_layers = 1;
     pumi_ghost_createLayer(m, 0, 3, num_layers, 0);
+    std::cout << "after ghosting, number of verts = " << m->count(0) << std::endl;
+
     apf::reorderMdsMesh(m);
   }
 
@@ -62,6 +70,7 @@ struct ApfData
   // pointers for everything, so we keep the raw pointer above, and also
   // have a shared pointer for memory management
   std::shared_ptr<apf::Mesh2> m_shared;
+  std::shared_ptr<gModel> m_pumi_geom_shared;
   FSPtr m_sol_shape;
   FSPtr m_coord_shape;
   REPtr m_ref_el_coord;
