@@ -10,7 +10,6 @@ namespace {
   protected:
     DofNumberingTester()
     {
-      SERIAL_ONLY_RETURN()
       setup();
     }
 };
@@ -20,8 +19,6 @@ namespace {
 
 TEST_F(DofNumberingTester, Total)
 {
-  SERIAL_ONLY();
-
   // count unique dofs
   auto dof_numbering = disc->getDofNumbering();
 
@@ -33,26 +30,43 @@ TEST_F(DofNumberingTester, Total)
   auto vol_disc = disc->getVolDisc(0);
   auto& dofs = dof_numbering->getDofs(vol_disc);
 
+  std::vector<DofInt> owned_to_local_dofs;
+  mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
+  std::set<DofInt> owned_dofs(owned_to_local_dofs.begin(), owned_to_local_dofs.end());
+
   for (int i=0; i < vol_disc->getNumElems(); ++i)
     for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
     {
       Index dof = dofs[i][j];
       EXPECT_GE(dof, 0);
-      EXPECT_LT(dof, num_dofs_ex);
+      EXPECT_LT(dof, mesh->getNumTotalDofs());
       dof_nums_set.insert(dof);
-      if (dof_numbering->isDofActive(dof))
+
+      if (dof_numbering->isDofActive(dof) && owned_dofs.count(dof) == 1)
         active_dof_nums_set.insert(dof);
     }
 
-  EXPECT_EQ(dof_nums_set.size(), static_cast<size_t>(num_dofs_ex));
-  EXPECT_EQ(active_dof_nums_set.size(), static_cast<size_t>(num_active_dofs_ex));
+  int comm_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+  if (comm_size == 1)
+  {
+    EXPECT_EQ(dof_nums_set.size(), static_cast<size_t>(num_dofs_ex));
+    EXPECT_EQ(active_dof_nums_set.size(), static_cast<size_t>(num_active_dofs_ex));
+  } else
+  {
+    int num_owned_dofs = active_dof_nums_set.size(), num_total_dofs;
+    MPI_Allreduce(&num_owned_dofs, &num_total_dofs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    EXPECT_EQ(num_total_dofs, num_active_dofs_ex);
+    //Note: in the parallel case, a dof can be both Dirichlet and a ghost.  We don't expose
+    //      enough information to figure that out, so we can't test the total number of dofs
+    //      (including Dirichlet)
+  }
 }
 
 
 TEST_F(DofNumberingTester, Uniqueness)
 {
-  SERIAL_ONLY();
-
   // test that nodes that have the same dof number also have the same coordinates
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
@@ -101,7 +115,7 @@ TEST_F(DofNumberingTester, DirichletDofsCount)
 
 TEST_F(DofNumberingTester, DirichletDofsUniqueness)
 {
-  SERIAL_ONLY();
+  //SERIAL_ONLY();
 
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
@@ -120,8 +134,6 @@ TEST_F(DofNumberingTester, DirichletDofsUniqueness)
 
 TEST_F(DofNumberingTester, DirichletDofsCoords)
 {
-  SERIAL_ONLY();
-
   auto dof_numbering = disc->getDofNumbering();
   auto vol_disc = disc->getVolDisc(0);
 
@@ -140,9 +152,7 @@ TEST_F(DofNumberingTester, DirichletDofsCoords)
 
 
 TEST_F(DofNumberingTester, DirichletDofVolumeCoords)
-{
-  SERIAL_ONLY();
-  
+{  
   setup(5, 3);
   auto dof_numbering = disc->getDofNumbering();
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
@@ -163,8 +173,6 @@ TEST_F(DofNumberingTester, DirichletDofVolumeCoords)
           on_surface |= std::abs(coords_j[d] - mesh_dim_mins[d]) < 1e-13 ||
                         std::abs(coords_j[d] - mesh_dim_maxs[d]) < 1e-13;   
 
-        //std::cout << "el, j = " << el << ", " << j << std::endl;
-        //std::cout << std::boolalpha << "coords_j = " << coords_j[0] << ", " << coords_j[1] << ", " << coords_j[2] << ", is on surface = " << on_surface << std::endl;
         if (dof_numbering->isDofActive(dof))
           EXPECT_FALSE(on_surface);
         else
