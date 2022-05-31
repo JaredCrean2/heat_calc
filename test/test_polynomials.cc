@@ -64,8 +64,6 @@ Real legendre4_dx(const Real x)
 
 TEST(Polynomials, Legendre)
 {
-  SERIAL_ONLY();
-
   LegendrePoly legendre;
 
   std::vector<Real> xvals = {-1, -0.5, 0, 0.5, 1};
@@ -172,8 +170,6 @@ Real lagrange3_dx(const Real x)
 
 TEST(Polynomials, Lagrange)
 {
-  SERIAL_ONLY();
-
   std::vector<Real> pts_test = {-2, -1, -0.75, -0.5, 0.25, 0, 0.25, 0.5, 0.75, 1, 1};
   LagrangeBasis lagrange(pts);
 
@@ -205,8 +201,6 @@ TEST(Polynomials, Lagrange)
 
 TEST(Polynomials, Quadrature)
 {
-  SERIAL_ONLY();
-
   // test using orthogonality property of Legendre polnomials
 
   LegendrePoly legendre;
@@ -249,8 +243,6 @@ TEST(Polynomials, Quadrature)
 
 TEST(Polynomials, LagrangeMemoizer)
 {
-  SERIAL_ONLY();
-
   std::vector<Real> pts_in1 = {-1, 0, 1};
   std::vector<Real> pts_out1 = {0.5, 0, 0.5};
 
@@ -299,8 +291,6 @@ Real testPoly_dz(const Real x, const Real y, const Real z)
 
 TEST(Polynomials, LagrangeTP)
 {
-  SERIAL_ONLY();
-
   std::vector<Real> pts_in = {-1.0, 0.0, 1.0};
   std::vector<Real> pts_out = {-0.75, -0.25, 0.25, 0.75};
   ArrayType<Real, 2> pts_nontp(boost::extents[64][3]);
@@ -473,8 +463,6 @@ TEST(Polynomials, LagrangeTP)
 
 TEST(Polynomials, LagrangeTP2D)
 {
-  SERIAL_ONLY();
-
   std::vector<Real> pts_in = {-1.0, 0.0, 1.0};
   std::vector<Real> pts_out = {-0.75, -0.25, 0.25, 0.75};
   ArrayType<Real, 2> pts_nontp(boost::extents[16][3]);
@@ -603,8 +591,6 @@ TEST(Polynomials, LagrangeTP2D)
 
 TEST(Polynomials, HeatBasisVals)
 {
-  SERIAL_ONLY();
-
   std::vector<Real> pts_in = {-1.0, 0.0, 1.0};
   std::vector<Real> pts_out = {-0.75, -0.25, 0.25, 0.75};
   Mesh::TensorProductMapper mapper_in(pts_in), mapper_out(pts_out);
