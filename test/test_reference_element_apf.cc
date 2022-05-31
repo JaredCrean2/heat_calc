@@ -6,8 +6,6 @@
 
 TEST(ReferenceElementApf, Linear)
 {
-  SERIAL_ONLY();
-
   auto ref_el = reference_element::getLagrangeHexReferenceElement(1);
   auto fshape = apf::getHexFieldShape(ref_el);
 
@@ -37,8 +35,6 @@ TEST(ReferenceElementApf, Linear)
 
 TEST(ReferenceElementApf, Quadratic)
 {
-  SERIAL_ONLY();
-
   auto ref_el = reference_element::getLagrangeHexReferenceElement(2);
   auto fshape = apf::getHexFieldShape(ref_el);
 
@@ -67,9 +63,7 @@ TEST(ReferenceElementApf, Quadratic)
 
 
 TEST(ReferenceElementApf, Cubic)
-{
-  SERIAL_ONLY();
-  
+{  
   auto ref_el = reference_element::getLagrangeHexReferenceElement(3);
   auto fshape = apf::getHexFieldShape(ref_el);
 

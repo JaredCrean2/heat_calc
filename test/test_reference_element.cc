@@ -62,8 +62,6 @@ bool checkTensorProductNodeMapUniqueness(Mesh::ReferenceElement* ref_el)
 
 TEST(ReferenceElement, Counts)
 {
-  SERIAL_ONLY();
-
   Mesh::ReferenceElement* hex1 = Mesh::getReferenceElement(apf::Mesh::HEX, 1);
   Mesh::ReferenceElement* hex2 = Mesh::getReferenceElement(apf::Mesh::HEX, 2);
   Mesh::ReferenceElement* hex3 = Mesh::getReferenceElement(apf::Mesh::HEX, 3);
@@ -88,8 +86,6 @@ TEST(ReferenceElement, Counts)
 
 TEST(ReferenceElement, getTensorProductXi)
 {
-  SERIAL_ONLY();
-
   Mesh::ReferenceElement* hex1 = Mesh::getReferenceElement(apf::Mesh::HEX, 1);
   Mesh::ReferenceElement* hex2 = Mesh::getReferenceElement(apf::Mesh::HEX, 2);
   Mesh::ReferenceElement* hex3 = Mesh::getReferenceElement(apf::Mesh::HEX, 3);
@@ -104,9 +100,7 @@ TEST(ReferenceElement, getTensorProductXi)
 }
 
 TEST(ReferenceElement, getTensorProductMap)
-{
-  SERIAL_ONLY();
-  
+{  
   Mesh::ReferenceElement* hex1 = Mesh::getReferenceElement(apf::Mesh::HEX, 1);
   Mesh::ReferenceElement* hex2 = Mesh::getReferenceElement(apf::Mesh::HEX, 2);
   Mesh::ReferenceElement* hex3 = Mesh::getReferenceElement(apf::Mesh::HEX, 3);

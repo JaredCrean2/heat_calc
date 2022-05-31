@@ -115,8 +115,6 @@ void testFaceNodes(REPtr ref_el)
 
 TEST(ReferenceElementHex, Geometry)
 {
-  SERIAL_ONLY();
-
   auto ref_el = reference_element::getLagrangeHexReferenceElement(1);
 
   EXPECT_EQ(ref_el->getNumVerts(), 8);
@@ -139,8 +137,6 @@ TEST(ReferenceElementHex, Geometry)
 
 TEST(ReferenceElementHex, Linear)
 {
-  SERIAL_ONLY();
-
   auto ref_el = reference_element::getLagrangeHexReferenceElement(1);
 
   EXPECT_EQ(ref_el->getNumNodes(0), 1);
@@ -195,9 +191,7 @@ TEST(ReferenceElementHex, Quadratic)
 
 
 TEST(ReferenceElementHex, Cubic)
-{
-  SERIAL_ONLY();
-  
+{  
   auto ref_el = reference_element::getLagrangeHexReferenceElement(3);
 
   EXPECT_EQ(ref_el->getNumNodes(0), 1);
