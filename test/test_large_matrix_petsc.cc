@@ -57,7 +57,8 @@ linear_system::LargeMatrixOptsPetsc get_options()
 
 TEST(LargeMatrixPetsc, GeneralSolve)
 {
-  SERIAL_ONLY();
+  int comm_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
@@ -66,7 +67,7 @@ TEST(LargeMatrixPetsc, GeneralSolve)
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
 
-  std::vector<DofInt> dofs{0, 1, 2};
+  std::vector<DofInt> dofs{0 + 3*comm_rank, 1 + 3*comm_rank, 2 + 3*comm_rank};
   auto vals = make_mat(3, 3, {1, 2, 3,
                               4, 5, 6,
                               8, 8, 9});
@@ -75,9 +76,13 @@ TEST(LargeMatrixPetsc, GeneralSolve)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
+  std::cout << "finished setting values" << std::endl;
   mat.finishMatrixAssembly();
+  std::cout << "finished matrix assembly" << std::endl;
   mat.factor();
+  std::cout << "finished factoring matrix" << std::endl;
   mat.solve(b, x);
+  std::cout << "finished solve" << std::endl;
 
   for (int i=0; i < 3; ++i)
     EXPECT_NEAR(x[i], x_ex[i], 1e-13);
@@ -86,7 +91,8 @@ TEST(LargeMatrixPetsc, GeneralSolve)
 
 TEST(LargeMatrixPetsc, AssembleValuesAdditive)
 {
-  SERIAL_ONLY();
+  int comm_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
@@ -95,7 +101,7 @@ TEST(LargeMatrixPetsc, AssembleValuesAdditive)
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
 
-  std::vector<DofInt> dofs{0, 1, 2};
+  std::vector<DofInt> dofs{0 + 3*comm_rank, 1 + 3*comm_rank, 2 + 3*comm_rank};
   auto vals = make_mat(3, 3, {1, 2, 3,
                               4, 5, 3,
                               4, 4, 9});
@@ -119,7 +125,8 @@ TEST(LargeMatrixPetsc, AssembleValuesAdditive)
 
 TEST(LargeMatrixPetsc, AssembleValuesIgnore)
 {
-  SERIAL_ONLY();
+  int comm_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
@@ -128,7 +135,7 @@ TEST(LargeMatrixPetsc, AssembleValuesIgnore)
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
 
-  std::vector<DofInt> dofs{0, 1, 2, -1};
+  std::vector<DofInt> dofs{0 + 3*comm_rank, 1 + 3*comm_rank, 2 + 3*comm_rank, -1};
   auto vals = make_mat(4, 4, {1, 2, 3,       666,
                               4, 5, 6,       666,
                               8, 8, 9,       666,
@@ -149,7 +156,8 @@ TEST(LargeMatrixPetsc, AssembleValuesIgnore)
 
 TEST(LargeMatrixPetsc, ZeroMatrix)
 {
-  SERIAL_ONLY();
+  int comm_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
@@ -158,7 +166,7 @@ TEST(LargeMatrixPetsc, ZeroMatrix)
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
 
-  std::vector<DofInt> dofs{0, 1, 2};
+  std::vector<DofInt> dofs{0 + 3*comm_rank, 1 + 3*comm_rank, 2 + 3*comm_rank};
   auto vals = make_mat(3, 3, {1, 2, 3,
                               4, 5, 6,
                               8, 8, 9});
@@ -192,7 +200,8 @@ TEST(LargeMatrixPetsc, ZeroMatrix)
 
 TEST(LargeMatrixPetsc, FactorInPlace)
 {
-  SERIAL_ONLY();
+  int comm_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
   auto opts = get_options();
   opts.factor_in_place  = true;
@@ -207,7 +216,7 @@ TEST(LargeMatrixPetsc, FactorInPlace)
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
 
-  std::vector<DofInt> dofs{0, 1, 2};
+  std::vector<DofInt> dofs{0 + 3*comm_rank, 1 + 3*comm_rank, 2 + 3*comm_rank};
   auto vals = make_mat(3, 3, {1, 2, 3,
                               4, 5, 6,
                               8, 8, 9});
@@ -227,12 +236,14 @@ TEST(LargeMatrixPetsc, FactorInPlace)
 
 TEST(LargeMatrixPetsc, SPD)
 {
-  SERIAL_ONLY();
+  int comm_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
   
   auto opts = get_options();
   opts.is_structurally_symmetric = true;
   opts.is_value_symmetric        = true;
-  opts.petsc_opts["pc_type"] = "icc";
+  opts.petsc_opts["pc_type"] = "bjacobi";
+  opts.petsc_opts["pc_sub_type"] = "icc";
   opts.petsc_opts["mat_type"] = "aij";  //TODO: need to update assembly procedure to filter
                                         //      out below-diagonal entries
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
@@ -241,7 +252,7 @@ TEST(LargeMatrixPetsc, SPD)
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
 
-  std::vector<DofInt> dofs{0, 1, 2};
+  std::vector<DofInt> dofs{0 + 3*comm_rank, 1 + 3*comm_rank, 2 + 3*comm_rank};
   auto vals = make_mat(3, 3, {10, 2, 3,
                               2, 12, 5,
                               3, 5, 20});

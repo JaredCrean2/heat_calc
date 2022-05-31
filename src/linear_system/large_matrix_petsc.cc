@@ -38,24 +38,10 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   VecSetFromOptions(m_b);
 
   MatCreate(PETSC_COMM_WORLD, &m_A);
-  PetscObjectSetName((PetscObject)m_A, (opts.opts_prefix + "_rhs").c_str());
+  PetscObjectSetName((PetscObject)m_A, (opts.opts_prefix + "_matrix").c_str());
   MatSetSizes(m_A, getMLocal(), getNLocal(), PETSC_DECIDE, PETSC_DECIDE);
   MatSetOptionsPrefix(m_A, opts.opts_prefix.c_str());
   MatSetFromOptions(m_A);
-  //TODO: what happens if MAT_SYMMETRIC is true but a non-symmetric matrix format is used?
-  if (opts.is_value_symmetric)
-    MatSetOption(m_A, MAT_SYMMETRIC, PETSC_TRUE);
-  else if (opts.is_structurally_symmetric)
-    MatSetOption(m_A, MAT_STRUCTURALLY_SYMMETRIC, PETSC_TRUE);
-
-  if (opts.is_value_symmetric || opts.is_structurally_symmetric)
-    MatSetOption(m_A, MAT_SYMMETRY_ETERNAL, PETSC_TRUE);
-
-  MatSetOption(m_A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE);
-  MatSetOption(m_A, MAT_NEW_NONZERO_LOCATIONS,      PETSC_FALSE);
-  MatSetOption(m_A, MAT_NEW_NONZERO_LOCATION_ERR,   PETSC_TRUE);
-  // TODO: MAT_SORTED_FULL for preallocation
-  // TODO: MatSetOption(m_A, MAT_ROWS_SORTED) and similarly for MAT_COLUMNS_SORTED (see page 56 of manual)
 
   const PetscInt *diagonal_counts = nullptr, *offproc_counts=nullptr;
   const PetscInt *diagonal_counts_sym = nullptr, *offproc_counts_sym=nullptr;
@@ -68,10 +54,27 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
     diagonal_counts = sparsity_pattern->getDiagonalCounts().data();
     offproc_counts  = sparsity_pattern->getOffProcCounts().data();
   }
-    
   MatXAIJSetPreallocation(m_A, 1, diagonal_counts, offproc_counts,
                                   diagonal_counts_sym, offproc_counts_sym);
+
+  //TODO: what happens if MAT_SYMMETRIC is true but a non-symmetric matrix format is used?
+  if (opts.is_value_symmetric)
+    MatSetOption(m_A, MAT_SYMMETRIC, PETSC_TRUE);
+  else if (opts.is_structurally_symmetric)
+    MatSetOption(m_A, MAT_STRUCTURALLY_SYMMETRIC, PETSC_TRUE);
+
+  if (opts.is_value_symmetric || opts.is_structurally_symmetric)
+    MatSetOption(m_A, MAT_SYMMETRY_ETERNAL, PETSC_TRUE);
+
+  std::cout << "m_A = " << m_A << std::endl;
+  MatSetOption(m_A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE);
+  //MatSetOption(m_A, MAT_NEW_NONZERO_LOCATIONS,      PETSC_FALSE);
+  //MatSetOption(m_A, MAT_NEW_NONZERO_LOCATION_ERR,   PETSC_TRUE);
+  // TODO: MAT_SORTED_FULL for preallocation
+  // TODO: MatSetOption(m_A, MAT_ROWS_SORTED) and similarly for MAT_COLUMNS_SORTED (see page 56 of manual)
   
+
+
 
   KSPCreate(PETSC_COMM_WORLD, &m_ksp);
   PetscObjectSetName((PetscObject)m_ksp, (opts.opts_prefix + "_ksp").c_str());

@@ -53,9 +53,6 @@ class LargeMatrix
       assert(jac.shape()[0] == dofs.size());
       assert(jac.shape()[1] == dofs.size());
 
-      for (unsigned int i=0; i < dofs.size(); ++i)
-        assert(dofs[i] < getMLocal());
-
       // check uniqueness
       std::vector<DofInt> dofs_copy;
       for (unsigned int i=0; i < dofs.size(); ++i)
