@@ -35,6 +35,18 @@ void setVolumeGroupNumbering(apf::Mesh2* m, const std::vector<MeshEntityGroupSpe
 void getGroupElements(ApfData& apf_data, MeshEntityGroupSpec& volume_group,
                       std::vector<apf::MeshEntity*>& elements);
 
+void getElementWeights(ApfData& apf_data, const std::vector<apf::MeshEntity*>& elements,
+                        std::vector<int_least8_t>& element_weights);
+
+void getGroupFaces(ApfData& apf_data, const MeshEntityGroupSpec& surf, REPtr ref_el_coord, 
+                   const std::vector<MeshEntityGroupSpec>& volume_specs,
+                   const std::vector<Index>& elnums_global_to_local,
+                   std::vector<FaceSpec>& faces);
+
+void getFaceWeights(ApfData& apf_data, const std::vector<FaceSpec>& faces, REPtr ref_el_coord,
+                    std::vector<apf::MeshEntity*> elements,
+                    std::vector<int_least8_t>& face_weights);
+
 void getDofNums(ApfData& apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements_group,
                 ArrayType<Index, 2>& nodenums);

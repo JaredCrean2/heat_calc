@@ -1,6 +1,7 @@
 #include "mesh/mesh_helper.h"
 #include "apfShape.h"
 #include "apf.h"
+#include "mesh/mesh_input.h"
 #include <iostream>
 
 namespace Mesh {
@@ -148,6 +149,86 @@ void getGroupElements(ApfData& apf_data, MeshEntityGroupSpec& volume_group,
   }
   apf_data.m->end(it);
 }
+
+void getElementWeights(ApfData& apf_data, const std::vector<apf::MeshEntity*>& elements,
+                        std::vector<int_least8_t>& element_weights)
+{
+  element_weights.resize(elements.size());
+  for (size_t i=0; i < elements.size(); ++i)
+    element_weights[i] = apf_data.m->isGhost(elements[i]) ? 0 : 1;
+}
+
+
+void getGroupFaces(ApfData& apf_data, const MeshEntityGroupSpec& surf, REPtr ref_el_coord, 
+                   const std::vector<MeshEntityGroupSpec>& volume_specs,
+                   const std::vector<Index>& elnums_global_to_local,
+                   std::vector<FaceSpec>& faces)
+{
+  apf::Downward down;
+  apf::MeshIterator* it = apf_data.m->begin(2);
+  apf::MeshEntity* e;
+  while ( (e = apf_data.m->iterate(it)) )
+  {
+    auto me = getMESpec(apf_data.m, e);
+    if (surf.hasModelEntity(me))
+    {
+      auto me_parent = surf.getParentEntity(me);
+      for (int i=0; i < apf_data.m->countUpward(e); ++i)
+      {
+        apf::MeshEntity* e_i = apf_data.m->getUpward(e, i);
+        auto me_i = getMESpec(apf_data.m, e_i);
+        if (me_i == me_parent)
+        {
+          // get local face number
+          int nfaces_i = apf_data.m->getDownward(e_i, 2, down);
+          int localidx = -1;
+          for (int j=0; j < nfaces_i; ++j)
+            if (down[j] == e)
+            {
+              localidx = j;
+              break;
+            }
+
+          assert(localidx != -1);
+          localidx = ref_el_coord->getREEntityIndex(2, localidx);
+
+          int elnum = apf::getNumber(apf_data.el_nums, e_i, 0, 0);
+          int elnum_local = elnums_global_to_local[elnum];
+          int vol_group_idx = -1;
+          // TODO: could cache this, because it is a function of me_parent
+          for (const auto& vol_group : volume_specs)
+            if (vol_group.hasModelEntity(me_parent))
+              vol_group_idx = vol_group.getIdx();
+
+          assert(vol_group_idx != -1);
+
+          faces.push_back(FaceSpec(elnum, elnum_local, localidx, vol_group_idx));
+          break;
+        }
+      }
+    }
+  }
+  apf_data.m->end(it);
+}
+
+void getFaceWeights(ApfData& apf_data, const std::vector<FaceSpec>& faces, REPtr ref_el_coord,
+                    std::vector<apf::MeshEntity*> elements,
+                    std::vector<int_least8_t>& face_weights)
+{
+  apf::Downward down;
+  face_weights.resize(faces.size());
+  for (size_t i=0; i < faces.size(); ++i)
+  {
+    int local_face_idx = faces[i].face;
+    int local_face_apf = ref_el_coord->getApfEntityIndex(2, local_face_idx);
+    apf::MeshEntity* el_apf = elements[faces[i].el];
+    apf_data.m->getDownward(el_apf, 2, down);
+    apf::MeshEntity* face_apf = down[local_face_apf];
+
+    face_weights[i] = apf_data.m->isGhost(face_apf) ? 0 : 1; 
+  }
+}
+
 
 void getDofNums(ApfData& apf_data, const MeshEntityGroupSpec& vol_group,
                 std::vector<apf::MeshEntity*>& elements,

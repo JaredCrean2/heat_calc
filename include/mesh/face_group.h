@@ -23,24 +23,22 @@ struct FaceGroup
   FaceGroup(const int idx, REPtr ref_el_coord, REPtr ref_el_sol,
             const TensorProductMapper& tp_mapper_coord,
             const TensorProductMapper& tp_mapper_sol,
-            //ArrayType<LocalIndex, 2> nodemap_coord,
-            //ArrayType<LocalIndex, 2> nodemap_sol,
-            //const ArrayType<LocalIndex, 2> face_tp_nodemap_coord,
+            const std::vector<FaceSpec>& faces,
+            const ArrayType<Index, 2>& nodenums,
+            const std::vector<int_least8_t>& face_weights,
             bool is_dirichlet,
             bool is_boundary_surface) :
+    faces(faces),
+    nodenums(nodenums),
     ref_el_coord(ref_el_coord),
     ref_el_sol(ref_el_sol),
-    //face_tp_nodemap_coord(face_tp_nodemap_coord),
     m_idx(idx),
     m_is_dirichlet(is_dirichlet),
     m_is_boundary_surface(is_boundary_surface),
     m_tp_mapper_coord(tp_mapper_coord),
-    m_tp_mapper_sol(tp_mapper_sol)
-  {
-
-    //std::cout << "in FaceGroup constructor" << std::endl;
-    //std::cout << "ref_el_coord->getNumCoordPtsPerFace() = " << ref_el_coord->getNumNodes(2) << std::endl;
-  }
+    m_tp_mapper_sol(tp_mapper_sol),
+    m_face_weights(face_weights)
+  {}
 
   std::vector<FaceSpec> faces;
   ArrayType<Index, 2> nodenums; // nfaces x npts per face
@@ -48,9 +46,6 @@ struct FaceGroup
                                 // don't need this large array anymore
   REPtr ref_el_coord;
   REPtr ref_el_sol;
-
-  // face tensor product nodemap
-  //const ArrayType<LocalIndex, 2> face_tp_nodemap_coord;
 
   int getIdx() const { return m_idx; }
 
@@ -63,6 +58,8 @@ struct FaceGroup
   int getNumCoordPtsPerFace() const { return ref_el_coord->getNumFaceNodes(); }
 
   int getNumSolPtsPerFace() const { return ref_el_sol->getNumFaceNodes(); }
+
+  int_least8_t getFaceWeights(int face) const { return m_face_weights[face]; }
 
   // volume to face nodemap
   // nfaces_per_element x num nodes per face
@@ -81,6 +78,7 @@ struct FaceGroup
     const bool m_is_boundary_surface;
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;
+    std::vector<int_least8_t> m_face_weights;
 };
 
 }

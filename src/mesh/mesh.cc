@@ -175,14 +175,16 @@ void MeshCG::createVolumeGroups()
     ArrayType<Real, 3> coords(boost::extents[numel_i][m_dof_numbering.coord_nodes_per_element][3]);
     //TODO: get coords on coordinate field
     std::vector<apf::MeshEntity*> elements_group;
+    std::vector<int_least8_t> element_weights;
 
     getGroupElements(m_apf_data, m_volume_spec[i], elements_group);
+    getElementWeights(m_apf_data, elements_group, element_weights);
     getDofNums(m_apf_data, m_volume_spec[i], elements_group, dof_nums);
     getCoords(m_apf_data,  m_volume_spec[i], elements_group, coords);
 
     m_vol_group.emplace_back(VolumeGroup(m_volume_spec[i].getIdx(), dof_nums, coords,
       m_tensor_product_coord_map, m_tensor_product_sol_map, 
-      m_ref_el_coord, m_ref_el_sol, elements_group));
+      m_ref_el_coord, m_ref_el_sol, elements_group, element_weights));
 
     m_elnums_local_to_global[i].resize(elements_group.size());
     for (SInt j=0; j < elements_group.size(); ++j)
@@ -197,83 +199,23 @@ void MeshCG::createVolumeGroups()
 
 void MeshCG::createFaceGroups()
 {
-
-  apf::Downward down;
-  //ArrayType<LocalIndex, 2> nodemap_coord = getFaceNodeMap(m_apf_data, m_apf_data.coord_shape);
-  //ArrayType<LocalIndex, 2> nodemap_sol = getFaceNodeMap(m_apf_data, m_apf_data.sol_shape);
-  //const auto& tp_nodemap = getFaceTensorProductMap(m_dof_numbering.coord_degree);
-/*
-  ReferenceElement* ref_el_coord = getReferenceElement(apf::Mesh::HEX,
-                                            m_dof_numbering.coord_degree);
-  ReferenceElement* ref_el_sol   = getReferenceElement(apf::Mesh::HEX,
-                                            m_dof_numbering.sol_degree);
-*/
   for (auto& surf : m_all_face_spec)
   {
     bool is_boundary_surface = surf.getIdx() < m_bc_spec.size();
-    m_all_faces.emplace_back(surf.getIdx(), m_ref_el_coord, m_ref_el_sol,
-                             m_tensor_product_coord_map, m_tensor_product_sol_map,
-                             /*tp_nodemap,*/ surf.getIsDirichlet(), is_boundary_surface);
-    auto& face_group = m_all_faces.back();
+    std::vector<FaceSpec> faces;
+    getGroupFaces(m_apf_data, surf, m_ref_el_coord, m_volume_spec, m_elnums_global_to_local, faces);
 
-    //TODO: consider doing adjacency based search (starting with min
-    // element number of mirror dof numbering algorithm)
-    apf::MeshIterator* it = m_apf_data.m->begin(2);
-    apf::MeshEntity* e;
-    while ( (e = m_apf_data.m->iterate(it)) )
-    {
-      auto me = getMESpec(m_apf_data.m, e);
-      if (surf.hasModelEntity(me))
-      {
-        auto me_parent = surf.getParentEntity(me);
-        for (int i=0; i < m_apf_data.m->countUpward(e); ++i)
-        {
-          apf::MeshEntity* e_i = m_apf_data.m->getUpward(e, i);
-          auto me_i = getMESpec(m_apf_data.m, e_i);
-          if (me_i == me_parent)
-          {
-            // get local face number
-            int nfaces_i = m_apf_data.m->getDownward(e_i, 2, down);
-            int localidx = -1;
-            for (int j=0; j < nfaces_i; ++j)
-              if (down[j] == e)
-              {
-                localidx = j;
-                break;
-              }
-
-            assert(localidx != -1);
-            localidx = m_ref_el_coord->getREEntityIndex(2, localidx);
-
-            int elnum = apf::getNumber(m_apf_data.el_nums, e_i, 0, 0);
-            int elnum_local = m_elnums_global_to_local[elnum];
-            int vol_group_idx = -1;
-            // TODO: could cache this, because it is a function of me_parent
-            for (const auto& vol_group : m_volume_spec)
-              if (vol_group.hasModelEntity(me_parent))
-                vol_group_idx = vol_group.getIdx();
-
-            assert(vol_group_idx != -1);
-
-            face_group.faces.push_back(FaceSpec(elnum, elnum_local, localidx, vol_group_idx));
-            break;
-          }
-        }
-      }
-    }
-    m_apf_data.m->end(it);
-
+    std::vector<int_least8_t> face_weights;
+    getFaceWeights(m_apf_data, faces, m_ref_el_coord, m_elements, face_weights);
 
     // get dofs
-    auto nfaces = face_group.faces.size();
+    auto nfaces = faces.size();
     int num_nodes_per_face = m_ref_el_sol->getNumNodes(2);
-    face_group.nodenums.resize(boost::extents[nfaces][num_nodes_per_face]);
+    ArrayType<Index, 2> nodenums(boost::extents[nfaces][num_nodes_per_face]);
     auto& nodemap_sol = m_ref_el_sol->getFaceNodes();
-    //face_group.nodenums = ArrayType<Index, 2>(boost::extents[nfaces][num_nodes_per_face]);
-
     for (SInt i=0; i < nfaces; ++i)
     {
-      FaceSpec& face_i = face_group.faces[i];
+      FaceSpec& face_i = faces[i];
       int vol_group = apf::getNumber(m_apf_data.vol_groups, 
                                      m_elements[face_i.el], 0, 0);
       auto& parent_group = m_vol_group[vol_group];
@@ -283,10 +225,15 @@ void MeshCG::createFaceGroups()
       //the local one)
       int group_elnum = m_elnums_global_to_local[face_i.el];
       for (int node=0; node <  num_nodes_per_face; ++node)
-        face_group.nodenums[i][node] =
-          parent_group.nodenums[group_elnum][nodemap_sol[face_i.face][node]];
+        nodenums[i][node] = parent_group.nodenums[group_elnum][nodemap_sol[face_i.face][node]];
     }
+
+    m_all_faces.emplace_back(surf.getIdx(), m_ref_el_coord, m_ref_el_sol,
+                          m_tensor_product_coord_map, m_tensor_product_sol_map,
+                          /*tp_nodemap,*/ faces, nodenums, face_weights, surf.getIsDirichlet(), is_boundary_surface);
   }
+
+
 }
 
 

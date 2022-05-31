@@ -15,7 +15,8 @@ namespace Mesh {
                  const TensorProductMapper& tp_mapper_sol,
                  REPtr ref_el_coord,
                  REPtr ref_el_sol,
-                 std::vector<apf::MeshEntity*>& elements) :
+                 std::vector<apf::MeshEntity*>& elements,
+                 std::vector<int_least8_t> element_weights) :
       nodenums(nodenums),
       coords(coords),
       normals_xi(ref_el_coord->getNormals()),
@@ -25,7 +26,8 @@ namespace Mesh {
       m_elements(elements),
       m_idx(idx),
       m_tp_mapper_coord(tp_mapper_coord),
-      m_tp_mapper_sol(tp_mapper_sol)
+      m_tp_mapper_sol(tp_mapper_sol),
+      m_element_weights(element_weights)
     {}
 
     ArrayType<Index, 2> nodenums;   // nelems x npts per element
@@ -50,6 +52,8 @@ namespace Mesh {
 
     const TensorProductMapper& getTPMapperSol() const { return m_tp_mapper_sol;}
 
+    int getElementWeights(int elnum) const { return m_element_weights[elnum]; }
+
     //TODO: is this used?
     // given derivative d/dxi, computes d/dx
     // deriv_xi: num_nodes_per_element x 3
@@ -61,6 +65,7 @@ namespace Mesh {
     const int m_idx;
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;
+    std::vector<int_least8_t> m_element_weights;
 };
 }
 

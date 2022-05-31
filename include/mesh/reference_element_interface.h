@@ -135,7 +135,8 @@ class ReferenceElement
 
     // given the dimension and apf index, get the ReferenceElement index
     int getREEntityIndex(int dim, int idx);
-
+    
+    //TODO: this duplicated getApfEntity above?
     // given the dimension and ReferenceElement index, get the apf entity index
     int getApfEntityIndex(int dim, int idx)
     {
