@@ -52,7 +52,7 @@ namespace Mesh {
 
     const TensorProductMapper& getTPMapperSol() const { return m_tp_mapper_sol;}
 
-    int getElementWeights(int elnum) const { return m_element_weights[elnum]; }
+    int getElementWeight(int elnum) const { return m_element_weights[elnum]; }
 
     //TODO: is this used?
     // given derivative d/dxi, computes d/dx

@@ -1,10 +1,16 @@
+#ifndef HEAT_CALC_PROJECT_DEFS_H
+#define HEAT_CALC_PROJECT_DEFS_H
+
 #include "boost/multi_array.hpp"
+#include "mpi.h"
 
 template <typename T, long unsigned N>
 using ArrayType = boost::multi_array<T, N>;
 using range = boost::multi_array_types::index_range;
 
 using Real = double;
+constexpr MPI_Datatype REAL_MPI_DATATYPE = MPI_DOUBLE;
+
 
 using DofInt = int;      // for degrees of freedom
 using Index = int;       // for element/face numbers
@@ -40,3 +46,4 @@ view(Array& A, const T1& t1, const T2& t2, const T3& t3, const T4& t4) -> declty
 }
 
 */
+#endif

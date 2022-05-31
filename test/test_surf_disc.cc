@@ -14,7 +14,6 @@ class SurfaceTester : public ::testing::Test,
   protected:
     SurfaceTester()
     {
-      SERIAL_ONLY_RETURN();
       setup();
     }
 };
@@ -23,8 +22,6 @@ class SurfaceTester : public ::testing::Test,
 
 TEST_F(SurfaceTester, Counts)
 {
-  SERIAL_ONLY();
-
   int sol_degree = 1;
   int quad_degree = 3;
   setup(quad_degree, sol_degree);
@@ -70,8 +67,6 @@ TEST_F(SurfaceTester, Counts)
 
 TEST_F(SurfaceTester, Normals)
 {
-  SERIAL_ONLY();
-
   // exact normals for the standard mesh
   ArrayType<Real, 2> normals_ex(boost::extents[6][3]);
   normals_ex[0][0] =  0; normals_ex[0][1] = -1; normals_ex[0][2] =  0;
@@ -137,8 +132,6 @@ namespace {
 
 TEST_F(SurfaceTester, integrateFaceScalar)
 {
-  SERIAL_ONLY();
-
   // the coordinates that vary over each geometric face
   ArrayType<int, 2> active_coords(boost::extents[6][2]);
   active_coords[0][0] = 0; active_coords[0][1] = 2;
@@ -166,23 +159,24 @@ TEST_F(SurfaceTester, integrateFaceScalar)
           for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
             vals[k] = poly(face_coords[k][active_coords[i][d]], degree);
 
-          val_sum += integrateFaceScalar(surf_i, j, vals);
+          val_sum += surf_i->getFaceWeight(j) * integrateFaceScalar(surf_i, j, vals);
         }
+
+        double global_val;
+        MPI_Allreduce(&val_sum, &global_val, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
         // compute exact result
         int other_active_dim = (active_coords[i][d] + 1) % 2;
         double area = mesh_dim_maxs[other_active_dim] - mesh_dim_mins[other_active_dim];
 
         double val_exact = area*(poly_antideriv(mesh_dim_maxs[d], degree) - poly_antideriv(mesh_dim_mins[d], degree));
-        EXPECT_FLOAT_EQ(val_sum, val_exact);
+        EXPECT_FLOAT_EQ(global_val, val_exact);
       }
   }
 }
 
 TEST_F(SurfaceTester, integrateFaceVector)
-{
-  SERIAL_ONLY();
-  
+{  
   std::vector<int> active_coords{1, 0, 1, 0, 2, 2};
   std::vector<int> face_sign{-1, 1, 1, -1, -1, 1};
 
@@ -211,14 +205,17 @@ TEST_F(SurfaceTester, integrateFaceVector)
         for (int k=0; k < surf_i->getNumQuadPtsPerFace(); ++k)
           vals[k][active_coord] = poly(face_coords[k][variable_coord], degree);
 
-        val_sum += integrateFaceVector(surf_i, j, vals); 
+        val_sum += surf_i->getFaceWeight(j) * integrateFaceVector(surf_i, j, vals); 
       }
-        
+
+      double global_val;
+      MPI_Allreduce(&val_sum, &global_val, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
       // compute exact result
       double area = mesh_dim_maxs[other_variable_coord] - mesh_dim_mins[other_variable_coord];
       double val_exact = area*(poly_antideriv(mesh_dim_maxs[variable_coord], degree) -
                                 poly_antideriv(mesh_dim_mins[variable_coord], degree)) * face_sign[i];
-      EXPECT_FLOAT_EQ(val_sum, val_exact);
+      EXPECT_FLOAT_EQ(global_val, val_exact);
     }
   }
 }

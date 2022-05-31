@@ -96,7 +96,6 @@ class VolumeTester : public ::testing::Test,
   protected:
     VolumeTester()
     {
-      SERIAL_ONLY_RETURN()
       setup();
     }
 };
@@ -117,12 +116,11 @@ class VolumeTester : public ::testing::Test,
 
 
 TEST_F(VolumeTester, integrateVolumeScalar)
-{
-  SERIAL_ONLY();
-  
+{  
   ArrayType<Real, 2> quad_coords(boost::extents[vol_disc->getNumQuadPtsPerElement()][3]);
   ArrayType<Real, 1> vals(boost::extents[vol_disc->getNumQuadPtsPerElement()]);
   for (int degree=0; degree < 2*quad.getNumPoints() - 1; ++degree)
+  {
     for (int d=0; d < 3; ++d)
     {
       Real val = 0.0;
@@ -132,8 +130,11 @@ TEST_F(VolumeTester, integrateVolumeScalar)
         for (int j=0; j < vol_disc->getNumQuadPtsPerElement(); ++j)
           vals[j] = poly(quad_coords[j][d], degree);
 
-        val += integrateVolumeScalar(vol_disc, i, vals);
+        val += vol_disc->getElementWeight(i) * integrateVolumeScalar(vol_disc, i, vals);
       }
+
+      Real global_val;
+      MPI_Allreduce(&val, &global_val, 1, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
 
       // compute exact value
       Real area = 1;
@@ -142,7 +143,8 @@ TEST_F(VolumeTester, integrateVolumeScalar)
           area *= mesh_dim_maxs[d2] - mesh_dim_mins[d2];
 
       Real val_exact = area*(poly_antideriv(mesh_dim_maxs[d], degree) - poly_antideriv(mesh_dim_mins[d], degree));
-      EXPECT_FLOAT_EQ(val, val_exact);
+      EXPECT_FLOAT_EQ(global_val, val_exact);
     }
+  }
 }
 

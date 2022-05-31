@@ -40,6 +40,8 @@ class VolumeDiscretization
 
     int getNumQuadPtsPerElement() const { return quad.getNumPoints() * quad.getNumPoints() * quad.getNumPoints(); }
 
+    int_least8_t getElementWeight(int elnum) const { return vol_group.getElementWeight(elnum); }
+
     // computes coordinates of volume quadrature points in a flat array (num quad points per face x 3)
     template <typename Array2D>
     void getVolumeSolCoords(const Index el, Array2D& quad_coords);
@@ -157,6 +159,8 @@ void getVolumePoints(const VolumeDiscretization& disc, ArrayType<Real, 2>& face_
 template <typename Array>
 typename Array::element integrateVolumeScalar(VolDiscPtr vol, const int el, const Array& vals)
 {
+  static_assert(std::is_same<typename Array::element, Real>::value, "Array element type must be Real");
+
   assert(vals.num_dimensions() == 1);
   assert(vals.shape()[0] == static_cast<unsigned int>(vol->getNumQuadPtsPerElement()));
 
@@ -170,7 +174,7 @@ typename Array::element integrateVolumeScalar(VolDiscPtr vol, const int el, cons
         val += vals[idx] * weight / vol->detJ[el][idx];
         idx++;
       }
-
+  
   return val;
 }
 

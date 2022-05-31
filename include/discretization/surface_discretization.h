@@ -32,6 +32,8 @@ class SurfaceDiscretization
 
     int getNumQuadPtsPerFace() const {return quad.getNumPoints() * quad.getNumPoints();}
 
+    int_least8_t getFaceWeight(int face) const { return face_group.getFaceWeight(face); }
+
     VolDiscPtr getVolDisc(const int face) { return volume_discs[face_group.faces[face].vol_group]; }
 
     // computes coordinates of face quadrature points in a flat array (num quad points per face x 3)

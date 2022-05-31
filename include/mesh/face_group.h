@@ -59,7 +59,7 @@ struct FaceGroup
 
   int getNumSolPtsPerFace() const { return ref_el_sol->getNumFaceNodes(); }
 
-  int_least8_t getFaceWeights(int face) const { return m_face_weights[face]; }
+  int_least8_t getFaceWeight(int face) const { return m_face_weights[face]; }
 
   // volume to face nodemap
   // nfaces_per_element x num nodes per face
