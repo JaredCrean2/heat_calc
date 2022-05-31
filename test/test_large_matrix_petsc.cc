@@ -76,13 +76,9 @@ TEST(LargeMatrixPetsc, GeneralSolve)
   ArrayType<Real, 1> x(boost::extents[3]);
 
   mat.assembleValues(dofs, vals);
-  std::cout << "finished setting values" << std::endl;
   mat.finishMatrixAssembly();
-  std::cout << "finished matrix assembly" << std::endl;
   mat.factor();
-  std::cout << "finished factoring matrix" << std::endl;
   mat.solve(b, x);
-  std::cout << "finished solve" << std::endl;
 
   for (int i=0; i < 3; ++i)
     EXPECT_NEAR(x[i], x_ex[i], 1e-13);

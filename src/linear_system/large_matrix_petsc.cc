@@ -12,7 +12,6 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   bool is_symmetric_mattype = false;
   if (opts.petsc_opts.count("mat_type") == 0)
   {
-    std::cout << "setting mat type" << std::endl;
     opts.petsc_opts["mat_type"] = opts.is_value_symmetric ? "sbaij" : "aij";
   } else
   {
@@ -66,7 +65,6 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   if (opts.is_value_symmetric || opts.is_structurally_symmetric)
     MatSetOption(m_A, MAT_SYMMETRY_ETERNAL, PETSC_TRUE);
 
-  std::cout << "m_A = " << m_A << std::endl;
   MatSetOption(m_A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE);
   //MatSetOption(m_A, MAT_NEW_NONZERO_LOCATIONS,      PETSC_FALSE);
   //MatSetOption(m_A, MAT_NEW_NONZERO_LOCATION_ERR,   PETSC_TRUE);
@@ -119,9 +117,7 @@ void LargeMatrixPetsc::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1
   assertAlways(x.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
   if (m_new_matrix_values)
   {
-    std::cout << "about to call KSPSetUp" << std::endl;
     KSPSetUp(m_ksp);
-    std::cout << "finished calling KSPSetUp" << std::endl;
     m_new_matrix_values = false;
   }
 
