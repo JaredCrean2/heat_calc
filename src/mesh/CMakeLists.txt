@@ -4,6 +4,7 @@ add_library(mesh mesh_generator.cc
                  mesh_generator_multi.cc
                  mesh_helper.cc
                  mesh.cc
+                 apf_data.cc
                  dof_numbering.cc
                  reference_element.cc
                  reference_element_geometry.cc
@@ -14,7 +15,8 @@ add_library(mesh mesh_generator.cc
                  reference_element_apf.cc
                  gmiDataStructure.cc
                  apfShapeHex.cc
-                 apfMDSField.cc)
+                 apfMDSField.cc
+                 FieldDataManager.cc)
 
 target_include_directories(mesh PUBLIC
                           "${PROJECT_BINARY_DIR}/include"  # needed for configured header

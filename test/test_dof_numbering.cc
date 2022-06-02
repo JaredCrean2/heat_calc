@@ -152,7 +152,8 @@ TEST_F(DofNumberingTester, DirichletDofsCoords)
 
 
 TEST_F(DofNumberingTester, DirichletDofVolumeCoords)
-{  
+{
+  std::cout << "\nabout to call setup(5, 3)" << std::endl;  
   setup(5, 3);
   auto dof_numbering = disc->getDofNumbering();
   for (int i=0; i < disc->getNumVolDiscs(); ++i)

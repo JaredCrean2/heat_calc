@@ -31,6 +31,7 @@ VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, c
                                                            tp_mapper_quad.getXi(),
                                                            vol_group.getTPMapperSol().getNodemap(),
                                                            tp_mapper_quad.getNodemap());
+  
   computeDxidx(*this, dxidx);
   computeDetJ(*this, detJ, detJInv);
 }

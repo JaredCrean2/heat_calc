@@ -529,10 +529,7 @@ class MeshGeneratorMulti
           }
       }
 
-      mesh_gmi::verify(*m_gmi_topo);
-    
-                                                         
-    //TODO: make GMIEntity non-copyable
+      mesh_gmi::verify(*m_gmi_topo);                                                         
     }
 
     bool hasUpwardAdjacency(const mesh_gmi::GMIEntity& entity, const mesh_gmi::GMIEntity& entity_up)
@@ -695,6 +692,40 @@ MeshGeneratorMulti<typename std::decay<T>::type>
 make_mesh_generator(const std::vector<MeshSpec>& meshspecs, T&& func=&identity)
 {
   return {meshspecs, std::forward<T>(func)};
+}
+
+
+template <typename T>
+apf::Mesh2* make_parallel_mesh(const std::vector<MeshSpec>& meshspec, int num_procs, T&& func=&identity)
+{
+  int comm_rank = 0;
+  MPI_Comm_rank(PCU_Get_Comm(), &comm_rank);
+
+  PCU_Switch_Comm(MPI_COMM_SELF);
+  apf::Mesh2* mesh = nullptr;
+  gmi_model* model = nullptr;
+  if (comm_rank == 0)
+  {
+    auto mesh_generator = make_mesh_generator(meshspec, identity);
+    mesh = mesh_generator.generate();
+    model = mesh->getModel();
+  } else
+  {
+    //TODO: this is a terrible hack: we need the gmi model on all procs, but
+    //      the model is implicitly created when the mesh is created, so we
+    //      create a mesh, get is model, then destroy the mesh
+    auto mesh_generator = make_mesh_generator(meshspec, identity);
+    apf::Mesh2* dummy_mesh = mesh_generator.generate();
+    model = dummy_mesh->getModel();
+    apf::disownMdsModel(dummy_mesh);
+    apf::destroyMesh(dummy_mesh);
+  }
+
+  mesh::ApfSplitter splitter(mesh, model);
+  mesh = splitter.split(num_procs);
+  apf::writeASCIIVtkFiles("mesh_split", mesh);
+
+  return mesh;
 }
 
 //TODO: do instantiation in source file

@@ -23,7 +23,6 @@ namespace {
 
       HeatMMSTester()
       {
-        SERIAL_ONLY_RETURN()
         setup();
       }
 
@@ -71,7 +70,6 @@ namespace {
 
       HeatMMSTesterMulti()
       {
-        SERIAL_ONLY_RETURN();
         setup(3, 1);
       }
 
@@ -112,8 +110,8 @@ namespace {
 
 Real ex_sol(Real x, Real y, Real z, Real t, int degree)
 {
-  //return std::pow(x, degree) + std::pow(y, degree); // + std::pow(z, degree);
-  return std::pow(y, degree);
+  return std::pow(x, degree) + std::pow(y, degree); // + std::pow(z, degree);
+  //return std::pow(y, degree);
 }
 
 
@@ -122,9 +120,9 @@ std::array<Real, 3> ex_sol_deriv(Real x, Real y, Real z, Real t, int degree)
   std::array<Real, 3> derivs{0, 0, 0};
   if (degree > 0)
   {
-    //derivs[0] = degree * std::pow(x, degree - 1);
+    derivs[0] = degree * std::pow(x, degree - 1);
     derivs[1] = degree * std::pow(y, degree - 1);
-    //derivs[2] = degree * std::pow(z, degree - 1);
+    derivs[2] = degree * std::pow(z, degree - 1);
   }
 
   return derivs;
@@ -141,8 +139,8 @@ Real src_func_dir(Real x, int degree)
 
 Real src_func(Real x, Real y, Real z, Real t, int degree)
 {
-  //return src_func_dir(x, degree) + src_func_dir(y, degree); // + src_func_dir(z, degree);
-  return src_func_dir(y, degree);
+  return src_func_dir(x, degree) + src_func_dir(y, degree); // + src_func_dir(z, degree);
+  //return src_func_dir(y, degree);
 }
 
 //TODO: what is this and why is it here
@@ -193,15 +191,14 @@ TEST_F(HeatMMSTester, Constant)
 
 
 TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
-{
-  SERIAL_ONLY();
-  
+{  
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
 
     std::cout << "testing sol degree " << sol_degree << std::endl;
+
     for (int degree=0; degree <= sol_degree; ++degree)
     {
       std::cout << "  testing polynomial degree " << degree << std::endl;
@@ -221,13 +218,17 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
       setup(2*sol_degree, sol_degree);
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
+      std::vector<DofInt> owned_to_local_dofs;
+      mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
+
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       auto& vec = res_vec->getVector();
-      for (int i=0; i < vec.shape()[0]; ++i)
+      //for (int i=0; i < vec.shape()[0]; ++i)
+      for (auto dof : owned_to_local_dofs)
       {
-        EXPECT_LE(std::abs(vec[i]), 1e-12);
+        EXPECT_LE(std::abs(vec[dof]), 1e-12);
       }
     }
   }
@@ -235,8 +236,6 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
 {
-  SERIAL_ONLY();
-
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
@@ -262,13 +261,17 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
       setup(2*sol_degree, sol_degree);
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
+      std::vector<DofInt> owned_to_local_dofs;
+      mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
+
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       auto& vec = res_vec->getVector();
-      for (int i=0; i < vec.shape()[0]; ++i)
+      //for (int i=0; i < vec.shape()[0]; ++i)
+      for (auto dof : owned_to_local_dofs)
       {
-        EXPECT_LE(std::abs(vec[i]), 1e-12);
+        EXPECT_LE(std::abs(vec[dof]), 1e-12);
       }
     }
   }
@@ -277,8 +280,6 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
 
 TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
-  SERIAL_ONLY();
-
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   std::vector<bool> dirichlet_surfs = {false, false, true, true, true, true};
@@ -306,13 +307,16 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
       setup(2*sol_degree, sol_degree, dirichlet_surfs);
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
+      std::vector<DofInt> owned_to_local_dofs;
+      mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
+
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       auto& vec = res_vec->getVector();
-      for (int i=0; i < vec.shape()[0]; ++i)
+      for (auto dof : owned_to_local_dofs)
       {
-        EXPECT_LE(std::abs(vec[i]), 1e-12);
+        EXPECT_LE(std::abs(vec[dof]), 1e-12);
       }
     }
   }
@@ -327,7 +331,7 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
   Heat::VolumeGroupParams params{kappa, 3, 4};
   std::vector<bool> dirichlet_surfs(11);
   for (int i=0; i < 11; ++i)
-    dirichlet_surfs[i] = i % 3 == 0;
+    dirichlet_surfs[i] = false; // i % 3 == 0;
 
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
@@ -356,10 +360,14 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
+      std::vector<DofInt> owned_to_local_dofs;
+      mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
+
       auto& vec = res_vec->getVector();
-      for (int i=0; i < vec.shape()[0]; ++i)
+      for (auto dof : owned_to_local_dofs)
       {
-        EXPECT_LE(std::abs(vec[i]), 1e-12);
+        std::cout << "dof " << dof << " has residual value " << vec[dof] << std::endl;
+        EXPECT_LE(std::abs(vec[dof]), 1e-12);
       }
     }
   }

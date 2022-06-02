@@ -2,7 +2,6 @@
 #define MESH_APF_DATA_H
 
 #include "apf.h"
-#include "pumi.h"
 #include "apfNumbering.h"
 #include "mesh/reference_element_interface.h"
 #include "mesh/reference_element_apf.h"
@@ -18,6 +17,8 @@ namespace Mesh {
 using REPtr = reference_element::REPtr;
 
 
+
+
 struct ApfData
 {
   using FSPtr = std::shared_ptr<apf::FieldShapeRefEl>;
@@ -27,56 +28,43 @@ struct ApfData
   using NumberingType = apf::Numbering;
 #endif
 
-  explicit ApfData(apf::Mesh2* m, NumberingType* dof_nums=nullptr,
-                   NumberingType* is_dirichlet=nullptr,
-                   FSPtr sol_shape=nullptr,
-                   FSPtr coord_shape=nullptr) :
-    m(m), 
-    dof_nums(dof_nums), 
-    is_dirichlet(is_dirichlet), 
-    sol_shape(sol_shape.get()),
-    coord_shape(coord_shape.get()),
-    m_shared(makeSharedWithDeleter(m, apf::destroyMesh)),
-    m_pumi_geom_shared(std::make_shared<gModel>(m->getModel())),
-    m_sol_shape(sol_shape),
-    m_coord_shape(coord_shape)
-  {
-
-    pumi::instance()->mesh = m;
-    pumi::instance()->model = m_pumi_geom_shared.get();
-    pumi_mesh_setCount(m, nullptr);
-    int num_layers = 1;
-    pumi_ghost_createLayer(m, 0, 3, num_layers, 0);
-    apf::reorderMdsMesh(m);
-  }
+  explicit ApfData(apf::Mesh2* m,
+                   REPtr ref_el_sol,
+                   REPtr ref_el_coord);
 
   ApfData(const ApfData&) = delete;
 
   ApfData& operator=(const ApfData&) = delete;
 
-  apf::Mesh2* m;
-  NumberingType* dof_nums        = nullptr;
-  NumberingType* global_dof_nums = nullptr;
-  NumberingType* el_nums         = nullptr;
-  NumberingType* is_dirichlet    = nullptr;  // if dof is dirichlet
-  apf::FieldShape* sol_shape;    // FieldShape of solution
-  apf::FieldShape* coord_shape;  // FieldShape of cooordinate field
-  NumberingType* vol_groups      = nullptr;    // volume group numbering of elements
-
   // unfortunately, the apf API takes raw pointers rather than shared
-  // pointers for everything, so we keep the raw pointer above, and also
+  // pointers for everything, so we keep the raw pointer and also
   // have a shared pointer for memory management
   std::shared_ptr<apf::Mesh2> m_shared;
-  std::shared_ptr<gModel> m_pumi_geom_shared;
   FSPtr m_sol_shape;
   FSPtr m_coord_shape;
   REPtr m_ref_el_coord;
   REPtr m_ref_el_sol;
+
+  apf::Mesh2* m;
+  apf::FieldShape* sol_shape;    // FieldShape of solution
+  apf::FieldShape* coord_shape;  // FieldShape of cooordinate field
+
+  NumberingType* dof_nums        = nullptr;
+  NumberingType* global_dof_nums = nullptr;
+  NumberingType* el_nums         = nullptr;
+  NumberingType* is_dirichlet    = nullptr;  // if dof is dirichlet
+  NumberingType* vol_groups      = nullptr;    // volume group numbering of elements
+
+
   std::shared_ptr<NumberingType> m_dof_nums;
   std::shared_ptr<NumberingType> m_global_dof_nums;
   std::shared_ptr<NumberingType> m_el_nums;
   std::shared_ptr<NumberingType> m_is_dirichlet;
   std::shared_ptr<NumberingType> m_vol_groups;
+
+
+
+
 
   //std::vector<apf::MeshEntity*> elements;
 };

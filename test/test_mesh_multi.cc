@@ -13,8 +13,8 @@ TEST_F(MeshMultiTester, Counts)
 
   setup(3, 1);
 
-  EXPECT_EQ(mesh->getNumBCSurfaces(), 11);
-  EXPECT_EQ(mesh->getNumSurfaces(), 12);
+  EXPECT_EQ(mesh->getNumBCSurfaces(), 10);
+  EXPECT_EQ(mesh->getNumSurfaces(), 11);
   EXPECT_EQ(mesh->getNumVolumeGroups(), 2);
 }
 

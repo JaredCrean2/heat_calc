@@ -1,10 +1,24 @@
 #include "mesh/mesh_helper.h"
 #include "apfShape.h"
 #include "apf.h"
+#include "pumi.h"
 #include "mesh/mesh_input.h"
 #include <iostream>
 
 namespace Mesh {
+
+void createGhostLayer(apf::Mesh2* m)
+{
+  std::shared_ptr<gModel> pumi_geom_shared = std::make_shared<gModel>(m->getModel());
+
+  pumi::instance()->mesh = m;
+  pumi::instance()->model = pumi_geom_shared.get();
+  pumi_mesh_setCount(m, nullptr);
+  int num_layers = 1;
+  pumi_ghost_createLayer(m, 0, 3, num_layers, true);
+  apf::reorderMdsMesh(m);
+}
+
 
 //-----------------------------------------------------------------------------
 // Handling Dirichlet BCs
@@ -75,7 +89,7 @@ void setDofsDirichlet(ApfData& apf_data, apf::MeshEntity* e, const int val)
       {
         auto type = apf_data.m->getType(down[i]);
         for (int j=0; j < apf_data.sol_shape->countNodesOn(type); ++j)
-          apf::number(apf_data.is_dirichlet, down[i], j, 0, true);
+          apf::number(apf_data.is_dirichlet, down[i], j, 0, val);
       }
     }
 }

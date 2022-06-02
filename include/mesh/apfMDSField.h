@@ -5,6 +5,7 @@
 #include "apfMesh.h"
 #include "apfMesh2.h"
 #include "apfMDS.h"
+#include "error_handling.h"
 #include "mds_apf.h"
 #include "apfShape.h"
 #include "apfNumbering.h"
@@ -139,6 +140,12 @@ class ApfMDSField
 };
 
 template <typename MeshWrapper>
+apf::Field* createSimilarField(ApfMDSField<double, MeshWrapper>* field)
+{
+  return apf::createPackedField(field->getMesh(), field->getName(), field->getNumComponents(), field->getFieldShape());
+}
+
+template <typename MeshWrapper>
 class ApfMDSNumberingSpec : public ApfMDSField<int, MeshWrapper>
 {
   using Base = ApfMDSField<int, MeshWrapper>;
@@ -186,6 +193,12 @@ class ApfMDSNumberingSpec : public ApfMDSField<int, MeshWrapper>
     int m_unnumbered = -1;
     int m_fixed      = -2;
 };
+
+template <typename MeshWrapper>
+apf::Numbering* createSimilarNumbering(ApfMDSNumberingSpec<MeshWrapper>* numbering)
+{
+  return apf::createNumbering(numbering->getMesh(), numbering->getName().c_str(), numbering->getFieldShape(), numbering->getNumComponents());
+}
 
 
 }  // namespace
@@ -236,7 +249,9 @@ inline int countComponents(ApfMDSNumbering* n)
 
 void synchronize(ApfMDSNumbering* n);
 
-}
+void copyToApf(ApfMDSNumbering* n_in, apf::Numbering* n_out);
+
+} // namespace apf
 
 #endif
 #endif

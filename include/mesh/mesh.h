@@ -12,6 +12,7 @@
 #include "mesh/face_group.h"
 #include "mesh/apf_data.h"
 #include "mesh/apfMDSField.h"
+#include "mesh/FieldDataManager.h"
 
 #include <apf.h>
 #include <apfMesh.h>
@@ -46,13 +47,13 @@ class MeshCG
 {
   using SInt = std::vector<VolumeGroup>::size_type;
 
-  public:
     MeshCG(apf::Mesh2* m,
            std::vector<MeshEntityGroupSpec> volume_group_spec,
            std::vector<MeshEntityGroupSpec> bc_spec,
            std::vector<MeshEntityGroupSpec> other_surface_spec,
            const int solution_degree, const int coord_degree);
 
+  public:
     // getting faces
     const FaceGroup& getFaces(const MeshEntityGroupSpec& surf)
     {
@@ -148,25 +149,39 @@ class MeshCG
 
 
     // input
-    ApfData m_apf_data;
-    DofNumbering m_dof_numbering;
     std::vector<MeshEntityGroupSpec> m_volume_spec;
     std::vector<MeshEntityGroupSpec> m_bc_spec;
     std::vector<MeshEntityGroupSpec> m_all_face_spec;
+    REPtr m_ref_el_coord;
+    REPtr m_ref_el_sol;
+    ApfData m_apf_data;
+
 
     // computed data
+    DofNumbering m_dof_numbering;
     std::vector<VolumeGroup> m_vol_group;
     //std::vector<std::vector<FaceGroup>> m_bc_faces;
     std::vector<FaceGroup> m_all_faces;
     std::vector<apf::MeshEntity*> m_elements;
     std::vector<Index> m_elnums_global_to_local;  // element numbers to group element numbers
     std::vector< std::vector<Index> > m_elnums_local_to_global; // (group, local element number) -> global element number
-    REPtr m_ref_el_coord;
-    REPtr m_ref_el_sol;
+
     TensorProductMapper m_tensor_product_coord_map;
     TensorProductMapper m_tensor_product_sol_map;
+    FieldDataManager m_field_data_manager;
+
+    friend std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
+                                     std::vector<MeshEntityGroupSpec> volume_group_spec,
+                                     std::vector<MeshEntityGroupSpec> bc_spec,
+                                     std::vector<MeshEntityGroupSpec> other_surface_spec,
+                                     const int solution_degree, const int coord_degree);
 };
 
+std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
+                                     std::vector<MeshEntityGroupSpec> volume_group_spec,
+                                     std::vector<MeshEntityGroupSpec> bc_spec,
+                                     std::vector<MeshEntityGroupSpec> other_surface_spec,
+                                     const int solution_degree, const int coord_degree);
 
 } // namespace
 

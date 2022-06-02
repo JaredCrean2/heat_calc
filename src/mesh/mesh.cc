@@ -32,14 +32,15 @@ MeshCG::MeshCG(apf::Mesh2* m,
         std::vector<MeshEntityGroupSpec> bc_spec,
         std::vector<MeshEntityGroupSpec> other_surface_spec,
         const int solution_degree, const int coord_degree) :
-  m_apf_data(m),
   m_volume_spec(volume_group_spec),
   m_bc_spec(bc_spec),
   m_all_face_spec(bc_spec),
   m_ref_el_coord(reference_element::getLagrangeHexReferenceElement(coord_degree)),
   m_ref_el_sol(reference_element::getLagrangeHexReferenceElement(solution_degree)),
+  m_apf_data(m, m_ref_el_sol, m_ref_el_coord),
   m_tensor_product_coord_map(m_ref_el_coord),
-  m_tensor_product_sol_map(m_ref_el_sol)
+  m_tensor_product_sol_map(m_ref_el_sol),
+  m_field_data_manager(m_apf_data.m, m_apf_data.sol_shape, m_apf_data.dof_nums, m_apf_data.is_dirichlet)
 {
   assert(coord_degree == 1);
   m_dof_numbering.sol_degree   = solution_degree;
@@ -88,17 +89,7 @@ void MeshCG::setSurfaceIndices(const std::vector<MeshEntityGroupSpec>& other_sur
   */
 }
 
-#ifdef MESH_USE_MDS_NUMBERING
-apf::ApfMDSNumbering* createNumbering(apf::Mesh2* mesh, const char* name, apf::FieldShape* shape, int components)
-{
-  return apf::createNumberingMDS(mesh, name, shape, components);
-}
-#else
-apf::Numbering* createNumbering(apf::Mesh2* mesh, const char* name, apf::FieldShape* shape, int components)
-{
-  return apf::createNumbering(mesh, name, shape, components);
-}
-#endif
+
 
 
 void MeshCG::setApfData()
@@ -107,15 +98,6 @@ void MeshCG::setApfData()
   //m_apf_data.sol_shape = Mesh::getLagrange(m_dof_numbering.sol_degree);
   //m_apf_data.coord_shape = Mesh::getLagrange(m_dof_numbering.coord_degree);
 
-  auto sol_shape   = apf::getHexFieldShape(m_ref_el_sol);
-  auto coord_shape = apf::getHexFieldShape(m_ref_el_coord);
-  m_apf_data.m_sol_shape    = sol_shape;
-  m_apf_data.sol_shape      = sol_shape.get();
-  m_apf_data.m_coord_shape  = coord_shape;
-  m_apf_data.coord_shape    = coord_shape.get();
-  m_apf_data.m_ref_el_coord = m_ref_el_coord;
-  m_apf_data.m_ref_el_sol   = m_ref_el_sol;
-
   m_dof_numbering.nodes_per_element =
     apf::countElementNodes(m_apf_data.sol_shape, apf::Mesh::HEX);
   m_dof_numbering.nodes_per_face =
@@ -123,26 +105,9 @@ void MeshCG::setApfData()
   m_dof_numbering.coord_nodes_per_element =
     apf::countElementNodes(m_apf_data.coord_shape, apf::Mesh::HEX);
 
-  m_apf_data.dof_nums        = createNumbering(m_apf_data.m, "local_dof_nums",
-                                               m_apf_data.sol_shape, 1);
-  m_apf_data.global_dof_nums = createNumbering(m_apf_data.m, "global_dof_nums",
-                                               m_apf_data.sol_shape, 1);
-  m_apf_data.el_nums         = createNumbering(m_apf_data.m, "el_nums",
-                                               apf::getConstant(3), 1);
-  m_apf_data.is_dirichlet    = createNumbering(m_apf_data.m, "is_dirichlet",
-                                               m_apf_data.sol_shape, 1);
-  m_apf_data.vol_groups      = createNumbering(m_apf_data.m, "vol_group",  //TODO: is this needed?
-                                               apf::getConstant(3), 1);
-
-  using DeleteNumbering = void (*)(ApfData::NumberingType*);
-  DeleteNumbering deleter      = &apf::destroyNumbering;
-  m_apf_data.m_dof_nums        = makeSharedWithDeleter(m_apf_data.dof_nums, deleter);
-  m_apf_data.m_global_dof_nums = makeSharedWithDeleter(m_apf_data.global_dof_nums, deleter);
-  m_apf_data.m_el_nums         = makeSharedWithDeleter(m_apf_data.el_nums, deleter);
-  m_apf_data.m_is_dirichlet    = makeSharedWithDeleter(m_apf_data.is_dirichlet, deleter);
-  m_apf_data.m_vol_groups      = makeSharedWithDeleter(m_apf_data.vol_groups, deleter);
-
   setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);
+
+  //TODO: move dof numbering to here?
 }
 
 void MeshCG::createVolumeGroups()
@@ -201,6 +166,11 @@ void MeshCG::createFaceGroups()
 {
   for (auto& surf : m_all_face_spec)
   {
+    std::cout << "surface " << surf.getIdx() << " has model entities ";
+    for (auto me : surf.getModelEntities())
+      std::cout << me << ", ";
+    std::cout << std::endl;
+
     bool is_boundary_surface = surf.getIdx() < m_bc_spec.size();
     std::vector<FaceSpec> faces;
     getGroupFaces(m_apf_data, surf, m_ref_el_coord, m_volume_spec, m_elnums_global_to_local, faces);
@@ -210,6 +180,7 @@ void MeshCG::createFaceGroups()
 
     // get dofs
     auto nfaces = faces.size();
+    std::cout << "nfaces = " << nfaces << std::endl;
     int num_nodes_per_face = m_ref_el_sol->getNumNodes(2);
     ArrayType<Index, 2> nodenums(boost::extents[nfaces][num_nodes_per_face]);
     auto& nodemap_sol = m_ref_el_sol->getFaceNodes();
@@ -436,7 +407,16 @@ void MeshCG::getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs)
 
     m_apf_data.m->end(it);
   }
+}
 
+std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
+                                     std::vector<MeshEntityGroupSpec> volume_group_spec,
+                                     std::vector<MeshEntityGroupSpec> bc_spec,
+                                     std::vector<MeshEntityGroupSpec> other_surface_spec,
+                                     const int solution_degree, const int coord_degree)
+{
+  createGhostLayer(m);
+  return std::shared_ptr<MeshCG>(new MeshCG(m, volume_group_spec, bc_spec, other_surface_spec, solution_degree, coord_degree));
 }
 
 

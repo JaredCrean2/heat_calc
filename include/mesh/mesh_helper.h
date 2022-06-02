@@ -5,6 +5,9 @@
 
 namespace Mesh {
 
+void createGhostLayer(apf::Mesh2* m);
+
+
 // Handling Dirichlet BCs
 
 // Populates apf_data.is_dirichlet with true for all dofs on Dirichlet faces

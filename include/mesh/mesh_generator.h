@@ -453,7 +453,6 @@ apf::Mesh2* make_parallel_mesh(const MeshSpec& meshspec, int num_procs, T&& func
   mesh = splitter.split(num_procs);
   apf::writeASCIIVtkFiles("mesh_split", mesh);
 
-
   return mesh;
 }
 

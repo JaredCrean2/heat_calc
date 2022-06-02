@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # ASAN flags
-#ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
-#CXXFLAGS="-O0 -Wall -g -fdebug-default-version=4"
-#BUILDTYPE="Debug"
+ASAN_FLAGS="-g -fsanitize=address -fno-omit-frame-pointer"
+CXXFLAGS="-O0 -Wall -g -fdebug-default-version=4"
+BUILDTYPE="Debug"
 
 # non-ASAN debug build
-CXXFLAGS="-O0 -Wall -g -fno-omit-frame-pointer -fdebug-default-version=4"
-BUILDTYPE="Debug"
+#CXXFLAGS="-O0 -Wall -g -fno-omit-frame-pointer -fdebug-default-version=4"
+#BUILDTYPE="Debug"
 
 
 # Optimized build

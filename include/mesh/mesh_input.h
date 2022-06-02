@@ -44,6 +44,12 @@ inline bool operator!=(const ModelEntitySpec& me1, const ModelEntitySpec& me2)
   return !(me1 == me2);
 }
 
+inline std::ostream& operator<<(std::ostream& os, const ModelEntitySpec& me)
+{
+  os << "(" << me.dim << ", " << me.tag << ")";
+  return os;
+}
+
 // Struct used for specifying the input to mesh generator
 struct MeshSpec
 {

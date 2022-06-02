@@ -39,6 +39,7 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
 
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals)
 {
+  std::cout << "computing normals for surface discretization " << disc.getIdx() << std::endl;
   int npts = disc.quad.getNumPoints() * disc.quad.getNumPoints();
   normals.resize(boost::extents[disc.getNumFaces()][npts][3]);
 
@@ -54,12 +55,12 @@ void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& norma
   {
     auto spec = disc.face_group.faces[i];
     auto normals_i = normals_xi[boost::indices[spec.face][range()]];
+    auto vol_disc = disc.volume_discs[spec.vol_group];
 
     // compute dxdxi
     for (int d=0; d < 3; ++d)
     {
-      auto vol_disc = disc.volume_discs[spec.vol_group];
-      auto coords_d = vol_disc->vol_group.coords[boost::indices[i][range()][d]];
+      auto coords_d = vol_disc->vol_group.coords[boost::indices[spec.el_group][range()][d]];
       auto dxdxi_d = dxdxi_i[boost::indices[range()][d][range()]];
 
       tp_mapper_coord.mapToTP(coords_d, coords_tp);
@@ -80,6 +81,9 @@ void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& norma
       for (int d=0; d < 3; ++d)
         normals_j[d] *= detJ;
     }
+
+    if (i == 0)
+      std::cout << "normal = " << normals[i][0][0] << ", " << normals[i][0][1] << ", " << normals[i][0][2] << std::endl;
   }
 }
 
