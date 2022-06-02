@@ -39,7 +39,6 @@ SurfaceDiscretization::SurfaceDiscretization(const Mesh::FaceGroup& face_group, 
 
 void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& normals)
 {
-  std::cout << "computing normals for surface discretization " << disc.getIdx() << std::endl;
   int npts = disc.quad.getNumPoints() * disc.quad.getNumPoints();
   normals.resize(boost::extents[disc.getNumFaces()][npts][3]);
 
@@ -81,9 +80,6 @@ void computeNormals(const SurfaceDiscretization& disc, ArrayType<Real, 3>& norma
       for (int d=0; d < 3; ++d)
         normals_j[d] *= detJ;
     }
-
-    if (i == 0)
-      std::cout << "normal = " << normals[i][0][0] << ", " << normals[i][0][1] << ", " << normals[i][0][2] << std::endl;
   }
 }
 

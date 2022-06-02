@@ -40,7 +40,8 @@ MeshCG::MeshCG(apf::Mesh2* m,
   m_apf_data(m, m_ref_el_sol, m_ref_el_coord),
   m_tensor_product_coord_map(m_ref_el_coord),
   m_tensor_product_sol_map(m_ref_el_sol),
-  m_field_data_manager(m_apf_data.m, m_apf_data.sol_shape, m_apf_data.dof_nums, m_apf_data.is_dirichlet)
+  m_field_data_manager(m_apf_data.m, m_apf_data.sol_shape, m_apf_data.coord_shape,
+                       m_apf_data.dof_nums, m_apf_data.is_dirichlet)
 {
   assert(coord_degree == 1);
   m_dof_numbering.sol_degree   = solution_degree;
@@ -90,8 +91,6 @@ void MeshCG::setSurfaceIndices(const std::vector<MeshEntityGroupSpec>& other_sur
 }
 
 
-
-
 void MeshCG::setApfData()
 {
   //TODO: make this the constructor of ApfData
@@ -106,6 +105,12 @@ void MeshCG::setApfData()
     apf::countElementNodes(m_apf_data.coord_shape, apf::Mesh::HEX);
 
   setVolumeGroupNumbering(m_apf_data.m, m_volume_spec, m_apf_data.vol_groups);
+
+  m_field_data_manager.attachNumbering(m_apf_data.dof_nums);
+  m_field_data_manager.attachNumbering(m_apf_data.global_dof_nums);
+  m_field_data_manager.attachNumbering(m_apf_data.el_nums);
+  m_field_data_manager.attachNumbering(m_apf_data.is_dirichlet);
+  m_field_data_manager.attachNumbering(m_apf_data.vol_groups);
 
   //TODO: move dof numbering to here?
 }
@@ -166,11 +171,6 @@ void MeshCG::createFaceGroups()
 {
   for (auto& surf : m_all_face_spec)
   {
-    std::cout << "surface " << surf.getIdx() << " has model entities ";
-    for (auto me : surf.getModelEntities())
-      std::cout << me << ", ";
-    std::cout << std::endl;
-
     bool is_boundary_surface = surf.getIdx() < m_bc_spec.size();
     std::vector<FaceSpec> faces;
     getGroupFaces(m_apf_data, surf, m_ref_el_coord, m_volume_spec, m_elnums_global_to_local, faces);
@@ -180,7 +180,6 @@ void MeshCG::createFaceGroups()
 
     // get dofs
     auto nfaces = faces.size();
-    std::cout << "nfaces = " << nfaces << std::endl;
     int num_nodes_per_face = m_ref_el_sol->getNumNodes(2);
     ArrayType<Index, 2> nodenums(boost::extents[nfaces][num_nodes_per_face]);
     auto& nodemap_sol = m_ref_el_sol->getFaceNodes();
@@ -408,6 +407,13 @@ void MeshCG::getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs)
     m_apf_data.m->end(it);
   }
 }
+
+void MeshCG::writeVtkFiles(const std::string& fname)
+{
+  m_field_data_manager.syncToMesh();
+  apf::writeASCIIVtkFiles(fname.c_str(), m_apf_data.m);
+}
+
 
 std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
                                      std::vector<MeshEntityGroupSpec> volume_group_spec,

@@ -14,9 +14,11 @@ using DiscVectorPtr = std::shared_ptr<DiscVector>;
 class FieldDataManager
 {
   public:
-    FieldDataManager(apf::Mesh* mesh, apf::FieldShape* fshape_sol, apf::ApfMDSNumbering* dof_nums, apf::ApfMDSNumbering* is_dirichlet) :
+    FieldDataManager(apf::Mesh* mesh, apf::FieldShape* fshape_sol, apf::FieldShape* fshape_coord,
+                    apf::ApfMDSNumbering* dof_nums, apf::ApfMDSNumbering* is_dirichlet) :
       m_mesh(mesh),
       m_sol_fshape(fshape_sol),
+      m_coord_fshape(fshape_coord),
       m_dof_nums(dof_nums),
       m_is_dirichlet(is_dirichlet)
     {}
@@ -31,8 +33,12 @@ class FieldDataManager
 
     void copyVec(DiscVectorPtr vec, apf::Field* field);
 
+    void copyNumbering(apf::ApfMDSNumbering* numbering_in, apf::Numbering* numbering_out);
+
+
     apf::Mesh* m_mesh;
     apf::FieldShape* m_sol_fshape;
+    apf::FieldShape* m_coord_fshape;
     apf::ApfMDSNumbering* m_dof_nums;
     apf::ApfMDSNumbering* m_is_dirichlet;
 

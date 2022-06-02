@@ -136,6 +136,10 @@ class MeshCG
 
     void getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs);
 
+    FieldDataManager& getFieldDataManager() { return m_field_data_manager; }
+
+    void writeVtkFiles(const std::string& fname);
+
   private:
     void setVolumeIndices();
 

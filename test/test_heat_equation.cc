@@ -110,7 +110,7 @@ namespace {
 
 Real ex_sol(Real x, Real y, Real z, Real t, int degree)
 {
-  return std::pow(x, degree) + std::pow(y, degree); // + std::pow(z, degree);
+  return std::pow(x, degree) + std::pow(y, degree) + std::pow(z, degree);
   //return std::pow(y, degree);
 }
 
@@ -139,7 +139,7 @@ Real src_func_dir(Real x, int degree)
 
 Real src_func(Real x, Real y, Real z, Real t, int degree)
 {
-  return src_func_dir(x, degree) + src_func_dir(y, degree); // + src_func_dir(z, degree);
+  return src_func_dir(x, degree) + src_func_dir(y, degree) + src_func_dir(z, degree);
   //return src_func_dir(y, degree);
 }
 
@@ -282,7 +282,7 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 {
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
-  std::vector<bool> dirichlet_surfs = {false, false, true, true, true, true};
+  std::vector<bool> dirichlet_surfs = {false, false, true, true, false, true};
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
     std::cout << "testing sol degree " << sol_degree << std::endl;
@@ -325,8 +325,6 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
 
 TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
 {
-  SERIAL_ONLY();
-
   Real kappa = 2;
   Heat::VolumeGroupParams params{kappa, 3, 4};
   std::vector<bool> dirichlet_surfs(11);
@@ -366,20 +364,15 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
       auto& vec = res_vec->getVector();
       for (auto dof : owned_to_local_dofs)
       {
-        std::cout << "dof " << dof << " has residual value " << vec[dof] << std::endl;
         EXPECT_LE(std::abs(vec[dof]), 1e-12);
       }
     }
   }
 }
 
-//TODO: test Neumann BCs with non-unity parameters
-
 
 TEST_F(StandardDiscTester, BasisVals2D_interpolation)
 {
-  SERIAL_ONLY();
-
   for (int sol_degree=1; sol_degree <= 3; ++sol_degree)
   {
     int quad_degree = 2*sol_degree;
