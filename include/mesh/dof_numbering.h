@@ -41,7 +41,9 @@ class AdjacencyNumberer
     {
       std::cout << std::boolalpha << "\nEntered AdjacencyNumberer, global_numbering = " << global_numbering << std::endl;
       m_ncomp = apf::countComponents(dof_nums);
+      std::cout << "\nnumbering elements" << std::endl;
       numberElements(m_local);
+      std::cout << "Numbering nodes" << std::endl;
       countNodes(m_local, m_is_dirichlet, m_num_nodes, m_num_dirichlet);
       m_num_local_nodes = m_num_nodes;
       std::cout << "num local nodes = " << m_num_local_nodes << std::endl;
@@ -59,6 +61,7 @@ class AdjacencyNumberer
       m_node_status = apf::createNumbering(m_local, "dof_status",
                                            apf::getShape(dof_nums), 1);
 #endif
+      std::cout << "\ndoing initial numbering of nodes" << std::endl;
       numberdofs(m_ncomp*(m_num_nodes + m_num_dirichlet), m_ncomp);
     }
 

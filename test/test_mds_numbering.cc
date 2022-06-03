@@ -213,6 +213,56 @@ TEST_F(MdsNumberingTester, Accessors)
   EXPECT_EQ(apf::countComponents(numbering), ncomp);
 }
 
+TEST_F(MdsNumberingTester, Synchronize)
+{
+  //setup(false);
+  setup();
+  apf::MeshEntity* e;
+  apf::MeshIterator* it;
+  int valid_val   = std::numeric_limits<int>::max() - 2;
+  int invalid_val = std::numeric_limits<int>::max() - 1;
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    if (!mesh->getShape()->hasNodesIn(dim))
+      continue;
+
+    it = mesh->begin(dim);
+    while ( (e = mesh->iterate(it)) )
+    {
+      int etype = mesh->getType(e);
+      for (int node=0; node < mesh->getShape()->countNodesOn(etype); ++node)
+      {
+        for (int component=0; component < ncomp; ++component)
+          (*numbering)(e, node, component) = mesh->isOwned(e) ? valid_val : invalid_val;
+      }
+    }
+    mesh->end(it);
+  }
+
+  apf::synchronize(numbering);
+
+  for (int dim=0; dim <= 3; ++dim)
+  {
+    if (!mesh->getShape()->hasNodesIn(dim))
+      continue;
+
+    it = mesh->begin(dim);
+    while ( (e = mesh->iterate(it)) )
+    {
+      int etype = mesh->getType(e);
+      for (int node=0; node < mesh->getShape()->countNodesOn(etype); ++node)
+      {
+        for (int component=0; component < ncomp; ++component)
+        {
+          EXPECT_EQ((*numbering)(e, node, component), valid_val);
+        }
+      }
+    }
+    mesh->end(it);
+  }
+}
+
+
 TEST_F(MdsFieldTester, Reduction)
 {
   setup(true);
@@ -285,9 +335,6 @@ TEST_F(MdsFieldTester, Reduction)
     }
     mesh->end(it);
   }
-
-
-  
 }
 
 #endif

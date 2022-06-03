@@ -68,12 +68,22 @@ class ApfMDSFieldReduction
           copies.clear();
 
           if (mesh->isShared(e) && m_include_shared)
+          {
             mesh->getRemotes(e, copies);
+            std::cout << "entity " << e << " is shared, sending value to" << std::endl;
+            for (auto& p : copies)
+              std::cout << "  rank " << p.first << ", local entity " << p.second << std::endl;
+          }
 
           if ( (mesh->isGhost(e) || mesh->isGhosted(e)) && m_include_ghosts)
           {
             copies_ghost.clear();
             mesh->getGhosts(e, copies_ghost);
+
+            std::cout << "entity " << e << " is ghost, sending value to" << std::endl;
+            for (auto& p : copies_ghost)
+              std::cout << "  rank " << p.first << ", local entity " << p.second << std::endl;
+
             for (auto& p : copies_ghost)
               copies.insert(p);
           }
@@ -179,12 +189,19 @@ class ApfMDSFieldReduction
       for (int i=0; i < m_comm_size; ++i)
         if (m_recv_entities[i].size() > 0)
         {
+          std::cout << "unpacking receive buffer from rank " << i << std::endl;
           auto& vals = m_recv_vals[i];
           int idx = 0;
           for (auto& e : m_recv_entities[i])
+          {
+            std::cout << "entity " << e << std::endl;
             for (int i=0; i < countNodesOn(e); ++i)
               for (int c=0; c < m_field.getNumComponents(); ++c)
+              {
+                std::cout << std::boolalpha << "current field value = " << bool(m_field(e, i, c)) << ", incomming value = " << bool(vals[idx]) << std::endl;
                 m_field(e, i, c) = m_func(m_field(e, i, c), vals[idx++]);
+              }
+          }
         }
     }
 

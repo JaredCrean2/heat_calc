@@ -126,6 +126,8 @@ namespace {
 
       void computeErrorNorm(DiscVectorPtr u_ex, DiscVectorPtr u_sol)
       {
+        std::vector<DofInt> owned_to_local_dofs;
+        mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
         int num_dofs = u_ex->getNumDofs();
         auto err     = makeDiscVector(disc);
         auto tmp     = makeDiscVector(disc);
@@ -142,16 +144,21 @@ namespace {
         if (!tmp->isVectorCurrent())
           tmp->syncArrayToVector();
         
-        Real val_l2 = 0, val_max = 0;
+        double val_l2 = 0, val_max = 0;
         auto& tmp_vec = tmp->getVector();
-        for (int i=0; i < num_dofs; ++i)
+        //for (int i=0; i < num_dofs; ++i)
+        for (auto i : owned_to_local_dofs)
         {
           val_l2 += err_vec[i] * tmp_vec[i];
           val_max = std::max(val_max, std::abs(err_vec[i]));
         }
-        val_l2 = std::sqrt(val_l2);
 
-        recordError(val_l2, val_max, spec.nx * spec.ny * spec.nz);
+        double val_l2_global, val_max_global;
+        MPI_Allreduce(&val_l2, &val_l2_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&val_max, &val_max_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        val_l2_global = std::sqrt(val_l2_global);
+
+        recordError(val_l2_global, val_max_global, spec.nx * spec.ny * spec.nz);
       }
 
       HeatPtr heat;
@@ -222,6 +229,8 @@ namespace {
 
       void computeErrorNorm(DiscVectorPtr u_ex, DiscVectorPtr u_sol)
       {
+        std::vector<DofInt> owned_to_local_dofs;
+        mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
         int num_dofs = u_ex->getNumDofs();
         auto err     = makeDiscVector(disc);
         auto tmp     = makeDiscVector(disc);
@@ -240,16 +249,19 @@ namespace {
         
         Real val_l2 = 0, val_max = 0;
         auto& tmp_vec = tmp->getVector();
-        for (int i=0; i < num_dofs; ++i)
+        for (auto i : owned_to_local_dofs)
         {
           val_l2 += err_vec[i] * tmp_vec[i];
           val_max = std::max(val_max, std::abs(err_vec[i]));
         }
-        val_l2 = std::sqrt(val_l2);
+        double val_l2_global, val_max_global;
+        MPI_Allreduce(&val_l2, &val_l2_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&val_max, &val_max_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        val_l2_global = std::sqrt(val_l2_global);
 
         //int nelems = specs[0].nx * (specs[0].ny + specs[1].ny) + specs[0].nz;
         Real h = 1.0/specs[0].nx;
-        recordError(val_l2, val_max, h);
+        recordError(val_l2_global, val_max_global, h);
       }
 
       HeatPtr heat;
@@ -415,7 +427,7 @@ TEST_F(HeatMMSMultiConvergenceTester, Exponential)
     }
 
     // for some reason, p=2 converges at a rate of 4
-    EXPECT_NEAR(slopes[slopes.size()-1][0], 2*sol_degree, 0.25);
+    EXPECT_NEAR(slopes[slopes.size()-1][0], 2*sol_degree, 0.3);
     resetErrors();
   }
 }

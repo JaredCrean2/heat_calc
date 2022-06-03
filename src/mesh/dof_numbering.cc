@@ -33,13 +33,18 @@ int AdjacencyNumberer::nodeCount(apf::Mesh2* m_local, apf::MeshEntity* e)
 bool AdjacencyNumberer::shouldNumber(NumberingType* m_is_dirichlet, apf::MeshEntity* e,
                   int node, int component)
 {
+  std::cout << "considering entity " << e << std::endl;
   bool ret = true;
   // number if dof is free or loaded
   if (m_is_dirichlet)
     ret = (!apf::getNumber(m_is_dirichlet, e, node, component));
 
+  std::cout << std::boolalpha << "after dirichlet check, shouldNumber " << ret << std::endl;
+
   if (m_number_owned_nodes_only && !m_local->isOwned(e))
     ret = false;
+
+  std::cout << "after ownership check, shouldNumber = " << ret << std::endl;
 
 
   return ret;
@@ -236,10 +241,13 @@ void AdjacencyNumberer::labelNode(apf::MeshEntity* e, int node)
   for ( int c = 0; c < m_ncomp; ++c) // loop over dof of the node
   {
     if (shouldNumber(m_is_dirichlet, e, node, c))
+    {
+      std::cout << "numbering entity " << e << std::endl;
       apf::number(m_dof_nums, e, node, c, --m_node_label);
-    else
+    } else
     {
       int val = m_number_dirichlet_constant ? std::numeric_limits<int>::max() : --m_dirichlet_label;
+      std::cout << "skipping entity entity " << e << std::endl;
       apf::number(m_dof_nums, e, node, c, val);
     }
   }
@@ -257,6 +265,7 @@ void AdjacencyNumberer::setQueued(apf::MeshEntity* e)
 // multiple dof on the same node are labelled sequentially
 void AdjacencyNumberer::reorder()
 {
+  std::cout << "\nDoing final node numbering" << std::endl;
 // TODO: move m_is_dirichlet checks out one loop level because 
 //       it is node status now, not dof status
 
@@ -457,7 +466,10 @@ void AdjacencyNumberer::reorder()
 
 
   if (m_number_owned_nodes_only)
+  {
+    std::cout << "\nSynchronizing after numbering owned nodes" << std::endl;
     apf::synchronize(m_dof_nums);
+  }
 }
 
 std::vector<apf::MeshEntity*> AdjacencyNumberer::getElements()

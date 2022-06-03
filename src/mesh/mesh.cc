@@ -120,10 +120,10 @@ void MeshCG::createVolumeGroups()
   setDirichletNodes(m_apf_data, m_bc_spec);
   AdjacencyNumberer reorderer_local(m_apf_data.m, m_apf_data.dof_nums,
                                     m_apf_data.el_nums, m_apf_data.is_dirichlet);
+  reorderer_local.reorder();
 
   AdjacencyNumberer reorderer_global(m_apf_data.m, m_apf_data.global_dof_nums,
                                      nullptr, m_apf_data.is_dirichlet, true);
-  reorderer_local.reorder();
   reorderer_global.reorder();
   int num_dofs_local = reorderer_local.getNumDofs();
   int num_dofs_owned = reorderer_global.getNumDofs();
@@ -320,6 +320,9 @@ void MeshCG::getGhostDofInfo(std::vector<DofInt>& global_dofs, std::vector<DofIn
             if (isDofActive(local_dof_num))
             {
               int global_dof_num = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
+              std::cout << "e = " << e << std::endl;
+              std::cout << std::boolalpha << "is dirichlet = " << bool(apf::getNumber(m_apf_data.is_dirichlet, e, i, 0)) << std::endl;
+              std::cout << "local dof num = " << local_dof_num << ", global dof num = " << global_dof_num << std::endl;
               data.emplace_back(local_dof_num, global_dof_num);
 
             }

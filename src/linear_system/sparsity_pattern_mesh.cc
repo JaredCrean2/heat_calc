@@ -8,7 +8,7 @@ SparsityPatternMesh::SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh) :
   m_mesh(mesh)
 {
   mesh->getGhostDofInfo(m_ghost_global_dofs, m_ghost_onproc_dofs); 
-  mesh->getOwnedLocalDofInfo(m_owned_dof_to_local);
+  mesh->getOwnedLocalDofInfo(m_owned_dof_to_local);  //TODO: use this in getDofStatus?
 }
 
 void SparsityPatternMesh::computePattern(bool symmetric)
