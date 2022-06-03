@@ -45,7 +45,7 @@ class DiscVector
 
     const ArrayType<Real, 2>& getArray(const Index idx) const;
 
-    DofInt getNumDofs() const { return m_disc->getDofNumbering()->getNumDofs(); }
+    DofInt getNumDofs() const { return m_disc->getDofNumbering()->getNumLocalDofs(); }
 
     // sets both vector and array (including dirchlet values) to a
     // constant value

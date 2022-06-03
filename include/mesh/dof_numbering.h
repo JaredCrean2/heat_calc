@@ -39,10 +39,12 @@ class AdjacencyNumberer
       m_number_owned_nodes_only(global_numbering),
       m_number_dirichlet_constant(global_numbering)
     {
+      std::cout << std::boolalpha << "\nEntered AdjacencyNumberer, global_numbering = " << global_numbering << std::endl;
       m_ncomp = apf::countComponents(dof_nums);
       numberElements(m_local);
       countNodes(m_local, m_is_dirichlet, m_num_nodes, m_num_dirichlet);
       m_num_local_nodes = m_num_nodes;
+      std::cout << "num local nodes = " << m_num_local_nodes << std::endl;
 
       m_local_owned_to_global_offset = 0;
       if (global_numbering)

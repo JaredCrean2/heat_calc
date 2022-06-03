@@ -84,6 +84,7 @@ namespace {
                          const linear_system::LargeMatrixOptsPetsc& matrix_opts,
                          const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
       {
+        std::cout << "\nEntered HeatMMSConvergenceTester::setup()" << std::endl;
         StandardDiscSetup::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
 
         heat        = std::make_shared<Heat::HeatEquation>(disc);
@@ -91,8 +92,8 @@ namespace {
         u_solve_vec = makeDiscVector(disc);
         res_vec     = makeDiscVector(disc);
 
-        auto num_dofs     = disc->getDofNumbering()->getNumDofs();
-        std::cout << "num_dofs = " << num_dofs << std::endl;
+        auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
+        std::cout << "num_owned_dofs = " << num_dofs << std::endl;
         this->matrix_opts = matrix_opts;
         auto sparsity     = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
         mat               = std::make_shared<linear_system::LargeMatrixPetsc>(num_dofs, num_dofs, matrix_opts, sparsity);
@@ -188,8 +189,7 @@ namespace {
         u_solve_vec = makeDiscVector(disc);
         res_vec     = makeDiscVector(disc);
 
-        auto num_dofs     = disc->getDofNumbering()->getNumDofs();
-        std::cout << "num_dofs = " << num_dofs << std::endl;
+        auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
         this->matrix_opts = matrix_opts;
         auto sparsity     = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
         mat               = std::make_shared<linear_system::LargeMatrixPetsc>(num_dofs, num_dofs, matrix_opts, sparsity);
@@ -307,6 +307,8 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
       setup(2*sol_degree, sol_degree, meshspec, opts);
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
       int num_dofs = u_vec->getNumDofs();
+      mesh->getFieldDataManager().attachVector(u_vec, "solution");
+      mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
       heat->computeRhs(u_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();

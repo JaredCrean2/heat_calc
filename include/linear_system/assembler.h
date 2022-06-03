@@ -23,7 +23,9 @@ class Assembler
 
     Real getAlpha() const { return m_alpha; }
 
-    int getNumDofs() const { return m_dof_nums->getNumDofs(); }
+    int getNumLocalDofs() const { return m_dof_nums->getNumLocalDofs(); }
+
+    int getNumOwnedDofs() const { return m_dof_nums->getNumOwnedDofs(); }
 
     // jac is df_i/du_j, where i, j in [0, numSolPtsPerElement)
     // assembla alpha * jac into the matrix

@@ -35,5 +35,6 @@ TEST_F(MeshMultiTester, DofCounts)
   EXPECT_EQ(num_active_dofs, mesh->getNumDofs());
   EXPECT_EQ(nverts_x*nverts_y*nverts_z, mesh->getNumTotalDofs());
   EXPECT_EQ(num_dirichlet_dofs, mesh->getNumTotalDofs() - mesh->getNumDofs());
-  EXPECT_EQ(disc->getDofNumbering()->getNumDofs(), num_active_dofs);
+  EXPECT_EQ(disc->getDofNumbering()->getNumOwnedDofs(), num_active_dofs);
+  EXPECT_EQ(disc->getDofNumbering()->getNumLocalDofs(), num_active_dofs);
 }

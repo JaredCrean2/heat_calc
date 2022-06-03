@@ -3,7 +3,8 @@
 #include "mesh/mesh.h"
 
 DofNumbering::DofNumbering(std::shared_ptr<Mesh::MeshCG> mesh) :
-m_num_dofs(mesh->getNumDofs())
+m_num_local_dofs(mesh->getNumDofs()),
+m_num_owned_dofs(mesh->getNumOwnedDofs())
 {
   for (int i=0; i < mesh->getNumVolumeGroups(); ++i)
     setDofs(mesh, i);

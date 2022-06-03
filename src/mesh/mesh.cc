@@ -378,7 +378,7 @@ void MeshCG::getOwnedLocalDofInfo(std::vector<DofInt>& owned_local_dofs)
 
 void MeshCG::getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs)
 {
-  local_to_global_dofs.resize(getNumDofs());
+  local_to_global_dofs.resize(getNumDofs(), -666);
   int ncomp = apf::countComponents(m_apf_data.dof_nums);
 
   for (int dim=0; dim <= 3; ++dim)
@@ -387,21 +387,18 @@ void MeshCG::getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs)
     apf::MeshEntity* e;
     while ( (e = m_apf_data.m->iterate(it)))
     {
-      if (m_apf_data.m->isOwned(e))
-      {
-        apf::Mesh::Type etype = m_apf_data.m->getType(e);
-        int nnodes_dim = m_apf_data.sol_shape->countNodesOn(etype);
-        for (int i=0; i < nnodes_dim; ++i)
-          for (int c=0; c < ncomp; ++c)
+      apf::Mesh::Type etype = m_apf_data.m->getType(e);
+      int nnodes_dim = m_apf_data.sol_shape->countNodesOn(etype);
+      for (int i=0; i < nnodes_dim; ++i)
+        for (int c=0; c < ncomp; ++c)
+        {
+          int local_dof_num = apf::getNumber(m_apf_data.dof_nums, e, i, c);
+          if (isDofActive(local_dof_num))
           {
-            int local_dof_num = apf::getNumber(m_apf_data.dof_nums, e, i, c);
-            if (isDofActive(local_dof_num))
-            {
-              int local_dof = apf::getNumber(m_apf_data.dof_nums, e, i, c);
-              local_to_global_dofs[local_dof] = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
-            }
+            int local_dof = apf::getNumber(m_apf_data.dof_nums, e, i, c);
+            local_to_global_dofs[local_dof] = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
           }
-      }
+        }
     }
 
     m_apf_data.m->end(it);

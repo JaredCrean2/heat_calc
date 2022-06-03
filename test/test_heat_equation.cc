@@ -470,7 +470,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 
       setup(2*sol_degree, sol_degree, dirichlet_surfs);
 
-      auto num_dofs  = disc->getDofNumbering()->getNumDofs();
+      auto num_dofs  = disc->getDofNumbering()->getNumOwnedDofs();
       auto mat       = std::make_shared<linear_system::LargeMatrixDense>(num_dofs, num_dofs, opts);
       auto assembler = std::make_shared<linear_system::Assembler>(disc, mat);
       auto res_vec2  = makeDiscVector(disc);

@@ -14,6 +14,7 @@ Assembler::Assembler(DiscPtr disc, LargeMatrixPtr mat) :
   m_matrix(mat)
 {
   disc->getMesh()->getLocalToGlobalDofs(m_local_dof_to_global);
+  
 }
 
 

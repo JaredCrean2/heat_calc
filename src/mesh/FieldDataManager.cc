@@ -38,13 +38,11 @@ void FieldDataManager::syncToMesh()
   for (size_t i=0; i < m_attached_vectors.size(); ++i)
     if (auto vec = m_attached_vectors[i].lock())
     {
-      std::cout << "copying vector to field named " << apf::getName(m_fields[i]) << std::endl;
       copyVec(vec, m_fields[i]);
     }
 
   for (size_t i=0; i < m_attached_numberings.size(); ++i)
   {
-    std::cout << "copying numbering named " << m_attached_numberings[i]->getName() << std::endl;
     copyNumbering(m_attached_numberings[i], m_numberings[i]);
   }
 }
@@ -90,7 +88,6 @@ void FieldDataManager::copyVec(DiscVectorPtr vec, apf::Field* field)
 
 void FieldDataManager::copyNumbering(apf::ApfMDSNumbering* numbering_in, apf::Numbering* numbering_out)
 {
-  std::cout << "copying numbering " << apf::getName(numbering_in) << std::endl;
   apf::FieldShape* fshape_in = apf::getShape(numbering_in);
   apf::FieldShape* fshape_out = apf::getShape(numbering_out);
 

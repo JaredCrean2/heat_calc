@@ -45,12 +45,7 @@ class LargeMatrixPetsc : public LargeMatrix
       MatSetValues(m_A, dofs.size(), dofs.data(), dofs.size(), dofs.data(), jac.data(), ADD_VALUES);
     }
 
-    void finishMatrixAssembly_impl() override
-    {
-      MatAssemblyBegin(m_A, MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(m_A, MAT_FINAL_ASSEMBLY);
-    }
-
+    void finishMatrixAssembly_impl() override;
 
     // factor the matrix/update the preconditioner.
     void factor_impl() override;

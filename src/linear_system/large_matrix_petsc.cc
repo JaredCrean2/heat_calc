@@ -22,6 +22,9 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
 
 
   const auto& ghost_global_dofs = sparsity_pattern->getGhostGlobalIndices();
+  for (auto& ghost_dof : ghost_global_dofs)
+    std::cout << "  ghost_dof = " << ghost_dof << std::endl;
+    
   //VecCreate(PETSC_COMM_WORLD, &m_x);
   VecCreateGhost(PETSC_COMM_WORLD, getNLocal(), PETSC_DECIDE, ghost_global_dofs.size(), ghost_global_dofs.data(), &m_x);
   PetscObjectSetName((PetscObject)m_x, (opts.opts_prefix + "_Solution").c_str());
@@ -46,13 +49,22 @@ LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOpts
   const PetscInt *diagonal_counts_sym = nullptr, *offproc_counts_sym=nullptr;
   if (is_symmetric_mattype)
   {
+    std::cout << "in symmetric mattype case" << std::endl;
     diagonal_counts_sym = sparsity_pattern->getDiagonalCountsSym().data();
     offproc_counts_sym  = sparsity_pattern->getOffProcCountsSym().data();
   } else
   {
+    std::cout << "in nonsymmetric mattype case" << std::endl;
     diagonal_counts = sparsity_pattern->getDiagonalCounts().data();
     offproc_counts  = sparsity_pattern->getOffProcCounts().data();
   }
+  /*
+  int len = sparsity_pattern->getDiagonalCounts().size();
+  std::cout << "length of diagonal_counts = " << len << std::endl;
+  std::cout << "length of offproc_counts = " << sparsity_pattern->getOffProcCounts().size() << std::endl;
+  for (int i=0; i < len; ++i)
+    std::cout << "local row " << i << ", diagonal counts " << diagonal_counts[i] << ", offproc count " << offproc_counts[i] << std::endl;
+  */
   MatXAIJSetPreallocation(m_A, 1, diagonal_counts, offproc_counts,
                                   diagonal_counts_sym, offproc_counts_sym);
 
@@ -97,6 +109,13 @@ LargeMatrixPetsc::~LargeMatrixPetsc()
   MatDestroy(&m_A);
   KSPDestroy(&m_ksp);
   // KSP manages the PC, no need to destroy it explicitly
+}
+
+void LargeMatrixPetsc::finishMatrixAssembly_impl()
+{
+  MatAssemblyBegin(m_A, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(m_A, MAT_FINAL_ASSEMBLY);
+  //MatView(m_A, PETSC_VIEWER_STDOUT_WORLD);
 }
 
 

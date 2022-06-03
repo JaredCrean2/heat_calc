@@ -53,12 +53,17 @@ class DofNumbering
 
     bool isDofActive(Index dof) const
     {
-      return dof < m_num_dofs;
+      return dof < m_num_local_dofs;
     }
 
-    int getNumDofs() const
+    int getNumLocalDofs() const
     {
-      return m_num_dofs;
+      return m_num_local_dofs;
+    }
+
+    int getNumOwnedDofs() const
+    {
+      return m_num_owned_dofs;
     }
 
   private:
@@ -67,7 +72,8 @@ class DofNumbering
 
     std::vector<ArrayType<Index, 2>> m_dof_nums;
     std::vector<std::vector<ElementNode>> m_dirichlet_node_nums;  //TODO: unused?
-    int m_num_dofs;
+    int m_num_local_dofs;
+    int m_num_owned_dofs;
 
 };
 
