@@ -70,7 +70,7 @@ class MDSMeshWrapper
 };
 
 
-template <typename T, typename MeshWrapper>
+template <typename T, typename MeshWrapper=MDSMeshWrapper>
 class ApfMDSField
 {
   public:

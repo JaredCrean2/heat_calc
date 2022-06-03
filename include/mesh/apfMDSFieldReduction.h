@@ -43,7 +43,7 @@ class ApfMDSFieldReduction
       m_recv_vals.resize(m_comm_size);
     }
 
-    void synchronize()
+    void execute()
     {
       packBuffers();
       doCommunication();
@@ -54,7 +54,7 @@ class ApfMDSFieldReduction
     void packBuffers()
     {
       apf::Mesh2* mesh = m_field.getMesh();
-      apf::Copies copies;
+      apf::Copies copies, copies_ghost;
 
       for (int dim=0; dim < 3; ++dim)
       {
@@ -66,19 +66,20 @@ class ApfMDSFieldReduction
         while ( (e = mesh->iterate(it)))
         {
           copies.clear();
+
           if (mesh->isShared(e) && m_include_shared)
-          {
             mesh->getRemotes(e, copies);
-            packCopies(e, copies);
-            countReceives(e, copies);
-          }
 
           if ( (mesh->isGhost(e) || mesh->isGhosted(e)) && m_include_ghosts)
           {
-            mesh->getGhosts(e, copies);
-            packCopies(e, copies);
-            countReceives(e, copies);
+            copies_ghost.clear();
+            mesh->getGhosts(e, copies_ghost);
+            for (auto& p : copies_ghost)
+              copies.insert(p);
           }
+          
+          packCopies(e, copies);
+          countReceives(e, copies);
         }
         mesh->end(it);
       }
