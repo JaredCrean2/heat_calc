@@ -84,7 +84,6 @@ namespace {
                          const linear_system::LargeMatrixOptsPetsc& matrix_opts,
                          const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
       {
-        std::cout << "\nEntered HeatMMSConvergenceTester::setup()" << std::endl;
         StandardDiscSetup::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
 
         heat        = std::make_shared<Heat::HeatEquation>(disc);
@@ -93,7 +92,6 @@ namespace {
         res_vec     = makeDiscVector(disc);
 
         auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
-        std::cout << "num_owned_dofs = " << num_dofs << std::endl;
         this->matrix_opts = matrix_opts;
         auto sparsity     = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
         mat               = std::make_shared<linear_system::LargeMatrixPetsc>(num_dofs, num_dofs, matrix_opts, sparsity);

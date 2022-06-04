@@ -443,13 +443,10 @@ void computeVolumeTerm3Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& p
     //computeVolumeTerm3Jac_element(vol_disc->getNumSolPtsPerElement(), vol_disc->getNumQuadPtsPerElement(), alpha,
     //                              &(rev_nodemap[0][0]), vol_disc->quad.getWeights().data(), &(dN_dx[0][0][0]), &(detJInv[el][0]),
     //                              &(dR_du[0][0]));
-    if (vol_disc->getElementWeight(el) > 0) 
-    {
-      computeVolumeTerm3Jac_element2(vol_disc->getNumSolPtsPerElement(), vol_disc->getNumQuadPtsPerElement(), alpha,
-                                     quad_weights.data(), &(dN_dx[0][0][0]), &(detJInv[el][0]),
-                                     &(dR_du[0][0]));
-      assembler->assembleVolume(vol_disc->getIdx(), el, dR_du);
-    }
+    computeVolumeTerm3Jac_element2(vol_disc->getNumSolPtsPerElement(), vol_disc->getNumQuadPtsPerElement(), alpha,
+                                    quad_weights.data(), &(dN_dx[0][0][0]), &(detJInv[el][0]),
+                                    &(dR_du[0][0]));
+    assembler->assembleVolume(vol_disc->getIdx(), el, dR_du);
   }
 }
 
