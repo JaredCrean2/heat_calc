@@ -28,7 +28,6 @@ void createGhostLayer(apf::Mesh2* m)
 // Populates apf_data.is_dirichlet with true for all dofs on Dirichlet faces
 void setDirichletNodes(ApfData& apf_data, std::vector<MeshEntityGroupSpec>& m_bc_spec)
 {
-  std::cout << "\nSetting Dirichlet nodes" << std::endl;
   // initialize is_dirichlet to false
   for (int dim=0; dim <= 3; ++dim)
     if (apf_data.sol_shape->hasNodesIn(dim))
@@ -61,7 +60,6 @@ void setDirichletNodes(ApfData& apf_data, std::vector<MeshEntityGroupSpec>& m_bc
     apf_data.m->end(it);
   }
 
-  std::cout << "\ndoing reduction" << std::endl;
   auto reducer = fast_field::make_field_reduction(*(apf_data.is_dirichlet), std::logical_or<int>());
   reducer.execute();
 }

@@ -22,13 +22,11 @@ void SparsityPatternMesh::computePattern(bool symmetric)
 
   std::vector<DofInt> local_to_owned_dof;
   getDofStatus(local_to_owned_dof);
-  std::cout << "num owned dofs = " << m_mesh->getNumOwnedDofs() << std::endl;
-  std::cout << "num local dofs = " << m_mesh->getNumDofs() << std::endl;
+
 
   std::vector<DofInt> el_dofs, connected_dofs;
   for (int i=0; i < m_mesh->getNumVolumeGroups(); ++i)
   {
-    //std::cout << "\nvolume group " << i << std::endl;
     auto vol_group = m_mesh->getElements(i);
     for (int el=0; el < vol_group.getNumElems(); ++el)
     {
@@ -40,10 +38,8 @@ void SparsityPatternMesh::computePattern(bool symmetric)
           continue;
 
         int owned_dof_num = local_to_owned_dof[local_dof_num];
-        //std::cout << "processing local_dof " << local_dof_num << " with owned_dof " << owned_dof_num << std::endl;
         if (m_mesh->isDofActive(el_dofs[j]) && owned_dof_num != -1 && onproc_dofs[owned_dof_num] == -1)
         {
-          //DofInt dof_j = el_dofs[j];
           m_mesh->getDofConnectivity(vol_group, el, j, connected_dofs);
 
           int onproc_count = 0, offproc_count=0;

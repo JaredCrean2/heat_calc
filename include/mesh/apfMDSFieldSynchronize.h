@@ -58,35 +58,24 @@ class ApfMDSFieldSyncrhonizer
             int owner_rank = mesh->getOwner(e);
             if (owner_rank == m_comm_rank)
             {
-              std::cout << "entity " << e << " is shared and owned, sending to other ranks" << std::endl;
               copies.clear();
               mesh->getRemotes(e, copies);
               packCopies(e, copies);
-              for (auto& p : copies)
-                std::cout << "  sending to rank " << p.first << ", local entity " << p.second << std::endl;
             } else
             {
-              std::cout << "entity " << e << " is shared and not owned, expecting to receive from rank " << m_field.getMesh()->getOwner(e) << std::endl;
               countReceives(e);
             }
           }
 
           if (mesh->isGhost(e))
           {
-            std::cout << "entity " << e << " is ghost and not owned, expecting to receive from rank " << m_field.getMesh()->getOwner(e) << std::endl;
-
             countReceives(e);
           } else if (mesh->isGhosted(e) && mesh->getOwner(e) == m_comm_rank)  // not sure if the getOwner condition is required,
                                                                               // it might be implied by isGhosted
           {
-            std::cout << "entity " << e << " is shared and owned, sending to other ranks" << std::endl;
-
             copies.clear();
             mesh->getGhosts(e, copies);
             packCopies(e, copies);
-
-            for (auto& p : copies)
-              std::cout << "  sending to rank " << p.first << ", local entity " << p.second << std::endl;
           }
         }
         mesh->end(it);
@@ -186,12 +175,9 @@ class ApfMDSFieldSyncrhonizer
           auto& vals = m_recv_vals[i];
           int idx = 0;
           for (auto& e : m_recv_entities[i])
-          {
-            std::cout << "receiving entity " << e << std::endl;
             for (int i=0; i < countNodesOn(e); ++i)
               for (int c=0; c < m_field.getNumComponents(); ++c)
                 m_field(e, i, c) = vals[idx++];
-          }
         }
     }
 
