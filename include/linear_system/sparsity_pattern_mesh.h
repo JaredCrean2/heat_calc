@@ -15,7 +15,7 @@ namespace linear_system {
 class SparsityPatternMesh : public SparsityPattern
 {
   public:
-    SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh);
+    explicit SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh);
 
     const std::vector<PetscInt>& getDiagonalCounts() override
     { 
