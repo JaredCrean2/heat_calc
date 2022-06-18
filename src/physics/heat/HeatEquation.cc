@@ -298,7 +298,7 @@ void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& param
           Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
           for (int d=0; d < 3; ++d)
           {
-            rhs_arr[el][i] += alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k];
+            rhs_arr[el][i] -= alpha * dNi_dx[d] * weight * dNj_dx[d] * u_arr[el][j] / detJ[el][k];
           }
         }
     }
@@ -338,7 +338,7 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
         Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
         auto fac = alpha * weight / detJ[el][k];
         for (int d=0; d < 3; ++d)
-          rhs_arr[el][i] += fac * dN_dx[i][k][d] * du_dx[k][d];
+          rhs_arr[el][i] -= fac * dN_dx[i][k][d] * du_dx[k][d];
       }
   }
 }
@@ -365,7 +365,7 @@ void computeVolumeJacobian(const HeatEquation& physics, DiscVectorPtr u, linear_
 
 
 void computeVolumeTerm2Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const ArrayType<Real, 2> u_arr,
-                            linear_system::AssemblerPtr assembler)
+                           linear_system::AssemblerPtr assembler)
 {
 
   auto& dxidx = vol_disc->dxidx;
@@ -394,7 +394,7 @@ void computeVolumeTerm2Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& p
           //TODO: store 1/detJ in an array to avoid the division here
           Real weight = alpha * vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k) / detJ[el][k];
           for (int d=0; d < 3; ++d)
-            dR_du[i][j] += dN_dx[i][k][d] * weight * dN_dx[j][k][d]; // / detJ[el][k];
+            dR_du[i][j] -= dN_dx[i][k][d] * weight * dN_dx[j][k][d]; // / detJ[el][k];
         } 
       }
 
@@ -430,8 +430,8 @@ void computeVolumeTerm3Jac_element(const int numSolPtsPerElement, const int numQ
         int dN_dx_idxj = j * numQuadPtsPerElement * 3 + k * 3;
         #pragma clang loop vectorize(enable) interleave(enable)
         for (int d=0; d < 3; ++d)
-          val += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
-          //dR_du[dR_du_idx] += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+          val -= dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+          //dR_du[dR_du_idx] -= dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
       } 
       dR_du[dR_du_idx] = val;
     }
@@ -463,8 +463,8 @@ void computeVolumeTerm3Jac_element2(const int numSolPtsPerElement, const int num
         int dN_dx_idxj = j * numQuadPtsPerElement * 3 + k * 3;
         #pragma clang loop vectorize(enable) interleave(enable)
         for (int d=0; d < 3; ++d)
-          val += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
-          //dR_du[dR_du_idx] += dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+          val -= dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
+          //dR_du[dR_du_idx] -= dN_dx[dN_dx_idxi + d] * weight * dN_dx[dN_dx_idxj + d]; // / detJ[el][k];
       } 
       dR_du[dR_du_idx] = val;
     }
@@ -544,7 +544,7 @@ void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
 
       for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
       {
-        rhs_arr[el][i] -= basis_vals.getValue(i, q) * weight * src_vals[q] / detJ[el][q];
+        rhs_arr[el][i] += basis_vals.getValue(i, q) * weight * src_vals[q] / detJ[el][q];
       }
     }
   }
@@ -601,7 +601,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
         for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
         {
           int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][k];
-          res_arr[face_spec.el_group][node_sol] -= basis.getValue(face_spec.face, k, i, j) * val;
+          res_arr[face_spec.el_group][node_sol] += basis.getValue(face_spec.face, k, i, j) * val;
         }          
       }
   }

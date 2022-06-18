@@ -44,7 +44,7 @@ Real src_func(Real x, Real y, Real z, Real t, int degree_space, int degree_time)
   Real src = src_func_dir(x, degree_space) + src_func_dir(y, degree_space) + src_func_dir(z, degree_space);
 
   if (degree_time >= 1)
-    src -= degree_time * std::pow(t, degree_time - 1);
+    src += degree_time * std::pow(t, degree_time - 1);
 
   return src;
 }
