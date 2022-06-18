@@ -278,7 +278,7 @@ namespace {
     opts.is_structurally_symmetric = false;
     opts.is_value_symmetric        = false;
     opts.factor_in_place           = false;
-    opts.petsc_opts["ksp_atol"] = "1e-8";
+    opts.petsc_opts["ksp_atol"] = "1e-12";
     opts.petsc_opts["ksp_rtol"] = "1e-50";
     opts.petsc_opts["ksp_monitor"] = "";
 
