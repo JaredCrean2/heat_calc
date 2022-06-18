@@ -247,7 +247,6 @@ TEST_F(CNTester, Linear)
   auto& vec = u_vec->getVector();
   for (int i=0; i < vec.shape()[0]; ++i)
   {
-    std::cout << "dof " << i << std::endl;
     EXPECT_NEAR(vec[i], 0.5*opts.t_end*opts.t_end + 4, 1e-12);
   }
 }
@@ -300,7 +299,6 @@ TEST_F(CNTester, PolynomialExactness)
       {
         Real ex_val = ex_sol_l(coords[el][j][0], coords[el][j][1], coords[el][j][2], opts.t_end);
         EXPECT_NEAR(u_arr[el][j], ex_val, 1e-13);
-        std::cout << "el " << el << ", node " << j << " computed solution = " << u_arr[el][j] << ", ex solution = " << ex_val << std::endl;
       }
   }
 }

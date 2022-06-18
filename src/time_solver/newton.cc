@@ -13,7 +13,6 @@ NewtonSolver::NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr
 
 NewtonResult NewtonSolver::solve(DiscVectorPtr u, Real abs_tol, Real rel_tol, int itermax)
 {
-  std::cout << "doing Newton solve" << std::endl;
   setupForSolve(u, abs_tol, rel_tol, itermax);
 
   Real norm = m_func->computeFunc(u, true, m_f);
@@ -30,8 +29,6 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, Real abs_tol, Real rel_tol, in
     solveStep(u);
 
     norm = m_func->computeFunc(u, true, m_f);
-
-    std::cout << "at end of iteration " << i << ", abs residual = " << norm << ", rel residual = " << norm/norm0 << std::endl;
     
     if (norm < m_abs_tol || norm/norm0 < rel_tol)
       return NewtonResult(norm0, norm, i, abs_tol, rel_tol, itermax);
@@ -67,7 +64,6 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
   for (DofInt i=0; i < u->getNumDofs(); ++i)
   {
     u_vec[i] -= delta_u_vec[i];
-    std::cout << "dof " << i << ", delta_u = " << delta_u_vec[i] << ", new u value = " << u_vec[i] << std::endl;
   }
 
   u->markVectorModified();

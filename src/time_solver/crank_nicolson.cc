@@ -27,7 +27,6 @@ void CrankNicolsonFunction::resetForNewSolve()
 Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_norm, DiscVectorPtr f_np1)
 {
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
-  std::cout << "computing function" << std::endl;
 
   f_np1->set(0);
   m_physics_model->computeRhs(u_np1, m_tnp1, f_np1);
@@ -59,11 +58,7 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
   auto& f_n_vec      = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
   for (int i=0; i < f_np1->getNumDofs(); ++i)
-  {
-    std::cout << "dof " << i << ", M * delta_u = " << Mdelta_u_vec[i] << ", f_n = " << f_n_vec[i] << ", f_np1 = " << f_np1_vec[i] << std::endl;
     f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1_vec[i] - 0.5*f_n_vec[i];
-    std::cout << "        overall function = " << f_np1_vec[i] << std::endl;
-  }
   f_np1->markVectorModified();
 
   Real norm = 0, norm_global = 0;
@@ -83,7 +78,6 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
 // compute jac = df/du, overwriting jac
 void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac)
 {
-  std::cout << "computing Jacobian" << std::endl;
   m_assembler->setAlpha(0.5);
   m_physics_model->computeJacobian(u, m_tnp1, m_assembler);
 
@@ -155,7 +149,6 @@ void CrankNicolson::solve()
 
 void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
 {
-  std::cout << "advancing to time " << t_new << std::endl;
   m_func->setTnp1(m_u, t_new);
   NewtonResult result = m_newton->solve(m_u, m_opts.nonlinear_abs_tol, m_opts.nonlinear_rel_tol, m_opts.nonlinear_itermax);
 
