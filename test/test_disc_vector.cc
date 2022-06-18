@@ -174,3 +174,31 @@ TEST_F(DiscVectorTester, syncVectorToArray)
       EXPECT_EQ(arr[i][j], val_ex);        
     }
 }
+
+TEST_F(DiscVectorTester, AssignmentOperator)
+{
+  auto disc_vec2 = makeDiscVector(disc);
+  disc_vec->setFunc(func);
+  disc_vec2->set(0);
+
+  disc_vec2->markArrayModified();
+
+  *disc_vec2 = *disc_vec;
+
+  EXPECT_TRUE(disc_vec2->isArrayCurrent());
+  EXPECT_TRUE(disc_vec2->isVectorCurrent());
+
+  auto& vec = disc_vec->getVector();
+  auto& vec2 = disc_vec2->getVector();
+  for (int i=0; i < disc_vec->getNumDofs(); ++i)
+    EXPECT_EQ(vec[i], vec2[i]);
+
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    auto& arr = disc_vec->getArray(i);
+    auto& arr2 = disc_vec2->getArray(i);
+    for (int el=0; el < arr.shape()[0]; ++el)
+      for (int j=0; j < arr.shape()[1]; ++j)
+        EXPECT_EQ(arr[el][j], arr2[el][j]);
+  }
+}

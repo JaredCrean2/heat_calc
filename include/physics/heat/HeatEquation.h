@@ -23,7 +23,7 @@ class VolumeGroupParams
 
 // solves heat equation rho Cp dT/dt = d/dx (kappa dT/dx) + S
 // and S is a source term
-// To allow nonlinear problems to be solves, the equation is implemented as
+// To allow nonlinear problems to be solved, the equation is implemented as
 // dT/dt - d/dx (alpha dT/dx) - S = 0, where this module only evaluates
 // the final two terms on the left hand side.
 // In weak form:

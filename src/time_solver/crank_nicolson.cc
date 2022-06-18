@@ -20,6 +20,8 @@ void CrankNicolsonFunction::resetForNewSolve()
 {
   m_fn->set(0);
   m_physics_model->computeRhs(m_un, m_tn, m_fn);
+  if (!m_fn->isVectorCurrent())
+    m_fn->syncArrayToVector();
 }
 
 Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_norm, DiscVectorPtr f_np1)
@@ -155,7 +157,14 @@ void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
 {
   std::cout << "advancing to time " << t_new << std::endl;
   m_func->setTnp1(m_u, t_new);
-  m_newton->solve(m_u, m_opts.nonlinear_abs_tol, m_opts.nonlinear_rel_tol, m_opts.nonlinear_itermax);
+  NewtonResult result = m_newton->solve(m_u, m_opts.nonlinear_abs_tol, m_opts.nonlinear_rel_tol, m_opts.nonlinear_itermax);
+
+  if (!result.isConverged())
+  {
+    std::stringstream ss;
+    ss << result;
+    throw std::runtime_error(ss.str());
+  }
 }
 
 

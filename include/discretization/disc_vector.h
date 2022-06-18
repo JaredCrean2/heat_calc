@@ -13,6 +13,10 @@ class DiscVector
   public:
     explicit DiscVector(DiscPtr disc);
 
+    DiscVector(const DiscVector& other) = delete;
+
+    DiscVector& operator=(const DiscVector& other);
+
     void markVectorModified();
 
     void markArrayModified();

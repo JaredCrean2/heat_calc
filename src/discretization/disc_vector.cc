@@ -15,6 +15,30 @@ DiscVector::DiscVector(DiscPtr disc) :
   }
 }
 
+DiscVector& DiscVector::operator=(const DiscVector& other)
+{
+  assertAlways(getDisc() == other.getDisc(), "Cannot copy DiscVectors that were created on different Discretizations");
+  if (this == &other)
+    return *this;
+
+  std::copy(&(other.m_vec[0]), &(other.m_vec[0]) + other.m_vec.shape()[0], &(m_vec[0]));
+
+  for (size_t i=0; i < m_array.size(); ++i)
+  {
+    auto& array_in = other.m_array[i];
+    auto& array_out = m_array[i];
+    for (int el=0; el < array_in.shape()[0]; ++el)
+      for (int j=0; j < array_in.shape()[1]; ++j)
+        array_out[el][j] = array_in[el][j];
+  }
+
+  m_is_array_modified = other.m_is_array_modified;
+  m_is_vec_modified   = other.m_is_vec_modified;
+
+  return *this;
+}
+
+
 
 void DiscVector::markVectorModified()
 { 

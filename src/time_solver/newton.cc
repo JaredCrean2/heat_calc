@@ -68,8 +68,9 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
   {
     u_vec[i] -= delta_u_vec[i];
     std::cout << "dof " << i << ", delta_u = " << delta_u_vec[i] << ", new u value = " << u_vec[i] << std::endl;
-
   }
+
+  u->markVectorModified();
 }
 
 

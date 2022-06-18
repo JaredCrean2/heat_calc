@@ -9,21 +9,51 @@
 namespace {
 
 
-  Real ex_sol(Real x, Real y, Real z, Real t)
-  { 
-    return 1;
+Real ex_sol(Real x, Real y, Real z, Real t, int degree_space, int degree_time)
+{
+  return std::pow(t, degree_time) + std::pow(x, degree_space) + std::pow(y, degree_space) + std::pow(z, degree_space);
+  //return std::pow(y, degree);
+}
+
+
+std::array<Real, 3> ex_sol_deriv(Real x, Real y, Real z, Real t, int degree_space)
+{
+  std::array<Real, 3> derivs{0, 0, 0};
+  if (degree_space > 0)
+  {
+    derivs[0] = degree_space * std::pow(x, degree_space - 1);
+    derivs[1] = degree_space * std::pow(y, degree_space - 1);
+    derivs[2] = degree_space * std::pow(z, degree_space - 1);
   }
 
-  std::array<Real, 3> deriv(Real x, Real y, Real z, Real t)
-  { 
-    return std::array<Real, 3>{0, 0, 0}; 
-  };
+  return derivs;
+}
 
-  Real src(Real x, Real y, Real z, Real t)
-  { 
-    return 0; 
-  };
 
+Real src_func_dir(Real x, int degree_space)
+{
+  Real spacial_term = 0;
+  if (degree_space >= 2)
+    spacial_term = -(degree_space * (degree_space - 1) * std::pow(x, degree_space-2));
+
+  return spacial_term;
+}
+
+Real src_func(Real x, Real y, Real z, Real t, int degree_space, int degree_time)
+{
+  Real src = src_func_dir(x, degree_space) + src_func_dir(y, degree_space) + src_func_dir(z, degree_space);
+
+  if (degree_time >= 1)
+    src -= degree_time * std::pow(t, degree_time - 1);
+
+  return src;
+}
+
+enum SolveType
+{
+  TIMEONLY,
+  SPACETIME
+};
 
 class CNPhysicsModel : public PhysicsModel
 {
@@ -40,41 +70,56 @@ class CNPhysicsModel : public PhysicsModel
     // on exit, rhs has the residual in array form
     virtual void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
     {
-      //m_heat->computeRhs(u, t, rhs);
-      rhs->set(0);
-      //rhs->syncArrayToVector();
-      auto& vec = rhs->getVector();
-      for (int i=0; i < vec.shape()[0]; ++i)
-        vec[i] += t;
+      if (m_solve_type == SPACETIME)
+      {
+        m_heat->computeRhs(u, t, rhs);
+      } else
+      {
+        rhs->set(0);
+        auto& vec = rhs->getVector();
+        for (int i=0; i < vec.shape()[0]; ++i)
+          vec[i] += t;
+      }
     }
 
     virtual void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler)
     {
-      //m_heat->computeJacobian(u, t, assembler);
+      if (m_solve_type == SPACETIME)
+        m_heat->computeJacobian(u, t, assembler);
     }
 
     virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)
     {
-      //m_heat->applyMassMatrix(vec_in, vec_out);
-      auto& v_vec_in = vec_in->getVector();
-      auto& v_vec_out = vec_out->getVector();
-      for (int i=0; i < vec_in->getNumDofs(); ++i)
-        v_vec_out[i] = v_vec_in[i];
-      vec_out->markVectorModified();
+      if (m_solve_type == SPACETIME)
+      {
+        m_heat->applyMassMatrix(vec_in, vec_out);
+      } else
+      {
+        auto& v_vec_in = vec_in->getVector();
+        auto& v_vec_out = vec_out->getVector();
+        for (int i=0; i < vec_in->getNumDofs(); ++i)
+          v_vec_out[i] = v_vec_in[i];
+        vec_out->markVectorModified();
+      }
     }
 
     virtual void computeMassMatrix(linear_system::AssemblerPtr assembler)
     {
-      //m_heat->computeMassMatrix(assembler);
-      std::vector<DofInt> dofs(1);
-      ArrayType<Real, 2> vals(boost::extents[1][1]);
-      auto mat = assembler->getMatrix();
-
-      for (int i=0; i < mat->getMLocal(); ++i)
+      if (m_solve_type == SPACETIME)
       {
-        dofs[0]    = i;
-        vals[0][0] = 1 * assembler->getAlpha();
-        mat->assembleValues(dofs, vals);
+        m_heat->computeMassMatrix(assembler);
+      } else
+      {
+        std::vector<DofInt> dofs(1);
+        ArrayType<Real, 2> vals(boost::extents[1][1]);
+        auto mat = assembler->getMatrix();
+
+        for (int i=0; i < mat->getMLocal(); ++i)
+        {
+          dofs[0]    = i;
+          vals[0][0] = 1 * assembler->getAlpha();
+          mat->assembleValues(dofs, vals);
+        }
       }
     }
 
@@ -105,8 +150,11 @@ class CNPhysicsModel : public PhysicsModel
       return m_heat->getSourceTerm(idx);
     }
 
+    void setSolveType(SolveType solve_type) { m_solve_type = solve_type;}
+
   private:
     std::shared_ptr<Heat::HeatEquation> m_heat;
+    SolveType m_solve_type = TIMEONLY;
 };
 
 
@@ -122,10 +170,10 @@ class CNTester : public StandardDiscSetup,
     {
       Mesh::MeshSpec spec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 2, 2, 2);
       setup(3, 1, spec, {false, false, false, false, false, false});
-      setSolution();
     }
 
-    void setSolution(const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
+    template <typename Tex, typename Tderiv, typename Tsrc>
+    void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
     {
       auto heat    = std::make_shared<Heat::HeatEquation>(disc);
       cn_model = std::make_shared<CNPhysicsModel>(heat);
@@ -173,6 +221,23 @@ TEST_F(CNTester, Linear)
   opts.nonlinear_rel_tol = 1e-12;
   opts.nonlinear_itermax = 5;  //TODO: test 1
 
+  Real kappa = 1;
+  int degree = 0;
+  auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                      { return ex_sol(x, y, z, t, degree, degree); };
+
+  auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                      { 
+                        auto vals = ex_sol_deriv(x, y, z, t, degree);
+                        for (auto& v : vals)
+                          v *= kappa;
+                        return vals;
+                      };
+  auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { return kappa * src_func(x, y, z, t, degree, degree); };
+
+  setSolution(ex_sol_l, deriv_l, src_func_l);
+
   timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
   crank.solve();
 
@@ -183,7 +248,59 @@ TEST_F(CNTester, Linear)
   for (int i=0; i < vec.shape()[0]; ++i)
   {
     std::cout << "dof " << i << std::endl;
-    EXPECT_NEAR(vec[i], 0.5*opts.t_end*opts.t_end + 1, 1e-12);
+    EXPECT_NEAR(vec[i], 0.5*opts.t_end*opts.t_end + 4, 1e-12);
   }
+}
 
+
+TEST_F(CNTester, PolynomialExactness)
+{
+  timesolvers::TimeStepperOpts opts;
+  opts.t_start = 0.0;
+  opts.t_end   = 0.1;
+  opts.delta_t = 0.1;
+  opts.mat_type = linear_system::LargeMatrixType::Dense;
+  opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
+  opts.nonlinear_abs_tol = 1e-12;
+  opts.nonlinear_rel_tol = 1e-12;
+  opts.nonlinear_itermax = 5;  //TODO: test 1
+
+  Real kappa = 1;
+  int degree_space = 1, degree_time = 2;
+  auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                      { return ex_sol(x, y, z, t, degree_space, degree_time); };
+
+  auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                      { 
+                        auto vals = ex_sol_deriv(x, y, z, t, degree_space);
+                        for (auto& v : vals)
+                          v *= kappa;
+                        return vals;
+                      };
+  auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { return kappa * src_func(x, y, z, t, degree_space, degree_time); };
+
+  setSolution(ex_sol_l, deriv_l, src_func_l);
+  cn_model->setSolveType(SPACETIME);
+
+  timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
+  crank.solve();
+
+  if (!u_vec->isArrayCurrent())
+    u_vec->syncVectorToArray();
+
+  auto disc = cn_model->getDiscretization();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    auto vol_disc = disc->getVolDisc(i);
+    auto& coords  = vol_disc->vol_group.coords;
+    auto& u_arr   = u_vec->getArray(i);
+    for (int el=0; el < vol_disc->getNumElems(); ++el)
+      for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
+      {
+        Real ex_val = ex_sol_l(coords[el][j][0], coords[el][j][1], coords[el][j][2], opts.t_end);
+        EXPECT_NEAR(u_arr[el][j], ex_val, 1e-13);
+        std::cout << "el " << el << ", node " << j << " computed solution = " << u_arr[el][j] << ", ex solution = " << ex_val << std::endl;
+      }
+  }
 }

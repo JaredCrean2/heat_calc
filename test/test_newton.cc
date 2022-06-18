@@ -65,7 +65,6 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
       for (int i=0; i < u->getNumDofs(); ++i)
         f_vec[i] = (u_vec[i] - 1)*(u_vec[i] - 1);
 
-      //TODO: update this for parallel
       double norm = 0.0, norm_global;
       if (compute_norm)
       {
