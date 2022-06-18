@@ -633,3 +633,54 @@ TEST_F(HeatMMSTester, MassMatrixPosDef)
     }
   }
 }
+
+
+TEST_F(HeatMMSTester, ComputeMassMatrix)
+{
+  SERIAL_ONLY();
+
+  // test that 1^T M 1 = volume of domain
+  std::vector<bool> dirichlet_surfs = {false, false, false, false, false, false};
+
+  auto ex_sol = [] (Real x, Real y, Real z, Real t)
+                   { return 1; };
+
+  auto deriv = [] (Real x, Real y, Real z, Real t)
+                   { return std::array<Real, 3>{0, 0, 0}; };
+
+  auto src_func = [] (Real x, Real y, Real z, Real t)
+                     { return 0; };
+
+  linear_system::LargeMatrixOpts opts;
+  opts.factor_in_place = false;
+  opts.is_structurally_symmetric = false;
+  opts.is_value_symmetric = false;
+                     
+  for (int sol_degree=1; sol_degree <= 2; ++sol_degree)
+  {
+    std::cout << "testing sol degree " << sol_degree << std::endl;
+    setup(2*sol_degree, sol_degree, dirichlet_surfs);
+    setSolution(ex_sol, deriv, src_func);
+    DiscVectorPtr result_vec = makeDiscVector(disc);
+
+    auto num_dofs  = disc->getDofNumbering()->getNumOwnedDofs();
+    auto mat       = std::make_shared<linear_system::LargeMatrixDense>(num_dofs, num_dofs, opts);
+    auto assembler = std::make_shared<linear_system::Assembler>(disc, mat);
+    auto result_vec2 = makeDiscVector(disc);
+
+    heat->applyMassMatrix(u_vec, result_vec);
+    heat->computeMassMatrix(assembler);
+    result_vec2->set(0);
+    mat->matVec(u_vec->getVector(), result_vec2->getVector());
+
+    if (!result_vec->isVectorCurrent())
+      result_vec->syncArrayToVector();
+
+    if (!result_vec2->isVectorCurrent())
+      result_vec2->syncArrayToVector();
+
+    for (int i=0; i < num_dofs; ++i)
+      EXPECT_NEAR(result_vec->getVector()[i], result_vec2->getVector()[i], 1e-12);
+    
+  }
+}

@@ -71,6 +71,10 @@ void HeatEquation::applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)
   ::Heat::applyMassMatrix(*this, vec_in, vec_out);
 }
 
+void HeatEquation::computeMassMatrix(linear_system::AssemblerPtr assembler)
+{
+  ::Heat::computeMassMatrix(*this, assembler);
+}
 
 
 void HeatEquation::checkInitialization()
@@ -154,6 +158,56 @@ void applyMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
         arr_out[el][i] += basis_vals.getValue(i, k) * u_quad[k];
     }
 
+  }
+}
+
+//-----------------------------------------------------------------------------
+// computeMassMatrix
+void computeMassMatrix(const HeatEquation& physics, linear_system::AssemblerPtr assembler)
+{
+  auto disc = physics.getDiscretization();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    auto vol_disc = disc->getVolDisc(i);
+    auto& params  = physics.getVolumeGroupParams(i);
+
+    computeMassMatrix(vol_disc, params, assembler);
+  }
+
+}
+
+void computeMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, linear_system::AssemblerPtr assembler)
+{
+  auto& detJ  = vol_disc->detJ;
+  Real rho_cp = params.rho * params.Cp;
+  auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
+  Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
+  BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
+  const auto& rev_nodemap = basis_vals.getRevNodemapOut();
+
+  ArrayType<Real, 3> dN_dx(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumQuadPtsPerElement()][3]);
+  ArrayType<Real, 2> dR_du(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumSolPtsPerElement()]);
+
+  for (int el=0; el < vol_disc->getNumElems(); ++el)
+  {
+    for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+      for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
+      {
+        dR_du[i][j] = 0;
+
+        for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+        {
+          Real Ni = basis_vals.getValue(i, k);
+          Real Nj = basis_vals.getValue(j, k);
+
+          int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+          //TODO: store 1/detJ in an array to avoid the division here
+          Real weight = rho_cp * vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k) / detJ[el][k];
+          dR_du[i][j] += Ni * weight * Nj;
+        } 
+      }
+
+    assembler->assembleVolume(vol_disc->getIdx(), el, dR_du);
   }
 }
 

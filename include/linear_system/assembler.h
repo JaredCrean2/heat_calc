@@ -36,6 +36,8 @@ class Assembler
 
     void zeroMatrix() { m_matrix->zeroMatrix(); }
 
+    LargeMatrixPtr getMatrix() { return m_matrix; }
+
   private:
     DiscPtr m_disc;
     DofNumberingPtr m_dof_nums;

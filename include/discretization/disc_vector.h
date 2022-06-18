@@ -62,8 +62,7 @@ class DiscVector
   private:
     DiscPtr m_disc;
     ArrayType<Real, 1> m_vec;    // length numdofs
-    std::vector<ArrayType<Real, 2>> m_array;  // vector length num volume
-                                              // groups,
+    std::vector<ArrayType<Real, 2>> m_array;  // vector length num volume groups,
                                               // inner array nelem per group x numSolNodesPerElement
     bool m_is_vec_modified   = false;
     bool m_is_array_modified = false;

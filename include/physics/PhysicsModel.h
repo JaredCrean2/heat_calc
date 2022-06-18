@@ -14,7 +14,7 @@
 class PhysicsModel
 {
   public:
-    PhysicsModel(DiscPtr disc) :
+    explicit PhysicsModel(DiscPtr disc) :
         m_disc(disc)
     {}
 
@@ -29,28 +29,29 @@ class PhysicsModel
 
     virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) = 0;
 
-    DiscPtr getDiscretization() { return m_disc; }
+    virtual void computeMassMatrix(linear_system::AssemblerPtr assembler) = 0;
 
-    const DiscPtr getDiscretization() const { return m_disc; }
+    virtual DiscPtr getDiscretization() { return m_disc; }
 
-    void addDirichletBC(DirichletBCPtr bc) { m_dirichlet_bcs.push_back(bc); }
+    virtual const DiscPtr getDiscretization() const { return m_disc; }
 
-    void addNeumannBC(NeumannBCPtr bc) { m_neumann_bcs.push_back(bc); }
+    virtual void addDirichletBC(DirichletBCPtr bc) { m_dirichlet_bcs.push_back(bc); }
 
-    const std::vector<DirichletBCPtr>& getDirichletBCs() const {return m_dirichlet_bcs; }
+    virtual void addNeumannBC(NeumannBCPtr bc) { m_neumann_bcs.push_back(bc); }
 
-    const std::vector<NeumannBCPtr>& getNeumannBCs() const {return m_neumann_bcs; }
+    virtual const std::vector<DirichletBCPtr>& getDirichletBCs() const {return m_dirichlet_bcs; }
 
-    void addSourceTerm(SourceTermPtr src) { m_source_terms.push_back(src); }
+    virtual const std::vector<NeumannBCPtr>& getNeumannBCs() const {return m_neumann_bcs; }
 
-    SourceTermPtr getSourceTerm(int idx)  const { return m_source_terms.at(idx); }
+    virtual void addSourceTerm(SourceTermPtr src) { m_source_terms.push_back(src); }
+
+    virtual SourceTermPtr getSourceTerm(int idx)  const { return m_source_terms.at(idx); }
     
   protected:
     virtual void checkInitialization();
 
 
   private:
-
     DiscPtr m_disc;
     std::vector<DirichletBCPtr> m_dirichlet_bcs;
     std::vector<NeumannBCPtr> m_neumann_bcs;

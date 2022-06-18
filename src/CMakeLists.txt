@@ -21,9 +21,11 @@ set(src_files EpwReader.cc
               linear_system/large_matrix.cc
               linear_system/large_matrix_dense.cc
               linear_system/large_matrix_petsc.cc
+              linear_system/large_matrix_factory.cc
               linear_system/sparsity_pattern_mesh.cc
               time_solver/newton_result.cc
               time_solver/newton.cc
+              time_solver/crank_nicolson.cc
               )
 
 add_subdirectory(mesh)

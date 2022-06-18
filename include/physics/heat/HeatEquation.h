@@ -47,6 +47,8 @@ class HeatEquation : public PhysicsModel
 
     void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) override;
 
+    void computeMassMatrix(linear_system::AssemblerPtr assembler) override;
+
     void addVolumeGroupParams(const VolumeGroupParams& params) { m_params.push_back(params); }
 
     const VolumeGroupParams& getVolumeGroupParams(int idx) const { return m_params.at(idx); }
@@ -64,6 +66,10 @@ void applyMassMatrix(const HeatEquation& physics, DiscVectorPtr vec_in, DiscVect
 
 void applyMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const DofNumberingPtr dof_numbering,
                      const ArrayType<Real, 2>& arr_in, ArrayType<Real, 2>& arr_out);
+
+void computeMassMatrix(const HeatEquation& physics, linear_system::AssemblerPtr assembler);
+
+void computeMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, linear_system::AssemblerPtr assembler);
 
 void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorPtr rhs);
 
