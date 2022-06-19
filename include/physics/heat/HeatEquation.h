@@ -94,6 +94,11 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
 
 void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs);
 
+void computeUnsteadyDirichletBC(const HeatEquation& physics, const Real t, DiscVectorPtr rhs);
+
+void computeUnsteadyDirichletBC(DirichletBCPtr bc, const std::vector<VolDiscPtr>& vol_discs,
+                                const std::vector<const VolumeGroupParams*>& vol_group_params,
+                                const Real t, DiscVectorPtr rhs);
 
 void printArray(DiscVectorPtr vec);
 

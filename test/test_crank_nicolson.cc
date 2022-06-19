@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "discretization/DirichletBC.h"
 #include "mesh_helper.h"
 #include "physics/PhysicsModel.h"
 #include "time_solver/crank_nicolson.h"
@@ -13,6 +14,15 @@ Real ex_sol(Real x, Real y, Real z, Real t, int degree_space, int degree_time)
 {
   return std::pow(t, degree_time) + std::pow(x, degree_space) + std::pow(y, degree_space) + std::pow(z, degree_space);
   //return std::pow(y, degree);
+}
+
+Real ex_sol_dt(Real x, Real y, Real z, Real t, int degree_space, int degree_time)
+{
+  Real sol_dt = 0;
+  if (degree_time > 0)
+    sol_dt = degree_time * std::pow(t, degree_time - 1);
+
+  return sol_dt;
 }
 
 
@@ -168,12 +178,14 @@ class CNTester : public StandardDiscSetup,
 
     CNTester()
     {
-      Mesh::MeshSpec spec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 2, 2, 2);
-      setup(3, 1, spec, {false, false, false, false, false, false});
+      Mesh::MeshSpec spec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 3, 3, 3);
+      //setup(3, 1, spec, {false, false, false, false, false, false});
+      setup(3, 1, spec, {true, true, true, true, true, true});
+
     }
 
-    template <typename Tex, typename Tderiv, typename Tsrc>
-    void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
+    template <typename Tex, typename Tderiv, typename Tsrc, typename Tsrc2 = impl::ZeroFuncType>
+    void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, Tsrc2 ex_sol_dt=&(impl::zeroFunc), const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
     {
       auto heat    = std::make_shared<Heat::HeatEquation>(disc);
       cn_model = std::make_shared<CNPhysicsModel>(heat);
@@ -190,7 +202,7 @@ class CNTester : public StandardDiscSetup,
       {
         auto surf = disc->getBCSurfDisc(i);
         if (surf->getIsDirichlet())
-          cn_model->addDirichletBC(makeDirichletBCMMS(surf, ex_sol));
+          cn_model->addDirichletBC(makeDirichletBCMMS(surf, ex_sol, ex_sol_dt));
         else
           cn_model->addNeumannBC(makeNeumannBCMMS(surf, deriv));
       }
@@ -256,18 +268,21 @@ TEST_F(CNTester, PolynomialExactness)
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
-  opts.t_end   = 0.1;
-  opts.delta_t = 0.1;
+  opts.t_end   = 0.55;
+  opts.delta_t = 0.025;
   opts.mat_type = linear_system::LargeMatrixType::Dense;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
   opts.nonlinear_abs_tol = 1e-12;
   opts.nonlinear_rel_tol = 1e-12;
-  opts.nonlinear_itermax = 5;  //TODO: test 1
+  opts.nonlinear_itermax = 1;  //TODO: test 1
 
   Real kappa = 1;
-  int degree_space = 1, degree_time = 2;
+  int degree_space = 0, degree_time = 1;
   auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
                       { return ex_sol(x, y, z, t, degree_space, degree_time); };
+
+  auto ex_sol_dt_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                      { return ex_sol_dt(x, y, z, t, degree_space, degree_time); };
 
   auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
                       { 
@@ -279,7 +294,7 @@ TEST_F(CNTester, PolynomialExactness)
   auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
                         { return kappa * src_func(x, y, z, t, degree_space, degree_time); };
 
-  setSolution(ex_sol_l, deriv_l, src_func_l);
+  setSolution(ex_sol_l, deriv_l, src_func_l, ex_sol_dt_l);
   cn_model->setSolveType(SPACETIME);
 
   timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
@@ -302,3 +317,5 @@ TEST_F(CNTester, PolynomialExactness)
       }
   }
 }
+
+//TODO: write test verifying consistency of Jacobian and residual

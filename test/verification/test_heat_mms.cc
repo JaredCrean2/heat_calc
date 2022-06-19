@@ -10,6 +10,7 @@
 #include "physics/heat/basis_vals.h"
 #include "linear_system/large_matrix_petsc.h"
 #include "linear_system/sparsity_pattern_mesh.h"
+#include "time_solver/crank_nicolson.h"
 #include "mesh_helper.h"
 
 #include "mpi.h"
@@ -144,7 +145,6 @@ namespace {
         
         double val_l2 = 0, val_max = 0;
         auto& tmp_vec = tmp->getVector();
-        //for (int i=0; i < num_dofs; ++i)
         for (auto i : owned_to_local_dofs)
         {
           val_l2 += err_vec[i] * tmp_vec[i];
@@ -167,6 +167,93 @@ namespace {
       linear_system::LargeMatrixPtr mat;
       linear_system::AssemblerPtr assembler;
   };
+
+
+  class UnsteadyHeatMMSConvergenceTester : public StandardDiscSetup,
+                                           public SlopeCalculator,
+                                           public testing::Test
+  {
+    protected:
+      using HeatPtr = std::shared_ptr<Heat::HeatEquation>;
+
+      UnsteadyHeatMMSConvergenceTester()
+      {
+        setup();
+      }
+
+      using StandardDiscSetup::setup;
+
+      virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
+                         const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true})
+      {
+        StandardDiscSetup::setup(quad_degree, sol_degree, spec, is_surf_dirichlet);
+
+        heat        = std::make_shared<Heat::HeatEquation>(disc);
+        u_vec       = makeDiscVector(disc);
+      }
+
+      template <typename Tex, typename Tderiv, typename Tsrc>
+      void setSolution(Tex ex_sol, Tderiv deriv, Tsrc src, const Heat::VolumeGroupParams& params = Heat::VolumeGroupParams{1, 1, 1})
+      {
+        for (int i=0; i < disc->getNumVolDiscs(); ++i)
+        {
+          heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+          heat->addVolumeGroupParams(params);
+        }
+
+        for (int i=0; i < disc->getNumSurfDiscs(); ++i)
+        {
+          auto surf = disc->getSurfDisc(i);
+          if (surf->getIsDirichlet())
+            heat->addDirichletBC(makeDirichletBCMMS(surf, ex_sol));
+          else
+            heat->addNeumannBC(makeNeumannBCMMS(surf, deriv));
+        }
+
+        auto f = [&](Real x, Real y, Real z)
+                    { return ex_sol(x, y, z, 0); };
+        u_vec->setFunc(f);
+      }
+
+      void computeErrorNorm(DiscVectorPtr u_ex, DiscVectorPtr u_sol)
+      {
+        std::vector<DofInt> owned_to_local_dofs;
+        mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
+        int num_dofs = u_ex->getNumDofs();
+        auto err     = makeDiscVector(disc);
+        auto tmp     = makeDiscVector(disc);
+
+        auto& u_ex_vec  = u_ex->getVector();
+        auto& u_sol_vec = u_sol->getVector();
+        auto& err_vec   = err->getVector();
+        for (int i=0; i < num_dofs; ++i)
+          err_vec[i] = u_ex_vec[i] - u_sol_vec[i];          
+
+        err->markVectorModified();
+
+        heat->applyMassMatrix(err, tmp);
+        if (!tmp->isVectorCurrent())
+          tmp->syncArrayToVector();
+        
+        double val_l2 = 0, val_max = 0;
+        auto& tmp_vec = tmp->getVector();
+        for (auto i : owned_to_local_dofs)
+        {
+          val_l2 += err_vec[i] * tmp_vec[i];
+          val_max = std::max(val_max, std::abs(err_vec[i]));
+        }
+
+        double val_l2_global, val_max_global;
+        MPI_Allreduce(&val_l2, &val_l2_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&val_max, &val_max_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        val_l2_global = std::sqrt(val_l2_global);
+
+        recordError(val_l2_global, val_max_global, spec.nx * spec.ny * spec.nz);
+      }
+
+      HeatPtr heat;
+      DiscVectorPtr u_vec;
+  };  
 
 
     class HeatMMSMultiConvergenceTester : public StandardDiscSetupMulti,
@@ -336,6 +423,91 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
       
 
       computeErrorNorm(u_vec, u_solve_vec);
+    }
+
+    auto slopes = computeSlopes();
+    auto errors_l2 = getErrorsL2();
+    auto errors_max = getErrorsMax();
+
+    for (unsigned int i=0; i < slopes.size(); ++i)
+    {
+      Real ratio_l2 = 0, ratio_max = 0;
+      if (i > 0)
+      {
+        ratio_l2 = errors_l2[i-1] / errors_l2[i];
+        ratio_max = errors_max[i-1] / errors_max[i];
+      }
+
+      std::cout << "mesh " << i << ": slope_l2 = " << slopes[i][0] << ", slope_max = " << slopes[i][1] << ", ratio_l2 = " << ratio_l2 << ", ratio_max = " << ratio_max << std::endl;
+    }
+
+    // for some reason, p=2 converges at a rate of 4
+    EXPECT_NEAR(slopes[slopes.size()-1][0], 2*sol_degree, 0.1);
+    resetErrors();
+  }
+}
+
+
+TEST_F(UnsteadyHeatMMSConvergenceTester, CrankNicolsonExponential)
+{
+  //Real kappa = 2;
+  //Heat::VolumeGroupParams params{kappa, 3, 4};
+
+  Real kappa = 1;
+  Heat::VolumeGroupParams params{kappa, 1, 1};
+
+
+  timesolvers::TimeStepperOpts opts;
+  opts.t_start = 0.0;
+  opts.t_end   = 0.5;
+  opts.delta_t = 0.1;  //TODO: need to refine this too
+  opts.mat_type = linear_system::LargeMatrixType::Dense;
+  opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
+  opts.nonlinear_abs_tol = 1e-12;
+  opts.nonlinear_rel_tol = 1e-12;
+  opts.nonlinear_itermax = 5;  //TODO: test 1
+
+  for (int sol_degree=1; sol_degree <= 1; ++sol_degree)
+  {
+
+    auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { 
+                          return std::exp(x + y + z + t); 
+                          //return t + 1;
+                        };
+
+    auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                       { 
+                         return {kappa * std::exp(x + y + z + t), kappa * std::exp(x + y + z + t), kappa * std::exp(x + y + z + t)}; 
+                         //return {0, 0, 0}; 
+                        };
+    auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                          { 
+                            return -2 * kappa * std::exp(x + y + z + t);
+                          };
+
+    int nmeshes = 3;
+    int nelem_start = 3;
+    for (int i=0; i < nmeshes; ++i)
+    {
+      int nelem = nelem_start * std::pow(2, i);
+      auto meshspec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, nelem, nelem, nelem);
+
+      std::cout << "mesh " << i << " with " << std::pow(nelem, 3) << " elements" << std::endl;
+      setup(2*sol_degree, sol_degree, meshspec, {false, false, false, false, false, false});
+      setSolution(ex_sol_l, deriv_l, src_func_l, params);
+
+      mesh->getFieldDataManager().attachVector(u_vec, "solution");
+      mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
+
+      timesolvers::CrankNicolson crank(heat, u_vec, opts);
+      crank.solve();
+
+      auto u_ex_vec = makeDiscVector(disc);
+      u_ex_vec->setFunc([&](Real x, Real y, Real z){return ex_sol_l(x, y, z, opts.t_end);});
+      
+      computeErrorNorm(u_ex_vec, u_vec);
+      opts.delta_t *= 0.5;
     }
 
     auto slopes = computeSlopes();

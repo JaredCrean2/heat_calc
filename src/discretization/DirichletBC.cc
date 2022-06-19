@@ -17,3 +17,17 @@ void applyDirichletValues(DirichletBCPtr bc, const Real t, DiscVectorPtr disc_ve
       arr[face_spec.el_group][nodemap[face_spec.face][j]] = vals[j];
   }
 }
+
+namespace impl {
+
+Real errorFunc(Real x, Real y, Real z, Real t)
+{
+  throw std::runtime_error("unsteady Dirichlet BC not set up");
+}
+
+Real zeroFunc(Real x, Real y, Real z, Real t)
+{
+  return 0;
+}
+
+}
