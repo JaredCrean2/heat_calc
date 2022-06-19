@@ -23,15 +23,6 @@ void CrankNicolsonFunction::resetForNewSolve()
   m_physics_model->computeRhs(m_un, m_tn, m_fn);
   if (!m_fn->isVectorCurrent())
     m_fn->syncArrayToVector();
-  /*
-  auto& fn_vec = m_fn->getVector();
-  auto& u_vec = m_un->getVector();
-  
-  for (int i=0; i < m_un->getNumDofs(); ++i)
-  {
-    std::cout << "dof " << i << ", u = " << u_vec[i] << ", f = " << fn_vec[i] << std::endl;
-  }
-  */
 }
 
 Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_norm, DiscVectorPtr f_np1)
@@ -67,13 +58,8 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
   auto& f_np1_vec    = f_np1->getVector();
   auto& f_n_vec      = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
-  //std::cout << "in computeFunc" << std::endl;
   for (int i=0; i < f_np1->getNumDofs(); ++i)
-  {
-    //auto f_np1_val = f_np1_vec[i];
     f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1_vec[i] - 0.5*f_n_vec[i];
-    //std::cout << "dof " << i << ", M * delta_u = " << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_val << ", f_n = " << f_n_vec[i] << ", function value = " << f_np1_vec[i] << std::endl;
-  }
   f_np1->markVectorModified();
 
   Real norm = 0, norm_global = 0;
@@ -146,7 +132,6 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
 
 void CrankNicolson::solve()
 {
-  std::cout << "Entered CrankNicolson::solve()" << std::endl;
   int nsteps = numWholeSteps();
   Real t = m_opts.t_start;
   for (int i=0; i < nsteps; ++i)

@@ -460,8 +460,8 @@ TEST_F(UnsteadyHeatMMSConvergenceTester, CrankNicolsonExponential)
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
   opts.t_end   = 0.5;
-  opts.delta_t = 0.1;  //TODO: need to refine this too
-  opts.mat_type = linear_system::LargeMatrixType::Dense;
+  opts.delta_t = 0.1; 
+  opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
   opts.nonlinear_abs_tol = 1e-12;
   opts.nonlinear_rel_tol = 1e-12;
