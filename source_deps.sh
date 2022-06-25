@@ -11,4 +11,4 @@ source ~/build/core_install/use_core.sh
 source ~/build/boost_1_76_0_install/use_boost.sh
 source ~/build/googletest/install/use_gtest.sh
 #source ~/build/petsc_3.17.0/debug/use_petsc.sh
-source ~/build/petsc_3.17.0/debug/use_petsc.sh
+source ~/build/petsc_3.17.0/opt/use_petsc.sh

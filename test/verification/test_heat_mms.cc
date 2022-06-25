@@ -486,8 +486,8 @@ TEST_F(UnsteadyHeatMMSConvergenceTester, CrankNicolsonExponential)
                             return -2 * kappa * std::exp(x + y + z + t);
                           };
 
-    int nmeshes = 3;
-    int nelem_start = 3;
+    int nmeshes = 1; //3;
+    int nelem_start = 81; //3;
     for (int i=0; i < nmeshes; ++i)
     {
       int nelem = nelem_start * std::pow(2, i);

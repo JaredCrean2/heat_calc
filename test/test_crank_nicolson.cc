@@ -179,8 +179,8 @@ class CNTester : public StandardDiscSetup,
     CNTester()
     {
       Mesh::MeshSpec spec = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 3, 3, 3);
-      //setup(3, 1, spec, {false, false, false, false, false, false});
-      setup(3, 1, spec, {true, true, true, true, true, true});
+      setup(3, 1, spec, {false, false, false, false, false, false});
+      //setup(3, 1, spec, {true, true, true, true, true, true});
 
     }
 
@@ -263,6 +263,9 @@ TEST_F(CNTester, Linear)
   }
 }
 
+// This test has to use Neumann BCs because we don't compute
+// the initial condition the way the theory says we should
+// for time-varying Dirichlet BCs
 
 TEST_F(CNTester, PolynomialExactness)
 {
@@ -274,47 +277,54 @@ TEST_F(CNTester, PolynomialExactness)
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
   opts.nonlinear_abs_tol = 1e-12;
   opts.nonlinear_rel_tol = 1e-12;
-  opts.nonlinear_itermax = 1;  //TODO: test 1
+  opts.nonlinear_itermax = 1;
 
   Real kappa = 1;
-  int degree_space = 0, degree_time = 1;
-  auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                      { return ex_sol(x, y, z, t, degree_space, degree_time); };
+  int degree_time = 2;
 
-  auto ex_sol_dt_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                      { return ex_sol_dt(x, y, z, t, degree_space, degree_time); };
-
-  auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
-                      { 
-                        auto vals = ex_sol_deriv(x, y, z, t, degree_space);
-                        for (auto& v : vals)
-                          v *= kappa;
-                        return vals;
-                      };
-  auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
-                        { return kappa * src_func(x, y, z, t, degree_space, degree_time); };
-
-  setSolution(ex_sol_l, deriv_l, src_func_l, ex_sol_dt_l);
-  cn_model->setSolveType(SPACETIME);
-
-  timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
-  crank.solve();
-
-  if (!u_vec->isArrayCurrent())
-    u_vec->syncVectorToArray();
-
-  auto disc = cn_model->getDiscretization();
-  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  //Not sure why this is exact up to degree 4
+  for (int degree_space=0; degree_space < 5; ++degree_space)
   {
-    auto vol_disc = disc->getVolDisc(i);
-    auto& coords  = vol_disc->vol_group.coords;
-    auto& u_arr   = u_vec->getArray(i);
-    for (int el=0; el < vol_disc->getNumElems(); ++el)
-      for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
-      {
-        Real ex_val = ex_sol_l(coords[el][j][0], coords[el][j][1], coords[el][j][2], opts.t_end);
-        EXPECT_NEAR(u_arr[el][j], ex_val, 1e-13);
-      }
+    std::cout << "testing degree_space = " << degree_space << std::endl;
+    auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { return ex_sol(x, y, z, t, degree_space, degree_time); };
+
+    auto ex_sol_dt_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { return ex_sol_dt(x, y, z, t, degree_space, degree_time); };
+
+    auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                        { 
+                          auto vals = ex_sol_deriv(x, y, z, t, degree_space);
+                          for (auto& v : vals)
+                            v *= kappa;
+                          return vals;
+                        };
+    auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                          { return kappa * src_func(x, y, z, t, degree_space, degree_time); };
+
+    setSolution(ex_sol_l, deriv_l, src_func_l, ex_sol_dt_l);
+    cn_model->setSolveType(SPACETIME);
+
+    timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
+    crank.solve();
+
+    if (!u_vec->isArrayCurrent())
+      u_vec->syncVectorToArray();
+
+    auto disc = cn_model->getDiscretization();
+    for (int i=0; i < disc->getNumVolDiscs(); ++i)
+    {
+      auto vol_disc = disc->getVolDisc(i);
+      auto& coords  = vol_disc->vol_group.coords;
+      auto& u_arr   = u_vec->getArray(i);
+      for (int el=0; el < vol_disc->getNumElems(); ++el)
+        for (int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
+        {
+          Real ex_val = ex_sol_l(coords[el][j][0], coords[el][j][1], coords[el][j][2], opts.t_end);
+          //std::cout << "ex_val = " << ex_val << ", u_val = " << u_arr[el][j] << std::endl;
+          EXPECT_NEAR(u_arr[el][j], ex_val, 1e-13);
+        }
+    }
   }
 }
 

@@ -21,6 +21,24 @@ class BasisVals
 
     Real getValue(const int idx_in, const int idx_out) const
     {
+      return m_vals_flat[idx_in * m_pts_out_flat + idx_out];
+    }
+
+    void getDerivs(const int idx_in, const int idx_out, Real derivs[3]) const
+    {
+      int idx = idx_in * 3 * m_pts_out_flat + idx_out * 3;
+      for (int d=0; d < 3; ++d)
+        derivs[d] = m_derivs_flat[idx + d];
+    }
+
+    const ArrayType<LocalIndex, 2>& getRevNodemapIn() const { return m_rev_nodemap_in; }
+
+    const ArrayType<LocalIndex, 2>& getRevNodemapOut() const { return m_rev_nodemap_out; }
+
+  private:
+
+    Real getValueTP(const int idx_in, const int idx_out) const
+    {
       int i_in = m_rev_nodemap_in[idx_in][0];  int i_out = m_rev_nodemap_out[idx_out][0];
       int j_in = m_rev_nodemap_in[idx_in][1];  int j_out = m_rev_nodemap_out[idx_out][1];
       int k_in = m_rev_nodemap_in[idx_in][2];  int k_out = m_rev_nodemap_out[idx_out][2];
@@ -28,7 +46,7 @@ class BasisVals
       return m_vals[i_out][i_in] * m_vals[j_out][j_in] * m_vals[k_out][k_in];
     }
 
-    void getDerivs(const int idx_in, const int idx_out, Real derivs[3]) const
+    void getDerivsTP(const int idx_in, const int idx_out, Real derivs[3]) const
     {
       int i_in = m_rev_nodemap_in[idx_in][0];  int i_out = m_rev_nodemap_out[idx_out][0];
       int j_in = m_rev_nodemap_in[idx_in][1];  int j_out = m_rev_nodemap_out[idx_out][1];
@@ -39,16 +57,14 @@ class BasisVals
       derivs[2] = m_vals[i_out][i_in]   * m_vals[j_out][j_in]   * m_derivs[k_out][k_in];
     }
 
-    const ArrayType<LocalIndex, 2>& getRevNodemapIn() const { return m_rev_nodemap_in; }
-
-    const ArrayType<LocalIndex, 2>& getRevNodemapOut() const { return m_rev_nodemap_out; }
-
-  private:
-
     void getReverseNodemap(const Mesh::TensorProductMapper& mapper, ArrayType<LocalIndex, 2>& rev_nodemap);
 
     LagrangeMemoizer::RetType m_vals;
     LagrangeMemoizer::RetType m_derivs;
+    std::vector<Real> m_vals_flat;
+    std::vector<Real> m_derivs_flat;
+    int m_pts_in_flat;
+    int m_pts_out_flat;
     ArrayType<LocalIndex, 2> m_rev_nodemap_in;  // maps linear index to tensor product triplet;
     ArrayType<LocalIndex, 2> m_rev_nodemap_out;
 };

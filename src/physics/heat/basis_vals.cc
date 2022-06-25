@@ -11,6 +11,22 @@ BasisVals::BasisVals(const Mesh::TensorProductMapper& tp_mapper_in,
 {
   getReverseNodemap(tp_mapper_in, m_rev_nodemap_in);
   getReverseNodemap(tp_mapper_out, m_rev_nodemap_out);
+  
+  m_pts_in_flat = tp_mapper_in.getNodemap().num_elements();
+  m_pts_out_flat = tp_mapper_out.getNodemap().num_elements();
+  m_vals_flat.resize(m_pts_in_flat*m_pts_out_flat);
+  m_derivs_flat.resize(m_pts_in_flat * m_pts_out_flat * 3);
+
+  for (int i=0; i < m_pts_in_flat; ++i)
+    for (int j=0; j < m_pts_out_flat; ++j)
+    {
+      m_vals_flat[i * m_pts_out_flat + j] = getValueTP(i, j);
+      std::array<Real, 3> derivs;
+      getDerivsTP(i, j, derivs.data());
+      for (int d=0; d < 3; ++d)
+        m_derivs_flat[i * 3 * m_pts_out_flat + 3 * j + d] = derivs[d];
+    }
+
 }
 
 
