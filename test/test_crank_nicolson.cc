@@ -1,11 +1,13 @@
 #include "gtest/gtest.h"
 #include "discretization/DirichletBC.h"
+#include "linear_system/large_matrix_factory.h"
 #include "mesh_helper.h"
 #include "physics/PhysicsModel.h"
 #include "time_solver/crank_nicolson.h"
 #include "physics/heat/HeatEquation.h"
 #include "discretization/DirichletBC_defs.h"
 #include "discretization/NeumannBC_defs.h"
+#include <random>
 
 namespace {
 
@@ -329,3 +331,88 @@ TEST_F(CNTester, PolynomialExactness)
 }
 
 //TODO: write test verifying consistency of Jacobian and residual
+TEST_F(CNTester, JacobianFD)
+{
+  Real kappa = 1;
+  int degree_space = 2, degree_time = 2;
+
+  auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                      { return ex_sol(x, y, z, t, degree_space, degree_time); };
+
+  auto ex_sol_dt_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                      { return ex_sol_dt(x, y, z, t, degree_space, degree_time); };
+
+  auto deriv_l = [&] (Real x, Real y, Real z, Real t) -> std::array<Real, 3>
+                      { 
+                        auto vals = ex_sol_deriv(x, y, z, t, degree_space);
+                        for (auto& v : vals)
+                          v *= kappa;
+                        return vals;
+                      };
+  auto src_func_l = [&] (Real x, Real y, Real z, Real t) -> Real
+                        { return kappa * src_func(x, y, z, t, degree_space, degree_time); };
+  setSolution(ex_sol_l, deriv_l, src_func_l, ex_sol_dt_l);
+
+  cn_model->setSolveType(SPACETIME);
+  const auto num_dofs  = disc->getDofNumbering()->getNumOwnedDofs();
+  auto mat_opts = std::make_shared<linear_system::LargeMatrixOpts>();
+  auto mat = linear_system::largeMatrixFactory(linear_system::LargeMatrixType::Dense, num_dofs, num_dofs, 
+                                               mat_opts);
+  const Real tn = 1.0;
+  const Real delta_t = 0.5;
+  timesolvers::CrankNicolsonFunction cn_func(cn_model, mat, tn - delta_t);
+
+  using Rng = std::mt19937;
+  Rng rng;
+  const int seed = 42;
+  const Real eps = 1e-6;
+  std::uniform_real_distribution<Real> uniform_rng(-1, 1);
+  const int nvectors = 10;
+  ArrayType<Real, 1> pert_vec(boost::extents[num_dofs]);
+  std::vector<Real> product_fd(num_dofs);
+  ArrayType<Real, 1>  product_jac(boost::extents[num_dofs]);
+  rng.seed(seed);
+  auto res_vec1 = makeDiscVector(disc);
+  auto res_vec2 = makeDiscVector(disc);
+
+
+  // set previous timestep solution
+  Real t = tn - delta_t;
+  auto ex_sol_t = [&] (Real x, Real y, Real z) -> Real
+                      { return ex_sol_l(x, y, z, t); };
+
+  u_vec->setFunc(ex_sol_t);
+  cn_func.setTnp1(u_vec, tn);
+
+  // get current timestep residual and jacobian
+  t = tn;
+  u_vec->setFunc(ex_sol_t);
+  cn_func.computeFunc(u_vec, t, res_vec1);
+  cn_func.computeJacobian(u_vec, mat);
+
+  for (int i=0; i < nvectors; ++i)
+  {
+    u_vec->setFunc(ex_sol_t);
+
+    // apply perturbation
+    for (unsigned int j=0; j < pert_vec.shape()[0]; ++j)
+    {
+      pert_vec[j] = uniform_rng(rng);
+    }
+
+    for (int j=0; j < num_dofs; ++j)
+      u_vec->getVector()[j] += eps * pert_vec[j];
+    u_vec->markVectorModified();
+
+    cn_func.computeFunc(u_vec, false, res_vec2);
+
+    for (int j=0; j < num_dofs; ++j)
+      product_fd[j] = (res_vec2->getVector()[j] - res_vec1->getVector()[j])/eps;
+
+    mat->matVec(pert_vec, product_jac);
+
+    for (int j=0; j < num_dofs; ++j)
+      EXPECT_NEAR(product_fd[j], product_jac[j], 1e-5);
+
+  }
+}

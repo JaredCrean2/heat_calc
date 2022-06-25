@@ -28,6 +28,7 @@ void CrankNicolsonFunction::resetForNewSolve()
 Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_norm, DiscVectorPtr f_np1)
 {
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
+  assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
 
   f_np1->set(0);
   m_physics_model->computeRhs(u_np1, m_tnp1, f_np1);
