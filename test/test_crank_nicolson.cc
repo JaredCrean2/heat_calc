@@ -1,8 +1,10 @@
 #include "gtest/gtest.h"
 #include "discretization/DirichletBC.h"
 #include "linear_system/large_matrix_factory.h"
+#include "linear_system/large_matrix_petsc.h"
 #include "mesh_helper.h"
 #include "physics/PhysicsModel.h"
+#include "test_helper.h"
 #include "time_solver/crank_nicolson.h"
 #include "physics/heat/HeatEquation.h"
 #include "discretization/DirichletBC_defs.h"
@@ -220,11 +222,26 @@ class CNTester : public StandardDiscSetup,
     DiscVectorPtr u_vec;
     //DiscVectorPtr res_vec;
 };
+
+linear_system::LargeMatrixOptsPetsc get_options()
+{
+  linear_system::LargeMatrixOptsPetsc opts;
+  opts.is_structurally_symmetric = false;
+  opts.is_value_symmetric        = false;
+  opts.factor_in_place           = false;
+  opts.petsc_opts["ksp_atol"] = "1e-13";
+  opts.petsc_opts["ksp_rtol"] = "1e-50";
+  opts.petsc_opts["ksp_monitor"] = "";
+
+  return opts;
+}
+
 }
 
 
 TEST_F(CNTester, Linear)
 {
+  SERIAL_ONLY();
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
   opts.t_end   = 0.55;
@@ -275,8 +292,8 @@ TEST_F(CNTester, PolynomialExactness)
   opts.t_start = 0.0;
   opts.t_end   = 0.55;
   opts.delta_t = 0.025;
-  opts.mat_type = linear_system::LargeMatrixType::Dense;
-  opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
+  opts.mat_type = linear_system::LargeMatrixType::Petsc;
+  opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
   opts.nonlinear_abs_tol = 1e-12;
   opts.nonlinear_rel_tol = 1e-12;
   opts.nonlinear_itermax = 1;
@@ -324,7 +341,7 @@ TEST_F(CNTester, PolynomialExactness)
         {
           Real ex_val = ex_sol_l(coords[el][j][0], coords[el][j][1], coords[el][j][2], opts.t_end);
           //std::cout << "ex_val = " << ex_val << ", u_val = " << u_arr[el][j] << std::endl;
-          EXPECT_NEAR(u_arr[el][j], ex_val, 1e-13);
+          EXPECT_NEAR(u_arr[el][j], ex_val, 1e-12);
         }
     }
   }
@@ -333,6 +350,8 @@ TEST_F(CNTester, PolynomialExactness)
 //TODO: write test verifying consistency of Jacobian and residual
 TEST_F(CNTester, JacobianFD)
 {
+  SERIAL_ONLY();
+
   Real kappa = 1;
   int degree_space = 2, degree_time = 2;
 
