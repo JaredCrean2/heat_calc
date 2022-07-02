@@ -9,7 +9,7 @@ class NeumannBCMMS : public NeumannBC
   public:
     // func must be std::array<Real, 3> func(Real x, Real y, Real z, Real t)
     NeumannBCMMS(SurfDiscPtr surf, T func) :
-      NeumannBC(surf), 
+      NeumannBC(surf, false), 
       m_func(func),
       m_coords(boost::extents[surf->getNumQuadPtsPerFace()][3])
   {}
@@ -27,6 +27,7 @@ class NeumannBCMMS : public NeumannBC
           vals[i + d * surf_disc->getNumQuadPtsPerFace()] = vals_i[d];
       }
     }
+
 
   private:
       T m_func;

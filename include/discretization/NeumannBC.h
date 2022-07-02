@@ -8,18 +8,35 @@
 class NeumannBC : public BoundaryCondition
 {
   public:
-    NeumannBC (SurfDiscPtr surf) : BoundaryCondition(surf)
+    NeumannBC (SurfDiscPtr surf, bool is_nonlinear) : 
+      BoundaryCondition(surf),
+      m_is_nonlinear(is_nonlinear)
     {
       assertAlways(!(surf->face_group.getIsDirichlet()), "Cannot define Neumann BC on a Dirichlet surface");
     }
 
     virtual ~NeumannBC() {}
 
+    bool isNonlinear() const { return m_is_nonlinear; }
+
     // gets the prescribed flux value at the face quadrature nodes
     // it would be better if the output argument were a boost array type,
     // but template functions cant be virtual
-    // flux_vals is numQuadPointsPerFace x 3, giving the flux in each cartesian direction at each point
+    // flux_vals is 3 x numQuadPointsPerFace, giving the flux in each cartesian direction at each point
     virtual void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) = 0;
+
+    // gets derivative of flux vals wrt sol_vals at each node.
+    // flux_vals_deriv is 3 x numQuadPtsPerFace
+    virtual void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv)
+    {
+      assert(!m_is_nonlinear);
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+        for (int d=0; d < 3; ++d)
+          flux_vals_deriv[m_surf->getNumQuadPtsPerFace() * d + i] = 0;
+    }
+
+  private:
+    bool m_is_nonlinear;
 
 };
 

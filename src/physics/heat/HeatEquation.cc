@@ -7,6 +7,7 @@
 #include "mesh/mesh.h"
 
 #include "linear_system/assembler.h"
+#include <petscmat.h>
 
 namespace Heat {
 
@@ -65,6 +66,7 @@ void HeatEquation::computeJacobian(DiscVectorPtr u, const Real t, linear_system:
   computeVolumeJacobian(*this, u, assembler);
 
   // typical Neumann and source terms don't contribute to the Jacobian
+  computeNeumannBCJacobian(*this, u, t, assembler);
 }
 
 void HeatEquation::applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)
@@ -515,6 +517,7 @@ void computeVolumeTerm3Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& p
 
 void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs)
 {
+  //TODO: skip source term if it is zero/absent
   auto disc = physics.getDiscretization();
 
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
@@ -590,26 +593,82 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
 
-    for (int i=0; i < quad.getNumPoints(); ++i)
-      for (int j=0; j < quad.getNumPoints(); ++j)
+    for (int ki=0; ki < quad.getNumPoints(); ++ki)
+      for (int kj=0; kj < quad.getNumPoints(); ++kj)
       {
-        int node    = surf->quad_tp_nodemap[i][j];
-        Real weight = quad.getWeight(i) * quad.getWeight(j);
+        int k    = surf->quad_tp_nodemap[ki][kj];
+        Real weight = quad.getWeight(ki) * quad.getWeight(kj);
         Real flux_normal = 0;
         for (int d=0; d < 3; ++d)
-          flux_normal += surf->normals[face][node][d] * flux_vals[node + surf->getNumQuadPtsPerFace() * d];
+          flux_normal += surf->normals[face][k][d] * flux_vals[k + surf->getNumQuadPtsPerFace() * d];
 
         Real val = weight * flux_normal;
 
-
-        for (int k=0; k < surf->getNumSolPtsPerFace(); ++k)
+        for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)
         {
-          int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][k];
-          res_arr[face_spec.el_group][node_sol] += basis.getValue(face_spec.face, k, i, j) * val;
+          int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][i];
+          res_arr[face_spec.el_group][node_sol] += basis.getValue(face_spec.face, i, ki, kj) * val;
         }          
       }
   }
 }
+
+void computeNeumannBCJacobian(const HeatEquation& physics, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler)
+{
+  const auto& neumann_bcs = physics.getNeumannBCs();
+  for (auto& bc : neumann_bcs)
+    if (bc->isNonlinear())
+      computeNeumannBCJacobian(bc, u, t, assembler);
+}
+
+void computeNeumannBCJacobian(NeumannBCPtr bc, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler)
+{
+  // Note: we currently don't require that a given surface has a single volume as
+  //       as its upward adjacency, so we have to look up a different volume disc
+  //       for every face
+  
+  auto surf = bc->getSurfDisc();
+  ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);
+  std::vector<Real> flux_vals_deriv(surf->getNumQuadPtsPerFace() * 3);
+  ArrayType<Real, 2> dRdu(boost::extents[surf->getNumSolPtsPerFace()][surf->getNumSolPtsPerFace()]);
+  Quadrature& quad = surf->quad;
+  BasisVals2D basis(surf->face_group.getTPMapperSol(), quad.getPoints(), surf->face_group.getFaceNodesSol(), surf->face_group.ref_el_sol);
+
+  for (int face=0; face < surf->getNumFaces(); ++face)
+  {
+    auto& face_spec = surf->face_group.faces[face];
+    auto& u_arr = u->getArray(face_spec.vol_group);
+
+    auto u_el = u_arr[boost::indices[face_spec.el_group][range()]];
+    //auto res_el = res_arr[boost::indices[face_spec.el_group][range()]];
+    zeroMatrix(dRdu);
+
+    surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
+    bc->getValueDeriv(face, t, u_quad.data(), flux_vals_deriv.data());
+
+    //TODO: rewrite this for vectorization
+    for (int ki=0; ki < quad.getNumPoints(); ++ki)
+      for (int kj=0; kj < quad.getNumPoints(); ++kj)
+      {
+        int k       = surf->quad_tp_nodemap[ki][kj];
+        Real weight = quad.getWeight(ki) * quad.getWeight(kj);
+        Real flux_normal = 0;
+        for (int d=0; d < 3; ++d)
+          flux_normal += surf->normals[face][k][d] * flux_vals_deriv[k + surf->getNumQuadPtsPerFace() * d];
+
+        Real val = weight * flux_normal;
+
+        // TODO: it would be better if kj was the innermost loop
+        for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)
+          for (int j=0; j < surf->getNumSolPtsPerFace(); ++j)
+            dRdu[i][j] += basis.getValue(face_spec.face, i, ki, kj) * val * basis.getValue(face_spec.face, j, ki, kj);
+      }
+
+    assembler->assembleFace(surf->getIdx(), face, dRdu);
+  }
+}
+
+
 
 //-----------------------------------------------------------------------------
 // UnsteadyDirichletBC

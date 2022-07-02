@@ -94,6 +94,10 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
 
 void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs);
 
+void computeNeumannBCJacobian(const HeatEquation& physics, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler);
+
+void computeNeumannBCJacobian(NeumannBCPtr bc, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler);
+
 void computeUnsteadyDirichletBC(const HeatEquation& physics, const Real t, DiscVectorPtr rhs);
 
 void computeUnsteadyDirichletBC(DirichletBCPtr bc, const std::vector<VolDiscPtr>& vol_discs,
