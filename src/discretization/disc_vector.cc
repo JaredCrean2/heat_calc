@@ -151,4 +151,83 @@ DiscVectorPtr makeDiscVector(DiscPtr disc)
   return std::make_shared<DiscVector>(disc);
 }
 
+void printArray(DiscVectorPtr vec)
+{
+  Real val_sum = 0;
+  auto disc = vec->getDisc();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    std::cout << "Block " << i << std::endl;
+    auto vol_disc  = disc->getVolDisc(i);
+    ArrayType<Real, 2> sol_coords(boost::extents[vol_disc->getNumSolPtsPerElement()][3]);
+
+    auto& arr_i = vec->getArray(i);
+
+    for (unsigned int el=0; el < arr_i.shape()[0]; ++el)
+    {
+      vol_disc->getVolumeSolCoords(el, sol_coords);
+      Real el_sum = 0;
+      for (unsigned int j=0; j < arr_i.shape()[1]; ++j)
+      {
+        //std::cout << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+
+        std::string coord_str = std::string("coords = ") + std::to_string(sol_coords[j][0]) + ", " + 
+                                std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
+        int nspaces = std::max(40 - coord_str.size(), size_t(1));
+        std::string space_str(nspaces, ' ');
+        std::cout << "el " << el << " " << coord_str << space_str << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
+
+        val_sum += arr_i[el][j];
+        el_sum += arr_i[el][j];
+      }
+
+      std::cout << "el_sum = " << el_sum << std::endl;
+    }
+  }
+
+  std::cout << "val_sum = " << val_sum << std::endl;
+}
+
+
+void printVector(DiscVectorPtr vec)
+{
+  std::cout << "printing vector form" << std::endl;
+  vec->syncArrayToVector();
+
+  auto disc = vec->getDisc();
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    std::cout << "Block " << i << std::endl;
+    auto vol_disc  = disc->getVolDisc(i);
+    auto& dofs     = disc->getDofNumbering()->getDofs(i);
+    auto& vec_vals = vec->getVector();
+    std::cout << "dofs.shape = " << dofs.shape()[0] << ", " << dofs.shape()[1] << std::endl;
+    std::cout << "vec_vals.shape = " << vec_vals.shape()[0] << std::endl;
+    ArrayType<Real, 2> sol_coords(boost::extents[vol_disc->getNumSolPtsPerElement()][3]);
+
+    for (int el=0; el < vol_disc->getNumElems(); ++el)
+    {
+      vol_disc->getVolumeSolCoords(el, sol_coords);
+      for (unsigned int j=0; j < vol_disc->getNumSolPtsPerElement(); ++j)
+      {
+        //std::cout << "el = " << el << ", j = " << j << std::endl;
+        auto dof = dofs[el][j];
+        if (disc->getDofNumbering()->isDofActive(dof))
+        {
+          //std::cout << "dof = " << dof << std::endl;
+          //std::cout << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+          std::string coord_str = std::string("coords = ") + std::to_string(sol_coords[j][0]) + ", " + 
+                                  std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
+          int nspaces = std::max(40 - coord_str.size(), size_t(1));
+          std::string space_str(nspaces, ' ');
+          std::cout << "el " << el << " " << coord_str << space_str << "arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+
+         // std::cout << "coords = " << sol_coords[j][0] << ", " << sol_coords[j][1] << ", " << sol_coords[j][2]
+         //           << ",  arr(" << el << ", " << j << ") = " << vec_vals[dof] << std::endl;
+        }
+      }
+    }
+  }
+}
+
 

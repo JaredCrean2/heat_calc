@@ -168,4 +168,10 @@ using DiscVectorPtr = std::shared_ptr<DiscVector>;
 
 DiscVectorPtr makeDiscVector(DiscPtr disc);
 
+void printArray(DiscVectorPtr vec);
+
+void printVector(DiscVectorPtr vec);
+
+
+
 #endif

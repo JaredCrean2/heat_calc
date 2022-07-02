@@ -15,6 +15,11 @@ set(src_files EpwReader.cc
               #discretization/model.cc
               physics/PhysicsModel.cc
               physics/heat/HeatEquation.cc
+              physics/heat/mass_matrix.cc
+              physics/heat/volume_term.cc
+              physics/heat/source_term.cc
+              physics/heat/dirichlet_bc.cc
+              physics/heat/neumann_bc.cc
               physics/heat/basis_vals.cc
               linear_system/assembler.cc
               linear_system/bla_wrapper.cc

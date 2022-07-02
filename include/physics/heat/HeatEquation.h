@@ -58,58 +58,6 @@ class HeatEquation : public PhysicsModel
 };
 
 
-void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorPtr u);
-
-void applyMassMatrix(const HeatEquation& physics, DiscVectorPtr vec_in, DiscVectorPtr vec_out);
-
-void applyMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const DofNumberingPtr dof_numbering,
-                     const ArrayType<Real, 2>& arr_in, ArrayType<Real, 2>& arr_out);
-
-void computeMassMatrix(const HeatEquation& physics, linear_system::AssemblerPtr assembler);
-
-void computeMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, linear_system::AssemblerPtr assembler);
-
-void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorPtr rhs);
-
-void computeVolumeTerm(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
-                       const ArrayType<Real, 2>& u_arr, ArrayType<Real, 2>& rhs_arr);
-
-void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
-                        const ArrayType<Real, 2>& u_arr, ArrayType<Real, 2>& rhs_arr);
-
-void computeVolumeJacobian(const HeatEquation& physics, DiscVectorPtr u, linear_system::AssemblerPtr assembler);
-
-void computeVolumeTerm2Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const ArrayType<Real, 2> u_arr,
-                            linear_system::AssemblerPtr assembler);
-
-void computeVolumeTerm3Jac(const VolDiscPtr vol_disc, const VolumeGroupParams& params, const ArrayType<Real, 2> u_arr,
-                           linear_system::AssemblerPtr assembler);
-
-void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs);
-
-void computeSourceTerm(const VolDiscPtr vol_disc, SourceTermPtr src, Real t,
-                       ArrayType<Real, 2>& rhs_arr);
-
-void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs);
-
-void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs);
-
-void computeNeumannBCJacobian(const HeatEquation& physics, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler);
-
-void computeNeumannBCJacobian(NeumannBCPtr bc, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler);
-
-void computeUnsteadyDirichletBC(const HeatEquation& physics, const Real t, DiscVectorPtr rhs);
-
-void computeUnsteadyDirichletBC(DirichletBCPtr bc, const std::vector<VolDiscPtr>& vol_discs,
-                                const std::vector<const VolumeGroupParams*>& vol_group_params,
-                                const Real t, DiscVectorPtr rhs);
-
-void printArray(DiscVectorPtr vec);
-
-void printVector(DiscVectorPtr vec);
-
-
-
 } // namespace
 
 #endif
