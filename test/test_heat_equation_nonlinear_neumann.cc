@@ -3,6 +3,7 @@
 #include "discretization/surface_discretization.h"
 #include "mesh_helper.h"
 #include "test_helper.h"
+#include "physics/heat/bc_defs.h"
 
 #include <random>
 
@@ -94,12 +95,26 @@ class NeumannBCQuadratic : public NeumannBC
 };
 }
 
+//-----------------------------------------------------------------------------
+// Test individual Jacobians
+
 
 TEST_F(NeumannBCTester, QuadraticBC)
 {
   auto bc = std::make_shared<NeumannBCQuadratic>(disc->getSurfDisc(0));
   testDerivative(bc);
 }
+
+TEST_F(NeumannBCTester, NewtonCoolingBC)
+{
+  auto bc = std::make_shared<Heat::NewtonCooling>(disc->getSurfDisc(0), 2);
+  bc->setExternalTemperature(5);
+  testDerivative(bc);
+}
+
+
+//-----------------------------------------------------------------------------
+// Test overall Jacobian
 
 
 namespace {
