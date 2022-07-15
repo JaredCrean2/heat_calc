@@ -4,6 +4,7 @@
 #include "discretization/NeumannBC.h"
 #include "discretization/surface_discretization.h"
 #include "tarp.h"
+#include "sky_radiation.h"
 
 namespace Heat {
 
@@ -58,6 +59,40 @@ class TarpBC : public NeumannBC
     ArrayType<Real, 2> m_quad_coords;
 };
 
-}
+// Accounts for radiation from environment (ground, sky), but not solar
+// radiation
+class SkyRadiationBC : public NeumannBC
+{
+  public:
+    SkyRadiationBC(SurfDiscPtr surf, Real emittance, std::array<Real, 3> vertical_vector) :
+      NeumannBC(surf, true),
+      m_model(emittance, vertical_vector)
+    {}
+
+    // set the Horizontal Infrared Radiation intensity (W/m^2)
+    void setIRHorizontalRadiation(Real flux) { m_model.setIRHorizontalRadiation(flux); }
+
+    // set the air temperature (which the model uses as the temperature of the ground)
+    void setAirTemperature(Real t_air) { m_model.setAirTemperature(t_air); }
+
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
+    {
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+      {
+        //TODO: move this to base class
+        std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+        auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+        Real flux = m_model.computeFlux(sol_vals[i], unit_normal);
+        for (int d=0; d < 3; ++d)
+          flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+      }
+    }
+
+  private:
+    SkyRadiationModel m_model;
+};
+
+}  // namespace
 
 #endif
