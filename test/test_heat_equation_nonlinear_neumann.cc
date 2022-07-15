@@ -138,6 +138,22 @@ TEST_F(NeumannBCTester, TarpBC)
 }
 
 
+TEST_F(NeumannBCTester, SkyRadiationBC)
+{
+  Real emissivity = 0.9;
+  Real sigma = 5.6697e-8;
+  std::array<Real, 3> vertical{0, 0, 1};
+  Real t_air = 200;
+  Real t_sky = 300;
+  Real ir_radiation = sigma * std::pow(t_sky, 4);
+
+  auto bc = std::make_shared<Heat::SkyRadiationBC>(disc->getSurfDisc(0), emissivity, vertical);
+  bc->setIRHorizontalRadiation(ir_radiation);
+  bc->setAirTemperature(t_air);
+
+  testDerivative(bc);
+}
+
 //-----------------------------------------------------------------------------
 // Test overall Jacobian
 

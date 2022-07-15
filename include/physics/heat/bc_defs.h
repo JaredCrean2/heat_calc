@@ -89,6 +89,21 @@ class SkyRadiationBC : public NeumannBC
       }
     }
 
+    void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override
+    {
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+      {
+        //TODO: move this to base class
+        std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+        auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+        Real flux_dot = 0;
+        m_model.computeFluxDeriv(sol_vals[i], unit_normal, flux_dot);
+        for (int d=0; d < 3; ++d)
+          flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
+      }
+    }
+
   private:
     SkyRadiationModel m_model;
 };
