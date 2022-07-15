@@ -3,6 +3,7 @@
 
 #include "discretization/NeumannBC.h"
 #include "discretization/surface_discretization.h"
+#include "tarp.h"
 
 namespace Heat {
 
@@ -18,42 +19,9 @@ class NewtonCooling : public NeumannBC
 
     Real getExternalTemperature() const { return m_temp; }
 
-    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
-    {
-      auto& normals = m_surf->normals;
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        Real nx = normals[face][i][0];
-        Real ny = normals[face][i][1];
-        Real nz = normals[face][i][2];
-        Real mag     = std::sqrt(nx*nx + ny*ny + nz*nz);
-        Real delta_t = m_temp - sol_vals[i];
-        Real term    = m_heat_transfer_coeff * delta_t / mag;
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals);
 
-        flux_vals[i]                                      = nx * term;
-        flux_vals[i + m_surf->getNumQuadPtsPerFace()]     = ny * term;
-        flux_vals[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term;
-      }
-    }
-
-
-    void getValueDeriv(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals_deriv)
-    {
-      auto& normals = m_surf->normals;
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        Real nx = normals[face][i][0];
-        Real ny = normals[face][i][1];
-        Real nz = normals[face][i][2];
-        Real mag         = std::sqrt(nx*nx + ny*ny + nz*nz);
-        Real delta_t_dot = -1;
-        Real term        = m_heat_transfer_coeff * delta_t_dot / mag;
-
-        flux_vals_deriv[i]                                      = nx * term;
-        flux_vals_deriv[i + m_surf->getNumQuadPtsPerFace()]     = ny * term;
-        flux_vals_deriv[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term;
-      }
-    }
+    void getValueDeriv(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals_deriv);
 
   private:
     Real m_heat_transfer_coeff; // Units W/(m^2 K)
@@ -61,69 +29,35 @@ class NewtonCooling : public NeumannBC
 };
 
 
-// TARP (Thermal Analysis Research Program) model.
-// See Section 3.5.5.2 of EnergyPlus Engineering reference Version 9.5
-//class Tarp : public NeumannBC
-//{
-//  public:
-//    Tarp(SurfDiscPtr surf) :
-//      NeumannBC(surf, true)
-//    {}
-//
-//    void setAirTemperature(Real temp) { m_air_temp = temp; }
-//
-//    Real getAirTemperature() const { return m_air_temp; }
-//
-//    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
-//    {
-//      auto& normals = m_surf->normals;
-//      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-//      {
-//        Real nx = normals[face][i][0];
-//        Real ny = normals[face][i][1];
-//        Real nz = normals[face][i][2];
-//        Real mag     = std::sqrt(nx*nx + ny*ny + nz*nz);
-//        std::array<Real, 3> unit_normal{nx/mag, ny/mag, nz/mag};
-//        Real delta_t = m_air_temp - sol_vals[i];
-//        Real heat_transfer_coeff = computeHeatTransferCoeff(delta_t, unit_normal);
-//        Real term    = heat_transfer_coeff * delta_t / mag;
-//
-//        flux_vals[i]                                      = nx * term;
-//        flux_vals[i + m_surf->getNumQuadPtsPerFace()]     = ny * term;
-//        flux_vals[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term;
-//      }
-//    }
-//
-//
-//    void getValueDeriv(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals_deriv)
-//    {
-//      auto& normals = m_surf->normals;
-//      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-//      {
-//        Real nx = normals[face][i][0];
-//        Real ny = normals[face][i][1];
-//        Real nz = normals[face][i][2];
-//        Real mag     = std::sqrt(nx*nx + ny*ny + nz*nz);
-//        std::array<Real, 3> unit_normal{nx/mag, ny/mag, nz/mag};
-//        Real delta_t = m_air_temp - sol_vals[i];
-//        Real heat_transfer_coeff_dot = 0.0;
-//        /*Real heat_transfer_coeff =*/ computeHeatTransferCoeffDeriv(delta_t, unit_normal, heat_transfer_coeff_dot);
-//        //Real term    = heat_transfer_coeff * delta_t / mag;
-//        Real term_dot    = heat_transfer_coeff_dot * delta_t / mag;
-//
-//        flux_vals_deriv[i]                                      = nx * term_dot;
-//        flux_vals_deriv[i + m_surf->getNumQuadPtsPerFace()]     = ny * term_dot;
-//        flux_vals_deriv[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term_dot;
-//      }
-//    }
-//
-//  private:
-//
-//
-//
-//
-//};
-//
+// Thermal Analysis Research Program (TARP) BC
+class TarpBC : public NeumannBC
+{
+  public:
+    TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector,
+              const std::array<Real, 3>& point_at_zero_altitude,
+              int met_terrain_index, Real meterological_altitude, int local_terrain_index ) : 
+      NeumannBC(surf, true),
+      m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
+             point_at_zero_altitude, met_terrain_index, meterological_altitude, 
+             local_terrain_index),
+      m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
+    {}
+
+    void setAirTemperature(Real temp) { m_tarp.setAirTemperature(temp); }
+    
+    void setAirSpeed(Real velocity) { m_tarp.setAirSpeed(velocity); }
+    
+    void setAirDirection(std::array<Real, 3> direction) { m_tarp.setAirDirection(direction); }
+
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
+
+    void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
+
+  private:
+    TarpModel m_tarp;
+    ArrayType<Real, 2> m_quad_coords;
+};
+
 }
 
 #endif

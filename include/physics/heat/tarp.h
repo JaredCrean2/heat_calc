@@ -102,7 +102,6 @@ class TarpModel
       Real delta_t_one_third = std::pow(abs_delta_t, 1.0/3.0);
       Real delta_t_one_third_dot = (1.0/3.0) * std::pow(abs_delta_t, -2.0/3.0) * abs_delta_t_dot;
 
-
       Real h_n = 0.0;
       h_n_dot = 0.0;
       if ((delta_t < 0 && cos_eps > 0) || (delta_t > 0 && cos_eps < 0))
@@ -138,9 +137,9 @@ class TarpModel
     Real m_air_temp     = std::numeric_limits<Real>::min();
     Real m_air_speed = std::numeric_limits<Real>::min();
     std::array<Real, 3>  m_air_direction{0, 0, 0};
-    Real m_surface_area; //TODO
-    Real m_surface_perimeter; //TODO: compute using Stokes theorem: https://mathinsight.org/stokes_theorem_examples
-    Real m_roughness_fac;  //TODO
+    Real m_surface_area;
+    Real m_surface_perimeter;
+    Real m_roughness_fac;
     std::array<Real, 3> m_vertical_vector{0, 0, 1}; // vector that defines an upward facing surface, used in the
                                                     // tilt angle
     std::array<Real, 3> m_point_at_zero_altitude;

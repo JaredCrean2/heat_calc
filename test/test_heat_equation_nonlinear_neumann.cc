@@ -112,6 +112,31 @@ TEST_F(NeumannBCTester, NewtonCoolingBC)
   testDerivative(bc);
 }
 
+TEST_F(NeumannBCTester, TarpBC)
+{
+  Real air_temp       = 20;    
+  Real surface_area   = 4;
+  Real perimeter      = 8;
+  std::array<Real, 3> vertical_vector{0, 1, 0};
+  std::array<Real, 3> pt_at_zero_altitude{-1, -1, -1};
+  std::array<Real, 3> air_direction{0, 1, 0};
+  int met_terrain_index   = 0;
+  Real met_altitude       = 10;
+  int local_terrain_index = 1;
+  Real air_speed          = 0;
+  int roughness_type = 0;
+
+  auto bc = std::make_shared<Heat::TarpBC>(disc->getSurfDisc(0), surface_area, perimeter, 
+                 roughness_type, vertical_vector, pt_at_zero_altitude, met_terrain_index,
+                                           met_altitude, local_terrain_index);
+
+  bc->setAirTemperature(air_temp);
+  bc->setAirSpeed(air_speed);
+  bc->setAirDirection(air_direction);
+
+  testDerivative(bc);
+}
+
 
 //-----------------------------------------------------------------------------
 // Test overall Jacobian
