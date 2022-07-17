@@ -3,8 +3,10 @@
 
 #include "discretization/NeumannBC.h"
 #include "discretization/surface_discretization.h"
+#include "physics/heat/solar_position.h"
 #include "tarp.h"
 #include "sky_radiation.h"
+#include "solar_radiation.h"
 
 namespace Heat {
 
@@ -106,6 +108,41 @@ class SkyRadiationBC : public NeumannBC
 
   private:
     SkyRadiationModel m_model;
+};
+
+
+class SolarRadiationBC : public NeumannBC
+{
+  public:
+    SolarRadiationBC(SurfDiscPtr surf, Real absorbtivity) :
+      NeumannBC(surf, false),
+      m_model(absorbtivity)
+    {}
+
+    // sets the solar flux including both Direct Normal Radiation
+    // and Diffuse Horzontal Radiation
+    void setDirectNormalRadiation(Real flux) { m_model.setDirectNormalRadiation(flux); }
+
+    void setDiffuseRadiation(Real flux) { m_model.setDiffuseRadiation(flux); }
+
+    void setSolarDirection(const AzimuthZenith& az) { m_model.setSolarDirection(az); }
+
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
+    {
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+      {
+        //TODO: move this to base class
+        std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+        auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+        Real flux = m_model.computeFlux(unit_normal);
+        for (int d=0; d < 3; ++d)
+          flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+      }
+    }
+
+  private:
+    SolarRadiationModel m_model;
 };
 
 }  // namespace

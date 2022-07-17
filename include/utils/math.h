@@ -3,10 +3,13 @@
 
 #include <array>
 #include <ostream>
+#include "ProjectDefs.h"
 
 namespace {
   template <typename T>
   using Vec3 = std::array<T, 3>;
+
+  static constexpr double PI = 3.141592653589793238462643383279502884;
 }
 
 template <typename T,  size_t N>
@@ -122,6 +125,16 @@ Vec3<T> cross(const Vec3<T>& a, const Vec3<T>& b)
 
 
   return {c1, c2, c3};
+}
+
+constexpr Real degreesToRadians(Real degrees)
+{
+  return PI * (degrees / 180);
+}
+
+constexpr Real radiansToDegrees(Real radians)
+{
+  return radians * 180/ PI;
 }
 
 
