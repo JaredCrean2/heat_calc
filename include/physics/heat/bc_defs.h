@@ -81,10 +81,7 @@ class SkyRadiationBC : public NeumannBC
     {
       for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
       {
-        //TODO: move this to base class
-        std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
-        auto unit_normal = normal / std::sqrt(dot(normal, normal));
-
+        auto unit_normal = getUnitNormal(face, i);
         Real flux = m_model.computeFlux(sol_vals[i], unit_normal);
         for (int d=0; d < 3; ++d)
           flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
@@ -95,10 +92,7 @@ class SkyRadiationBC : public NeumannBC
     {
       for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
       {
-        //TODO: move this to base class
-        std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
-        auto unit_normal = normal / std::sqrt(dot(normal, normal));
-
+        auto unit_normal = getUnitNormal(face, i);
         Real flux_dot = 0;
         m_model.computeFluxDeriv(sol_vals[i], unit_normal, flux_dot);
         for (int d=0; d < 3; ++d)
@@ -131,10 +125,7 @@ class SolarRadiationBC : public NeumannBC
     {
       for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
       {
-        //TODO: move this to base class
-        std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
-        auto unit_normal = normal / std::sqrt(dot(normal, normal));
-
+        auto unit_normal = getUnitNormal(face, i);
         Real flux = m_model.computeFlux(unit_normal);
         for (int d=0; d < 3; ++d)
           flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;

@@ -35,6 +35,12 @@ class NeumannBC : public BoundaryCondition
           flux_vals_deriv[m_surf->getNumQuadPtsPerFace() * d + i] = 0;
     }
 
+    std::array<Real, 3> getUnitNormal(int face, int quad_pt)
+    {
+      std::array<Real, 3> normal{m_surf->normals[face][quad_pt][0], m_surf->normals[face][quad_pt][1], m_surf->normals[face][quad_pt][2]};
+      return normal / std::sqrt(dot(normal, normal));
+    }
+
   private:
     bool m_is_nonlinear;
 
