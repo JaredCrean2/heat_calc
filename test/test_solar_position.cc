@@ -3,42 +3,9 @@
 #include "physics/heat/solar_position.h"
 #include "physics/heat/dates.h"
 
-/*
-TEST(SolarPosition, Noon)
-{
-  Heat::AzimuthZenith az_prev{0, 0};
-  for (int i=0; i < 24; ++i)
-  {
-    auto az = Heat::solar::computeAzimuthZenith(computeJulianDate({1, 1, 2000}), i, 0, 0, 0);
-    if (i > 0)
-    {
-      if (i <= 12)
-        EXPECT_LE(std::acos(az.cos_zenith), std::acos(az_prev.cos_zenith));
-      else
-        EXPECT_GE(std::acos(az.cos_zenith), std::acos(az_prev.cos_zenith));
 
-//      if (i <= 6)
-//        EXPECT_LE(std::acos(az.cos_azimuth),  std::acos(az_prev.cos_azimuth));
-//      else
-//        EXPECT_GE(std::acos(az.cos_azimuth),  std::acos(az_prev.cos_azimuth));
-//
-    }
-
-    az_prev = az;
-
-    std::cout << "at hour " << i << ", azimuth = " << radiansToDegrees(std::acos(az.cos_azimuth)) << ", zenith = " << radiansToDegrees(std::acos(az.cos_zenith)) << std::endl;
-
-    //std::cout << "at hour " << i << ", azimuth = " << radiansToDegrees(std::acos(az.cos_azimuth)) << ", zenith = " << radiansToDegrees(std::acos(az.cos_zenith)) << std::endl;
-  }
-}
-*/
-
-
-
-// Test against onlin calculator
+// Test against online calculator
 // from https://gml.noaa.gov/grad/solcalc/azel.html
-
-
 
 TEST(SolarPosition, Denver6am)
 {
@@ -63,7 +30,6 @@ TEST(SolarPosition, DenverNoon)
   EXPECT_NEAR(az.cos_azimuth, std::cos(degreesToRadians(179.12)), 1e-1);
 
 }
-
 
 TEST(SolarPosition, Denver3pm)
 {
@@ -90,7 +56,6 @@ TEST(SolarPosition, Denver6pm)
   EXPECT_NEAR(az.cos_azimuth, std::cos(degreesToRadians(251.42)), 1e-1);
 }
 
-
 TEST(SolarPositionLowPrecision, Denver6am)
 {
   Real latitude = degreesToRadians(39.74);
@@ -114,7 +79,6 @@ TEST(SolarPositionLowPrecision, DenverNoon)
   EXPECT_NEAR(az.cos_azimuth, std::cos(degreesToRadians(179.12)), 1e-1);
 
 }
-
 
 TEST(SolarPositionLowPrecision, Denver3pm)
 {

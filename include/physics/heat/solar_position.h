@@ -17,10 +17,17 @@ struct AzimuthZenith
 };
 
 
+struct DirectionCosines
+{
+  Real cs1;
+  Real cs2;
+  Real cs3;
+};
+
 namespace solar {
 
 // longitude: radians, east is positive
-// time_zone: hours from UTC (ex. Mountain time is UTC-7, time_zone = -7)
+// time_zone: hours from UTC (ex. Mountain time is UTC - 7, time_zone = 7)
 AzimuthZenith computeAzimuthZenith_lowprecision(const Date& date, Real hour, int time_zone, Real longitude, Real latitude);
 
 // This is from the TARP manual, but it doesn't seem to work
@@ -40,14 +47,11 @@ DecTimeDist computeDecTimeDist(int julian_day);
 // longtiude: longtiude (in radians)
 Real computeHourAngle(Real time_hours, const DecTimeDist& dec_time_dist, int time_zone, Real longitude);
 
-struct DirectionCosines
-{
-  Real cs1 = 0;
-  Real cs2 = 0;
-  Real cs3 = 0;
-};
-
 DirectionCosines computeDirectionCosines(const DecTimeDist& dec_time_dist, Real hour_angle, Real latitude);
+
+DirectionCosines computeDirectionCosines(int julian_day, int time_hours, int time_zone, Real longitude, Real latitude);
+
+DirectionCosines computeDirectionCosines(const Date& date, int time_hours, int time_zone, Real longitude, Real latitude);
 
 AzimuthZenith computeAzimuthZenith(const DirectionCosines& cosines);
 

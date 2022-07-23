@@ -125,7 +125,7 @@ class SolarRadiationBC : public NeumannBC
 
     void setDiffuseRadiation(Real flux) { m_model.setDiffuseRadiation(flux); }
 
-    void setSolarDirection(const AzimuthZenith& az) { m_model.setSolarDirection(az); }
+    void setSolarDirection(const DirectionCosines& cosines) { m_model.setSolarDirection(cosines); }
 
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
     {
