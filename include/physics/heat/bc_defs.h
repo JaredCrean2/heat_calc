@@ -31,26 +31,49 @@ class NewtonCooling : public NeumannBC
     Real m_temp = std::numeric_limits<Real>::min();
 };
 
+// base class for BCs that depend on air, wind, and solar parameters
+class AirWindSkyNeumannBC : public NeumannBC
+{
+  public:
+    AirWindSkyNeumannBC(SurfDiscPtr surf, bool is_nonlinear) :
+      NeumannBC(surf, is_nonlinear)
+    {}
+
+    virtual void setAirTemperature(Real temp) {}
+    
+    virtual void setAirSpeed(Real velocity) {}
+    
+    virtual void setAirDirection(std::array<Real, 3> direction) {}
+
+    virtual void setIRHorizontalRadiation(Real flux) {}
+
+    virtual void setDirectNormalRadiation(Real flux) {}
+
+    virtual void setDiffuseRadiation(Real flux) {}
+
+    virtual void setSolarDirection(const DirectionCosines& cosines) {}
+};
+
 
 // Thermal Analysis Research Program (TARP) BC
-class TarpBC : public NeumannBC
+class TarpBC : public AirWindSkyNeumannBC
 {
   public:
     TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector,
               const std::array<Real, 3>& point_at_zero_altitude,
               int met_terrain_index, Real meterological_altitude, int local_terrain_index ) : 
-      NeumannBC(surf, true),
+      AirWindSkyNeumannBC(surf, true),
       m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
              point_at_zero_altitude, met_terrain_index, meterological_altitude, 
              local_terrain_index),
       m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
     {}
 
-    void setAirTemperature(Real temp) { m_tarp.setAirTemperature(temp); }
+    void setAirTemperature(Real temp) override { m_tarp.setAirTemperature(temp); }
     
-    void setAirSpeed(Real velocity) { m_tarp.setAirSpeed(velocity); }
+    void setAirSpeed(Real velocity) override { m_tarp.setAirSpeed(velocity); }
     
-    void setAirDirection(std::array<Real, 3> direction) { m_tarp.setAirDirection(direction); }
+    void setAirDirection(std::array<Real, 3> direction) override { m_tarp.setAirDirection(direction); }
 
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
 
@@ -63,19 +86,19 @@ class TarpBC : public NeumannBC
 
 // Accounts for radiation from environment (ground, sky), but not solar
 // radiation
-class SkyRadiationBC : public NeumannBC
+class SkyRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     SkyRadiationBC(SurfDiscPtr surf, Real emittance, std::array<Real, 3> vertical_vector) :
-      NeumannBC(surf, true),
+      AirWindSkyNeumannBC(surf, true),
       m_model(emittance, vertical_vector)
     {}
 
     // set the Horizontal Infrared Radiation intensity (W/m^2)
-    void setIRHorizontalRadiation(Real flux) { m_model.setIRHorizontalRadiation(flux); }
+    void setIRHorizontalRadiation(Real flux) override { m_model.setIRHorizontalRadiation(flux); }
 
     // set the air temperature (which the model uses as the temperature of the ground)
-    void setAirTemperature(Real t_air) { m_model.setAirTemperature(t_air); }
+    void setAirTemperature(Real t_air) override { m_model.setAirTemperature(t_air); }
 
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
     {
@@ -105,21 +128,19 @@ class SkyRadiationBC : public NeumannBC
 };
 
 
-class SolarRadiationBC : public NeumannBC
+class SolarRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     SolarRadiationBC(SurfDiscPtr surf, Real absorbtivity) :
-      NeumannBC(surf, false),
+      AirWindSkyNeumannBC(surf, false),
       m_model(absorbtivity)
     {}
 
-    // sets the solar flux including both Direct Normal Radiation
-    // and Diffuse Horzontal Radiation
-    void setDirectNormalRadiation(Real flux) { m_model.setDirectNormalRadiation(flux); }
+    void setDirectNormalRadiation(Real flux) override { m_model.setDirectNormalRadiation(flux); }
 
-    void setDiffuseRadiation(Real flux) { m_model.setDiffuseRadiation(flux); }
+    void setDiffuseRadiation(Real flux) override { m_model.setDiffuseRadiation(flux); }
 
-    void setSolarDirection(const DirectionCosines& cosines) { m_model.setSolarDirection(cosines); }
+    void setSolarDirection(const DirectionCosines& cosines) override { m_model.setSolarDirection(cosines); }
 
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
     {
@@ -135,6 +156,9 @@ class SolarRadiationBC : public NeumannBC
   private:
     SolarRadiationModel m_model;
 };
+
+
+
 
 }  // namespace
 

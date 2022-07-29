@@ -25,7 +25,7 @@ class SolarRadiationModel
 
     Real computeFlux(const std::array<Real, 3>& unit_normal)
     {
-      return m_absorptivity * (m_diffuse_flux + m_direct_flux * dot(unit_normal, m_solar_direction_unit));
+      return m_absorptivity * (m_diffuse_flux + m_direct_flux * std::max(dot(unit_normal, m_solar_direction_unit), 0.0));
     }
 
   private:

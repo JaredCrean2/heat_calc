@@ -4,6 +4,7 @@
 #include "discretization/volume_discretization.h"
 #include "physics/heat/basis_vals.h"
 #include "physics/heat/helper_funcs.h"
+#include "physics/heat/interior_temperature_update.h"
 #include "mesh/mesh.h"
 
 #include "linear_system/assembler.h"
@@ -17,6 +18,8 @@
 
 namespace Heat {
 
+//-----------------------------------------------------------------------------
+// HeatEquation
 
 void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 {
@@ -95,6 +98,51 @@ void HeatEquation::checkInitialization()
   
   if (m_params.size() != getDiscretization()->getNumVolDiscs())
     throw std::runtime_error("Incorrect number of Heat::VolumeGroupParams.  Should be equal to number of volume groups");
+}
+
+//-----------------------------------------------------------------------------
+// HeatEquationSolar
+
+void HeatEquationSolar::addNeumannBC(NeumannBCPtr bc, bool is_exterior)
+{
+  addNeumannBC(bc); 
+  m_is_neumann_bc_exterior.push_back(is_exterior);
+}
+
+
+void HeatEquationSolar::setTimeParameters(Real t)
+{
+  DirectionCosines solar_dir = m_solar_position.computePosition(t);
+  EnvironmentData env_data   = m_environment->getEnvironmentData(t);
+  const auto& neumann_bcs    = getNeumannBCs();
+  for (size_t i=0; i < neumann_bcs.size(); ++i)
+  {
+    auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(neumann_bcs[i]);
+    if (bc_air_wind_sky)
+    {
+      if (m_is_neumann_bc_exterior[i])
+      {
+        bc_air_wind_sky->setAirTemperature(env_data.air_temp);
+        bc_air_wind_sky->setAirSpeed(env_data.air_speed);
+        bc_air_wind_sky->setAirDirection(env_data.air_direction);
+        bc_air_wind_sky->setIRHorizontalRadiation(env_data.ir_horizontal_radiation);
+        bc_air_wind_sky->setDirectNormalRadiation(env_data.direct_normal_radiation);
+        bc_air_wind_sky->setDiffuseRadiation(env_data.diffuse_radiation);
+        bc_air_wind_sky->setSolarDirection(solar_dir);
+      } else
+      {
+        bc_air_wind_sky->setAirTemperature(m_air_temp->getTemperature());
+        bc_air_wind_sky->setAirSpeed(0);
+        bc_air_wind_sky->setAirDirection(std::array<Real, 3>{1, 0, 0});
+        bc_air_wind_sky->setIRHorizontalRadiation(0);
+        bc_air_wind_sky->setDirectNormalRadiation(0);
+        bc_air_wind_sky->setDiffuseRadiation(0);
+        bc_air_wind_sky->setSolarDirection(solar_dir);         
+      }
+    }
+  }
+
+  m_env_data = env_data;
 }
 
 
