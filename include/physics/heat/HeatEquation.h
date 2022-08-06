@@ -108,6 +108,10 @@ class HeatEquationSolar : public HeatEquation
       HeatEquation::computeJacobian(u, t, assembler);
     }
 
+    void updateDependentQuantities(DiscVectorPtr u, Real t) override;
+
+    void completeTimestep(DiscVectorPtr u, Real t) override;
+
   private:
     std::vector<bool> m_is_neumann_bc_exterior;
     SolarPositionCalculator m_solar_position;

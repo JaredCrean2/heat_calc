@@ -33,6 +33,12 @@ class NewtonFunction
     // compute jac = df/du, overwriting jac
     virtual void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) = 0;
 
+    virtual void updateDependentQuantities(DiscVectorPtr u) {};
+
+    // mark the timestep complete.  u is the solution at the end of the
+    // timestep, which has time t.
+    virtual void completeTimestep(DiscVectorPtr u) {};
+
     // create an empty vector
     virtual DiscVectorPtr createVector() = 0;
 };

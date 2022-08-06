@@ -49,6 +49,12 @@ class PhysicsModel
     virtual void addSourceTerm(SourceTermPtr src) { m_source_terms.push_back(src); }
 
     virtual SourceTermPtr getSourceTerm(int idx)  const { return m_source_terms.at(idx); }
+
+    virtual void updateDependentQuantities(DiscVectorPtr u, Real t) {};
+
+    // mark the timestep complete.  u is the solution at the end of the
+    // timestep, which has time t.
+    virtual void completeTimestep(DiscVectorPtr u, Real t) {};
     
   protected:
     virtual void checkInitialization();

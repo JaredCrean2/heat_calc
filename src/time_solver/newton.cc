@@ -65,6 +65,8 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
     u_vec[i] -= delta_u_vec[i];
 
   u->markVectorModified();
+
+  m_func->updateDependentQuantities(u);
 }
 
 

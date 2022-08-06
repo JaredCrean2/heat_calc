@@ -159,5 +159,14 @@ void HeatEquationSolar::setTimeParameters(Real t)
   m_env_data = env_data;
 }
 
+void HeatEquationSolar::updateDependentQuantities(DiscVectorPtr u, Real t)
+{
+  m_air_temp->updateTemperature(u, t);
+}
+
+void HeatEquationSolar::completeTimestep(DiscVectorPtr u, Real t)
+{
+  m_air_temp->startNewTimestep(u, t);
+}
 
 }  // namespace 

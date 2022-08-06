@@ -45,7 +45,6 @@ class InteriorAirTemperatureUpdator
       *m_sol_vec_prev = *sol_vec;
       computeInitialHVACFlux(sol_vec, t_start);
       m_net_flux_prev = computeNetFlux(sol_vec, t_start) + m_hvac_flux;
-      //startNewTimestep(sol_vec, t_start);
     }
 
     void updateTemperature(DiscVectorPtr sol_vec_np1, Real t)
@@ -59,7 +58,6 @@ class InteriorAirTemperatureUpdator
       Real fac = delta_t/(2 * m_rho_cp * m_air_volume);
 
       m_interior_temp = fac * (flux_np1 + m_net_flux_prev) + m_interior_temp_prev;
-      //std::cout << "m_interior_temp = " << m_interior_temp << std::endl;
 
       if (m_interior_temp > m_max_temp)
         enforceTemperatureLimit(m_max_temp, flux_np1, delta_t);

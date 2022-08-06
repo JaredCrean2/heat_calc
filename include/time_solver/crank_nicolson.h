@@ -25,6 +25,12 @@ class CrankNicolsonFunction : public NewtonFunction
     // compute jac = df/du, overwriting jac
     void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) override;
 
+    void updateDependentQuantities(DiscVectorPtr u) override;
+
+    // mark the timestep complete.  u is the solution at the end of the
+    // timestep, which has time t.
+    void completeTimestep(DiscVectorPtr u) override;
+
     // create an empty vector
     DiscVectorPtr createVector() override;
 

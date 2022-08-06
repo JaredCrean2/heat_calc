@@ -89,6 +89,17 @@ void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, linear_system
   m_assembler->setAlpha(1);
 }
 
+
+void CrankNicolsonFunction::updateDependentQuantities(DiscVectorPtr u)
+{
+  m_physics_model->updateDependentQuantities(u, m_tnp1);
+}
+
+void CrankNicolsonFunction::completeTimestep(DiscVectorPtr u)
+{
+  m_physics_model->completeTimestep(u, m_tnp1);
+}
+
 // create an empty vector
 DiscVectorPtr CrankNicolsonFunction::createVector()
 { 
@@ -154,6 +165,7 @@ void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
   std::cout << "CN advancing to time " << t_new << std::endl;
   m_func->setTnp1(m_u, t_new);
   NewtonResult result = m_newton->solve(m_u, m_opts.nonlinear_abs_tol, m_opts.nonlinear_rel_tol, m_opts.nonlinear_itermax);
+  m_func->completeTimestep(m_u);
 
   if (!result.isConverged())
   {

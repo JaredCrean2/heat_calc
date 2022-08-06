@@ -11,11 +11,11 @@
 
 
 # Optimized build
-CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall"
+CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall -DNDEBUG"
 BUILDTYPE="Release"
 
 # VTune build
-#CXXFLAGS="-Ofast -march=native -mtune=native -g -Rpass-analysis=loop-vectorize -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -ffast-math"
+#CXXFLAGS="-Ofast -march=native -mtune=native -g -Rpass-analysis=loop-vectorize -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -ffast-math -DNDEBUG"
 #BUILDTYPE="Release"
 
 # set PETSC_DIR and PETSC_ARCH to guide which Petsc installation CMake finds
