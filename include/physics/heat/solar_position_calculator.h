@@ -10,6 +10,7 @@ class SolarPositionCalculator
 {
   public:
     SolarPositionCalculator(Real julian_date_start, int time_zone, Real longitude, Real latitude) :
+    m_julian_date_start(julian_date_start),
       m_time_zone(time_zone),
       m_longitude(longitude),
       m_latitude(latitude)
