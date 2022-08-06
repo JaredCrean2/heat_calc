@@ -3,6 +3,7 @@
 
 #include "ProjectDefs.h"
 #include "utils/error_handling.h"
+#include <iostream>
 
 namespace Heat {
 
@@ -21,6 +22,7 @@ class AshraeWindVelocity
       m_local_alpha(getAlpha(local_terrain_index)),
       m_local_delta(getBoundaryLayerThickness(local_terrain_index))
     {
+      assertAlways(meterological_altitude > 0, "meterological_altitude must be > 0");
       m_met_term = std::pow(m_met_delta / meterological_altitude, m_met_alpha);
     }
 

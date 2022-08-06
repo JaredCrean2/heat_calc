@@ -14,6 +14,7 @@ Real TarpModel::computeHeatTransferCoeff(Real wall_temp, const std::array<Real, 
   Real cos_eps = computeCosTiltAngle(unit_normal);
   Real delta_t_one_third = std::pow(std::abs(delta_t), 1.0/3.0);
 
+
   Real h_n = 0.0;
   if ((delta_t < 0 && cos_eps > 0) || (delta_t > 0 && cos_eps < 0)) {
     h_n = 9.482 * delta_t_one_third / (7.283 - std::abs(cos_eps));

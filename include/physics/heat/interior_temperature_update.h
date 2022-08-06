@@ -1,6 +1,7 @@
 #ifndef PHYSICS_HEAT_INTERIOR_TEMPERATURE_UPDATE_H
 #define PHYSICS_HEAT_INTERIOR_TEMPERATURE_UPDATE_H
 
+#include "ProjectDefs.h"
 #include "discretization/NeumannBC.h"
 #include "discretization/disc_vector.h"
 #include "HeatEquation.h"
@@ -14,14 +15,49 @@ namespace Heat {
 class InteriorAirTemperatureUpdator
 {
   public:
+
+    InteriorAirTemperatureUpdator(Real min_temp, Real max_temp, Real rho_cp, Real air_volume, 
+                                  std::shared_ptr<AirLeakageModel> air_leakage, 
+                                  std::shared_ptr<AirLeakageModel> ventilation,
+                                  std::shared_ptr<InteriorLoads> interior_loads,
+                                  std::shared_ptr<WindowConductionModel> window_model,
+                                  Real initial_temp) :
+      m_min_temp(min_temp),
+      m_max_temp(max_temp),
+      m_rho_cp(rho_cp),
+      m_air_volume(air_volume),
+      m_air_leakage(air_leakage),
+      m_ventilation(ventilation),
+      m_interior_loads(interior_loads),
+      m_window_model(window_model),
+      m_interior_temp(initial_temp),
+      m_interior_temp_prev(initial_temp)
+    {
+      assertAlways(max_temp >= min_temp, "max temperature must be >= min temperature");
+    }
+
+    void initialize(HeatEquationSolar* heat_eqn_solar, const std::vector<NeumannBCPtr>& interior_bcs, DiscVectorPtr sol_vec, Real t_start)
+    {
+      m_heat_eqn = heat_eqn_solar;
+      m_bcs = interior_bcs;
+      m_sol_vec_prev = makeDiscVector(heat_eqn_solar->getDiscretization());
+      computeInitialHVACFlux(sol_vec, t_start);
+      startNewTimestep(sol_vec, t_start);
+    }
+
     void updateTemperature(DiscVectorPtr sol_vec_np1, Real t)
     {
-      m_heat_eqn.setTimeParameters(t);
+      assertAlways(t > m_t_prev, "new time must be > previous time");
+
+      m_heat_eqn->setTimeParameters(t);
       Real flux_np1 = computeNetFlux(sol_vec_np1, t);
 
       Real delta_t = (t - m_t_prev) * 3600;
+      std::cout << "flux_np1 total = " << flux_np1 * delta_t << std::endl;
+      Real fac = delta_t/(2 * m_rho_cp * m_air_volume);
 
-      m_interior_temp = (flux_np1 + m_net_flux_prev) / (2 * delta_t * m_rho_cp * m_air_volume) + m_interior_temp_prev;
+      m_interior_temp = fac * (flux_np1 + m_net_flux_prev) + m_interior_temp_prev;
+      //std::cout << "m_interior_temp = " << m_interior_temp << std::endl;
 
       if (m_interior_temp > m_max_temp)
         enforceTemperatureLimit(m_max_temp, flux_np1, delta_t);
@@ -29,7 +65,6 @@ class InteriorAirTemperatureUpdator
         enforceTemperatureLimit(m_min_temp, flux_np1, delta_t);
       else
         m_hvac_flux = 0;
-
     }
 
     void startNewTimestep(DiscVectorPtr sol_vec_prev, Real t_prev)
@@ -38,19 +73,30 @@ class InteriorAirTemperatureUpdator
       m_interior_temp_prev  = m_interior_temp;
       *m_sol_vec_prev       = *sol_vec_prev;
 
-      m_heat_eqn.setTimeParameters(t_prev);
-      m_net_flux_prev = computeNetFlux(m_sol_vec_prev, t_prev) + m_hvac_flux;;
+      m_heat_eqn->setTimeParameters(t_prev);
+      //TODO: is this the best way of doing things.  Maybe call updateTemperature instead?
+      m_net_flux_prev = computeNetFlux(m_sol_vec_prev, t_prev) + m_hvac_flux;
     }
 
     Real getTemperature() const { return m_interior_temp; }
+
+    Real getHVACFlux() const { return m_hvac_flux; }
     
   private:
 
     // computes HVAC flux such that the air temperature is the prescribed value
     void enforceTemperatureLimit(Real temp_limit, Real flux_np1, Real delta_t)
     {
-      m_hvac_flux = (temp_limit - m_interior_temp) * 2 * delta_t * m_rho_cp * m_air_volume + m_net_flux_prev - flux_np1;
+      Real fac = delta_t/(2 * m_rho_cp * m_air_volume);
+      m_hvac_flux = (temp_limit - m_interior_temp_prev) / fac + m_net_flux_prev - flux_np1;
       m_interior_temp = temp_limit;
+    }
+
+    // computes the initial HVAC flux such that the temperature is constant (ie the net flux is zero)
+    void computeInitialHVACFlux(DiscVectorPtr sol_vec, Real t)
+    {
+      m_heat_eqn->setTimeParameters(t);
+      m_hvac_flux = -computeNetFlux(sol_vec, t);
     }
 
     // flux from all sources except HVAC
@@ -64,10 +110,10 @@ class InteriorAirTemperatureUpdator
         flux -= computeFlux(bc, sol_vec, t);
       }
 
-      flux -= m_air_leakage->computeAirLeakagePower(m_interior_temp, m_heat_eqn.getEnvironmentData().air_temp);
-      flux -= m_ventilation->computeAirLeakagePower(m_interior_temp, m_heat_eqn.getEnvironmentData().air_temp);
+      flux -= m_air_leakage->computeAirLeakagePower(m_interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+      flux -= m_ventilation->computeAirLeakagePower(m_interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
       flux += m_interior_loads->computeLoadPower();
-      flux += m_window_model.computeConductionPower(m_interior_temp, m_heat_eqn.getEnvironmentData().air_temp);
+      flux += m_window_model->computeConductionPower(m_interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
 
       return flux;
     }
@@ -96,48 +142,29 @@ class InteriorAirTemperatureUpdator
         flux += surf->getFaceWeight(face) * integrateFaceVector(surf, face, flux_vals);
       }
 
-      return flux;
+      Real global_flux = 0;
+      MPI_Allreduce(&flux, &global_flux, 1, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
+
+      return global_flux;
     }
 
-    InteriorAirTemperatureUpdator(Real min_temp, Real max_temp, Real rho_cp, Real air_volume, Real t_start, DiscVectorPtr sol_vec, 
-                                  HeatEquationSolar& heat_eqn, std::shared_ptr<AirLeakageModel> air_leakage, std::shared_ptr<AirLeakageModel> ventilation,
-                                  std::shared_ptr<InteriorLoads> interior_loads,
-                                  WindowConductionModel window_model,
-                                  std::vector<NeumannBCPtr> interior_bcs) :
-      m_min_temp(min_temp),
-      m_max_temp(max_temp),
-      m_rho_cp(rho_cp),
-      m_air_volume(air_volume),
-      m_t_prev(t_start),
-      m_sol_vec_prev(makeDiscVector(heat_eqn.getDiscretization())),
-      m_heat_eqn(heat_eqn),
-      m_air_leakage(air_leakage),
-      m_ventilation(ventilation),
-      m_interior_loads(interior_loads),
-      m_window_model(window_model),
-      m_bcs(interior_bcs),
-      m_interior_temp((min_temp + max_temp)/2),
-      m_interior_temp_prev((min_temp + max_temp)/2)
-    {
-      assertAlways(max_temp > min_temp, "max temperature must be > min temperature");
-      startNewTimestep(sol_vec, t_start);
-    }
-
+    // parameters
     Real m_min_temp;
     Real m_max_temp;
-
     Real m_rho_cp;
     Real m_air_volume;
-    Real m_t_prev;
-    DiscVectorPtr m_sol_vec_prev;
 
-    HeatEquationSolar& m_heat_eqn;
+    // sub-models
+    HeatEquationSolar* m_heat_eqn;
     std::shared_ptr<AirLeakageModel> m_air_leakage;
     std::shared_ptr<AirLeakageModel> m_ventilation;
     std::shared_ptr<InteriorLoads> m_interior_loads;
-    WindowConductionModel m_window_model;
+    std::shared_ptr<WindowConductionModel> m_window_model;
     std::vector<NeumannBCPtr> m_bcs;
 
+    // working state
+    Real m_t_prev;
+    DiscVectorPtr m_sol_vec_prev;
     Real m_hvac_flux          = 0;
     Real m_interior_temp;
     Real m_interior_temp_prev;

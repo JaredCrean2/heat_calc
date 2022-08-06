@@ -101,12 +101,14 @@ class NeumannBCQuadratic : public NeumannBC
 
 TEST_F(NeumannBCTester, QuadraticBC)
 {
+  SERIAL_ONLY()
   auto bc = std::make_shared<NeumannBCQuadratic>(disc->getSurfDisc(0));
   testDerivative(bc);
 }
 
 TEST_F(NeumannBCTester, NewtonCoolingBC)
 {
+  SERIAL_ONLY()
   auto bc = std::make_shared<Heat::NewtonCooling>(disc->getSurfDisc(0), 2);
   bc->setExternalTemperature(5);
   testDerivative(bc);
@@ -114,6 +116,7 @@ TEST_F(NeumannBCTester, NewtonCoolingBC)
 
 TEST_F(NeumannBCTester, TarpBC)
 {
+  SERIAL_ONLY()
   Real air_temp       = 20;    
   Real surface_area   = 4;
   Real perimeter      = 8;
@@ -140,6 +143,7 @@ TEST_F(NeumannBCTester, TarpBC)
 
 TEST_F(NeumannBCTester, SkyRadiationBC)
 {
+  SERIAL_ONLY()
   Real emissivity = 0.9;
   Real sigma = 5.6697e-8;
   std::array<Real, 3> vertical{0, 0, 1};

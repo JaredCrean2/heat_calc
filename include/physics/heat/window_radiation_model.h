@@ -36,7 +36,6 @@ class WindowRadiationModel
     void setSolarDirection(const DirectionCosines& cosines)
     { 
       m_solar_direction = {cosines.cs1, cosines.cs2, cosines.cs3};
-      std::cout << "magnitude = " << std::sqrt(dot(m_solar_direction, m_solar_direction)); 
       assertAlways(std::sqrt(dot(m_solar_direction, m_solar_direction)) - 1 < 1e-12, "DirectionCosines should form a unit vector");
     }
 

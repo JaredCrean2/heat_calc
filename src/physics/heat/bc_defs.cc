@@ -59,7 +59,7 @@ void TarpBC::getValue(const Index face, const Real t, const Real* sol_vals,  Rea
     Real heat_transfer_coeff = m_tarp.computeHeatTransferCoeff(wall_temp, pt, unit_normal);
 
     for (int d=0; d < 3; ++d)
-      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * heat_transfer_coeff * (wall_temp - air_temp);
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * heat_transfer_coeff * (air_temp - wall_temp);
   }
 }
 
@@ -80,7 +80,7 @@ void TarpBC::getValueDeriv(const Index face, const Real t, const Real* sol_vals,
     for (int d=0; d < 3; ++d)
     {
       //flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * heat_transfer_coeff * (wall_temp - air_temp);
-      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * heat_transfer_coeff_dot * (wall_temp - air_temp) +
+      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * heat_transfer_coeff_dot * (air_temp - wall_temp) -
                                                                 unit_normal[d] * heat_transfer_coeff;
     }
   }

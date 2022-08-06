@@ -20,6 +20,9 @@ class PhysicsModel
 
     virtual ~PhysicsModel() {}
 
+    // supports delayed initialization
+    virtual void initialize() {}
+
     // overwrites rhs with the right hand side
     // on entry, u has the solution in vector form
     // on exit, rhs has the residual in array form

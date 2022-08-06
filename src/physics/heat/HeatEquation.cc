@@ -1,4 +1,5 @@
 #include "physics/heat/HeatEquation.h"
+#include "discretization/NeumannBC.h"
 #include "discretization/disc_vector.h"
 #include "discretization/dof_numbering.h"
 #include "discretization/volume_discretization.h"
@@ -102,6 +103,19 @@ void HeatEquation::checkInitialization()
 
 //-----------------------------------------------------------------------------
 // HeatEquationSolar
+
+void HeatEquationSolar::initialize(DiscVectorPtr sol_vec, Real t_start) 
+{ 
+  HeatEquation::initialize();
+  
+  std::vector<NeumannBCPtr> interior_bcs;
+  for (size_t i=0; i < getNeumannBCs().size(); ++i)
+    if (!m_is_neumann_bc_exterior[i])
+      interior_bcs.push_back(getNeumannBCs()[i]);
+
+  m_air_temp->initialize(this, interior_bcs, sol_vec, t_start); 
+}
+
 
 void HeatEquationSolar::addNeumannBC(NeumannBCPtr bc, bool is_exterior)
 {

@@ -74,7 +74,7 @@ class StandardDiscSetup : public StandardMeshBase
     virtual void setup(const int quad_degree, int sol_degree, const Mesh::MeshSpec& spec,
                        const std::vector<bool>& is_surf_dirichlet = {true, true, true, true, true, true}) override;
 
-  DiscPtr disc;
+    DiscPtr disc;
 };
 
 #include "mesh/mesh.h"

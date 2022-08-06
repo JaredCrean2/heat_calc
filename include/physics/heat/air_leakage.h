@@ -17,7 +17,7 @@ class AirLeakageModel
 };
 
 // implements a simple model: given ach50, compute ach natural as natural pressure / 50;
-class AirLeakageModelPressure : AirLeakageModel
+class AirLeakageModelPressure : public AirLeakageModel
 {
   public:
     AirLeakageModelPressure(Real ach50, Real expected_pressure, Real volume, Real cp, Real rho) :
@@ -44,7 +44,7 @@ class AirLeakageModelPressure : AirLeakageModel
 };
 
 
-class HRVModel : AirLeakageModel
+class HRVModel : public AirLeakageModel
 {
   public:
     // flow rate in m^3/s
