@@ -38,11 +38,14 @@ class InteriorAirTemperatureUpdator
 
     void initialize(HeatEquationSolar* heat_eqn_solar, const std::vector<NeumannBCPtr>& interior_bcs, DiscVectorPtr sol_vec, Real t_start)
     {
+      m_t_prev = t_start;
       m_heat_eqn = heat_eqn_solar;
       m_bcs = interior_bcs;
       m_sol_vec_prev = makeDiscVector(heat_eqn_solar->getDiscretization());
+      *m_sol_vec_prev = *sol_vec;
       computeInitialHVACFlux(sol_vec, t_start);
-      startNewTimestep(sol_vec, t_start);
+      m_net_flux_prev = computeNetFlux(sol_vec, t_start) + m_hvac_flux;
+      //startNewTimestep(sol_vec, t_start);
     }
 
     void updateTemperature(DiscVectorPtr sol_vec_np1, Real t)
@@ -53,7 +56,6 @@ class InteriorAirTemperatureUpdator
       Real flux_np1 = computeNetFlux(sol_vec_np1, t);
 
       Real delta_t = (t - m_t_prev) * 3600;
-      std::cout << "flux_np1 total = " << flux_np1 * delta_t << std::endl;
       Real fac = delta_t/(2 * m_rho_cp * m_air_volume);
 
       m_interior_temp = fac * (flux_np1 + m_net_flux_prev) + m_interior_temp_prev;
@@ -65,17 +67,18 @@ class InteriorAirTemperatureUpdator
         enforceTemperatureLimit(m_min_temp, flux_np1, delta_t);
       else
         m_hvac_flux = 0;
+
+      m_net_flux_current = flux_np1 + m_hvac_flux;
     }
 
     void startNewTimestep(DiscVectorPtr sol_vec_prev, Real t_prev)
     {
+      updateTemperature(sol_vec_prev, t_prev);
+
+      m_net_flux_prev = m_net_flux_current;
       m_t_prev              = t_prev;
       m_interior_temp_prev  = m_interior_temp;
       *m_sol_vec_prev       = *sol_vec_prev;
-
-      m_heat_eqn->setTimeParameters(t_prev);
-      //TODO: is this the best way of doing things.  Maybe call updateTemperature instead?
-      m_net_flux_prev = computeNetFlux(m_sol_vec_prev, t_prev) + m_hvac_flux;
     }
 
     Real getTemperature() const { return m_interior_temp; }
@@ -169,6 +172,7 @@ class InteriorAirTemperatureUpdator
     Real m_interior_temp;
     Real m_interior_temp_prev;
     Real m_net_flux_prev      = 0;
+    Real m_net_flux_current   = 0;
 };
 
 }
