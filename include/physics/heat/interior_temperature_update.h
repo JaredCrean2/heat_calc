@@ -88,7 +88,7 @@ class InteriorAirTemperatureUpdator
     void enforceTemperatureLimit(Real temp_limit, Real flux_np1, Real delta_t)
     {
       Real fac = delta_t/(2 * m_rho_cp * m_air_volume);
-      m_hvac_flux = (temp_limit - m_interior_temp_prev) / fac + m_net_flux_prev - flux_np1;
+      m_hvac_flux = (temp_limit - m_interior_temp_prev) / fac - m_net_flux_prev - flux_np1;
       m_interior_temp = temp_limit;
     }
 
