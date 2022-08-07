@@ -58,6 +58,7 @@ class InteriorAirTemperatureUpdator
       Real fac = delta_t/(2 * m_rho_cp * m_air_volume);
 
       m_interior_temp = fac * (flux_np1 + m_net_flux_prev) + m_interior_temp_prev;
+      std::cout << "new temperature = " << m_interior_temp << std::endl;
 
       if (m_interior_temp > m_max_temp)
         enforceTemperatureLimit(m_max_temp, flux_np1, delta_t);
@@ -71,6 +72,7 @@ class InteriorAirTemperatureUpdator
 
     void startNewTimestep(DiscVectorPtr sol_vec_prev, Real t_prev)
     {
+      std::cout << "starting new timestep" << std::endl;
       updateTemperature(sol_vec_prev, t_prev);
 
       m_net_flux_prev = m_net_flux_current;
@@ -125,6 +127,9 @@ class InteriorAirTemperatureUpdator
       ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);
       ArrayType<Real, 2> flux_vals(boost::extents[surf->getNumQuadPtsPerFace()][3]);
       std::vector<Real> flux_vals_vec(3*surf->getNumQuadPtsPerFace());
+
+      if (!sol_vec->isArrayCurrent())
+        sol_vec->syncVectorToArray();
 
       Real flux = 0;
       for (int face=0; face < surf->getNumFaces(); ++face)

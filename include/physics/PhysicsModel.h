@@ -50,6 +50,8 @@ class PhysicsModel
 
     virtual SourceTermPtr getSourceTerm(int idx)  const { return m_source_terms.at(idx); }
 
+    bool hasSourceTerm(size_t idx) const { return idx < m_source_terms.size(); }
+
     virtual void updateDependentQuantities(DiscVectorPtr u, Real t) {};
 
     // mark the timestep complete.  u is the solution at the end of the

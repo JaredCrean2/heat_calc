@@ -10,11 +10,14 @@ void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs)
 
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
   {
-    auto vol_disc = disc->getVolDisc(i);
-    auto src_term = physics.getSourceTerm(i);
-    auto& rhs_arr = rhs->getArray(i);
+    if (physics.hasSourceTerm(i))
+    {
+      auto vol_disc = disc->getVolDisc(i);
+      auto src_term = physics.getSourceTerm(i);
+      auto& rhs_arr = rhs->getArray(i);
 
-    computeSourceTerm(vol_disc, src_term, t, rhs_arr);
+      computeSourceTerm(vol_disc, src_term, t, rhs_arr);
+    }
   }
 
   rhs->markArrayModified();

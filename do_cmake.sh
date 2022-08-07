@@ -6,13 +6,13 @@
 #BUILDTYPE="Debug"
 
 # non-ASAN debug build
-#CXXFLAGS="-O0 -Wall -g -fno-omit-frame-pointer -fdebug-default-version=4"
-#BUILDTYPE="Debug"
+CXXFLAGS="-O0 -Wall -g -fno-omit-frame-pointer -fdebug-default-version=4"
+BUILDTYPE="Debug"
 
 
 # Optimized build
-CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall -DNDEBUG"
-BUILDTYPE="Release"
+#CXXFLAGS="-Ofast -march=native -mtune=native -ffast-math -Wall -DNDEBUG"
+#BUILDTYPE="Release"
 
 # VTune build
 #CXXFLAGS="-Ofast -march=native -mtune=native -g -Rpass-analysis=loop-vectorize -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -ffast-math -DNDEBUG"

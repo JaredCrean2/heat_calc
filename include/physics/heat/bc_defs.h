@@ -69,6 +69,14 @@ class TarpBC : public AirWindSkyNeumannBC
       m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
     {}
 
+    // this constructor is for a Tarp BC on the interior of the structure (so meterological data is unneeded)
+    TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector) : 
+      AirWindSkyNeumannBC(surf, true),
+      m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
+             {0, 0, 0}, 0, 1, 0),
+      m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
+    {}
+
     void setAirTemperature(Real temp) override { m_tarp.setAirTemperature(temp); }
     
     void setAirSpeed(Real velocity) override { m_tarp.setAirSpeed(velocity); }
