@@ -95,17 +95,21 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 
   Real energy_change = interior_load * delta_t * 3600;
   Real temperature_change = energy_change/(rho*cp*air_volume);
+  std::cout << "temperature change expected = " << temperature_change << std::endl;
   air_updator->updateTemperature(sol_vec, t_start + delta_t);
 
   EXPECT_GE(temperature_change, 0);
   // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
   // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change/2, 1e-10);
+  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change, 1e-10);
+  std::cout << "after first update, temperature = " << air_updator->getTemperature() << std::endl;
 
-  Real air_temp = initial_air_temp + temperature_change/2;
+  Real air_temp = initial_air_temp + temperature_change;
   air_updator->startNewTimestep(sol_vec, t_start + delta_t);
   air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
   EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change, 1e-10);
+  std::cout << "after second update, temperature = " << air_updator->getTemperature() << std::endl;
+
 }
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)

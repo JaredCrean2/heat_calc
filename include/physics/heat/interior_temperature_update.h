@@ -12,6 +12,19 @@
 
 namespace Heat {
 
+namespace impl {
+
+struct RKStageState
+{
+  Real t         = 0;
+  Real temp      = 0;
+  Real dtemp_dt  = 0;
+  Real flux      = 0;      // all fluxes except HVAC flux
+  Real hvac_flux = 0; // HVAC flux
+};
+
+}
+
 class InteriorAirTemperatureUpdator
 {
   public:
@@ -42,6 +55,7 @@ class InteriorAirTemperatureUpdator
       m_heat_eqn = heat_eqn_solar;
       m_bcs = interior_bcs;
       m_sol_vec_prev = makeDiscVector(heat_eqn_solar->getDiscretization());
+      m_sol_vec_stage = makeDiscVector(heat_eqn_solar->getDiscretization());
       *m_sol_vec_prev = *sol_vec;
       computeInitialHVACFlux(sol_vec, t_start);
       m_net_flux_prev = computeNetFlux(sol_vec, t_start) + m_hvac_flux;
@@ -50,6 +64,11 @@ class InteriorAirTemperatureUpdator
     void updateTemperature(DiscVectorPtr sol_vec_np1, Real t)
     {
       assertAlways(t > m_t_prev, "new time must be > previous time");
+      m_sol_vec_current = sol_vec_np1;
+      m_t_current = t;
+      computeRK();
+      std::cout << "new temperature = " << m_interior_temp << std::endl;
+      /*
 
       m_heat_eqn->setTimeParameters(t);
       Real flux_np1 = computeNetFlux(sol_vec_np1, t);
@@ -68,6 +87,7 @@ class InteriorAirTemperatureUpdator
         m_hvac_flux = 0;
 
       m_net_flux_current = flux_np1 + m_hvac_flux;
+      */
     }
 
     void startNewTimestep(DiscVectorPtr sol_vec_prev, Real t_prev)
@@ -86,6 +106,42 @@ class InteriorAirTemperatureUpdator
     Real getHVACFlux() const { return m_hvac_flux; }
     
   private:
+    void computeRK()
+    {
+      Real delta_t = (m_t_current - m_t_prev) * 3600;
+
+      auto state1 = computeRKStage(0, 0, m_interior_temp_prev);
+      auto state2 = computeRKStage(0.5, 0.5, state1.dtemp_dt);
+      auto state3 = computeRKStage(0.5, 0.5, state2.dtemp_dt);
+      auto state4 = computeRKStage(1, 1, state3.dtemp_dt);
+
+      m_interior_temp = m_interior_temp_prev + delta_t*(state1.dtemp_dt + 2 * state2.dtemp_dt + 2 * state3.dtemp_dt + state4.dtemp_dt)/6;
+      m_net_flux_current = state4.flux + state4.hvac_flux;  //TODO: is this right, or should we recompute based in the new m_interior_temp;
+    }
+
+    impl::RKStageState computeRKStage(Real a_coeff, Real c_coeff, Real dtemp_dt_previous_stage)
+    {
+      impl::RKStageState state;
+      Real delta_t_hours = m_t_current - m_t_prev;
+      Real delta_t_seconds = delta_t_hours * 3600;
+
+      state.t    = m_t_prev + c_coeff * delta_t_hours;
+      state.temp = m_interior_temp_prev + a_coeff * delta_t_seconds * dtemp_dt_previous_stage;
+
+      auto& u_prev_vec = m_sol_vec_prev->getVector();
+      auto& u_curr_vec = m_sol_vec_current->getVector();
+      auto& u_vec_stage = m_sol_vec_stage->getVector();
+      for (int i=0; i < m_sol_vec_stage->getNumDofs(); ++i)
+        u_vec_stage[i] = u_prev_vec[i] + c_coeff * (u_curr_vec[i] - u_prev_vec[i]);
+      m_sol_vec_stage->markVectorModified();
+
+      state.flux = computeNetFlux(m_sol_vec_stage, state.t);
+      state.hvac_flux = 0; //TODO: need to enforce temperature limits
+
+      state.dtemp_dt = state.flux/(m_rho_cp * m_air_volume);
+
+      return state;
+    }
 
     // computes HVAC flux such that the air temperature is the prescribed value
     void enforceTemperatureLimit(Real temp_limit, Real flux_np1, Real delta_t)
@@ -105,6 +161,8 @@ class InteriorAirTemperatureUpdator
     // flux from all sources except HVAC
     Real computeNetFlux(DiscVectorPtr sol_vec, Real t)
     {
+      m_heat_eqn->setTimeParameters(t);
+
       Real flux = 0;
       for (auto& bc : m_bcs )
       {
@@ -170,7 +228,10 @@ class InteriorAirTemperatureUpdator
 
     // working state
     Real m_t_prev;
-    DiscVectorPtr m_sol_vec_prev;
+    Real m_t_current;
+    DiscVectorPtr m_sol_vec_prev;     // solution at previous timestep
+    DiscVectorPtr m_sol_vec_current;  // solution at current timestep
+    DiscVectorPtr m_sol_vec_stage;    // vector used by RK method
     Real m_hvac_flux          = 0;
     Real m_interior_temp;
     Real m_interior_temp_prev;

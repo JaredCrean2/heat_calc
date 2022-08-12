@@ -135,13 +135,13 @@ TEST_F(HotWallTester, CaseOne)
 
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
-  opts.delta_t = 1.0/60; 
+  opts.delta_t = 0.1/60; 
   opts.t_end   = 10*opts.delta_t;
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
   opts.nonlinear_abs_tol = 1e-12;
   opts.nonlinear_rel_tol = 1e-12;
-  opts.nonlinear_itermax = 5;  //TODO: test 1
+  opts.nonlinear_itermax = 1000;  //TODO: test 1
 
   int sol_degree = 1;
   int nelem = 4;
