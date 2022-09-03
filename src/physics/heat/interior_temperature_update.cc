@@ -182,8 +182,10 @@ Real InteriorAirTemperatureUpdator::computeBCFlux(NeumannBCPtr bc, DiscVectorPtr
 
     bc->getValue(face, t, u_quad.data(), flux_vals_vec.data());
     for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+    {
       for (int d=0; d < 3; ++d)
         flux_vals[i][d] = flux_vals_vec[d*surf->getNumQuadPtsPerFace() + i];
+    }
 
     flux += surf->getFaceWeight(face) * integrateFaceVector(surf, face, flux_vals);
   }

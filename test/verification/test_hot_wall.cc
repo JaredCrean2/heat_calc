@@ -111,6 +111,7 @@ TEST_F(HotWallTester, CaseOne)
 
 
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5;
   Real min_temp = 0;
   Real max_temp = 10000;
   Real rho = 2;
@@ -131,7 +132,7 @@ TEST_F(HotWallTester, CaseOne)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
 
 
   timesolvers::TimeStepperOpts opts;

@@ -27,46 +27,10 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
 };
 }
 
-/*
-TEST_F(TemperatureUpdatorTester, Initialization)
-{
-  Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
-  Real min_temp = 0;
-  Real max_temp = 10000;
-  Real rho = 2;
-  Real cp = 3;
-  Real air_volume = 4;
-  Real ach50 = 0;
-  Real expected_pressure = 5;
-  Real interior_load = 6;
-  Real r_val = 7;
-  Real window_area = 0;
-  Real initial_air_temp = 298;
-  Real t_start = 0;
-  
-  auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
-  auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
-  auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
-  auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
-  auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
-
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
-  Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
-
-  auto sol_vec = makeDiscVector(disc);
-  sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
-
-  EXPECT_EQ(air_updator->getTemperature(), initial_air_temp);
-  EXPECT_EQ(air_updator->getHVACFlux(), -interior_load);
-}
-*/
-
-
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 {
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5.0;
   Real min_temp = 0;
   Real max_temp = 10000;
   Real rho = 2;
@@ -79,7 +43,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   Real window_area = 0;
   Real initial_air_temp = 298;
   Real t_start = 0;
-  //Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -88,7 +51,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -96,30 +59,12 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   heat_eqn.initialize(sol_vec, t_start);
 
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), interior_load, 1e-13);
-
-/*
-  Real energy_change = interior_load * delta_t * 3600;
-  Real temperature_change = energy_change/(rho*cp*air_volume);
-  std::cout << "temperature change expected = " << temperature_change << std::endl;
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  EXPECT_GE(temperature_change, 0);
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change, 1e-10);
-  std::cout << "after first update, temperature = " << air_updator->getTemperature() << std::endl;
-
-  Real air_temp = initial_air_temp + temperature_change;
-  air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-  air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-  EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change, 1e-10);
-  std::cout << "after second update, temperature = " << air_updator->getTemperature() << std::endl;
-*/
 }
-/*
+
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 {
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5.0;
   Real min_temp = 0;
   Real max_temp = 320;
   Real rho = 2;
@@ -130,9 +75,8 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
   Real interior_load = 6;
   Real r_val = 7;
   Real window_area = 0;
-  Real initial_air_temp = 320;
+  Real initial_air_temp = max_temp + 20;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -141,30 +85,21 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
   heat_eqn.initialize(sol_vec, t_start);
 
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp, 1e-10);
-  EXPECT_NEAR(air_updator->getHVACFlux(),   -interior_load, 1e-10);
-
-  air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-  air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp, 1e-10);
-  EXPECT_NEAR(air_updator->getHVACFlux(),   -interior_load, 1e-10);
+  Real expected_flux = rho * cp * air_volume * (max_temp - initial_air_temp)/hvac_restore_time;
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux ,1e-13);
 }
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 {
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5;
   Real min_temp = 298;
   Real max_temp = 320;
   Real rho = 2;
@@ -175,9 +110,8 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
   Real interior_load = -6;
   Real r_val = 7;
   Real window_area = 0;
-  Real initial_air_temp = 298;
+  Real initial_air_temp = min_temp - 20;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -186,32 +120,22 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
   heat_eqn.initialize(sol_vec, t_start);
 
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp, 1e-10);
-  EXPECT_NEAR(air_updator->getHVACFlux(),   -interior_load, 1e-10);
-
-  //air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-  //air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-//
-  //EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp, 1e-10);
-  //EXPECT_NEAR(air_updator->getHVACFlux(),   -interior_load, 1e-10);
-
+  Real expected_flux = rho * cp * air_volume * (min_temp - initial_air_temp)/hvac_restore_time;
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux ,1e-13);
 }
 
 
 TEST_F(TemperatureUpdatorTester, AirLeakage)
 {
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5;
   Real min_temp = 0;
   Real max_temp = 10000;
   Real rho = 2;
@@ -225,7 +149,6 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
   Real window_area = 0;
   Real initial_air_temp = 298;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -234,36 +157,22 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
   heat_eqn.initialize(sol_vec, t_start);
 
-  Real energy_change =  ach50_air * (5.0/50) * (edata.air_temp - air_updator->getTemperature()) * rho * cp * air_volume  * delta_t;
-  Real temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  EXPECT_GE(temperature_change, 0);
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change/2, 1e-10);
-
-  Real air_temp = initial_air_temp + temperature_change/2;
-  energy_change =  ach50_air * (5.0/50) * (edata.air_temp - air_updator->getTemperature()) * rho * cp * air_volume  * delta_t;
-  temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-  air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-  EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change, 1e-3);
+  Real expected_flux =  ach50_air * (5.0/50) * (edata.air_temp - initial_air_temp) * rho * cp * air_volume / 3600;
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
 }
 
 
 TEST_F(TemperatureUpdatorTester, Ventilation)
 {
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5;
   Real min_temp = 0;
   Real max_temp = 10000;
   Real rho = 2;
@@ -277,7 +186,6 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
   Real window_area = 0;
   Real initial_air_temp = 298;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -286,35 +194,22 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
   heat_eqn.initialize(sol_vec, t_start);
 
-  Real energy_change =  ach50_vent * (5.0/50) * (edata.air_temp - air_updator->getTemperature()) * rho * cp * air_volume  * delta_t;
-  Real temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  EXPECT_GE(temperature_change, 0);
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change/2, 1e-10);
-
-  Real air_temp = initial_air_temp + temperature_change/2;
-  energy_change =  ach50_vent * (5.0/50) * (edata.air_temp - air_updator->getTemperature()) * rho * cp * air_volume  * delta_t;
-  temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-  air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-  EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change, 1e-3);
+  Real expected_flux =  ach50_vent * (5.0/50) * (edata.air_temp - initial_air_temp) * rho * cp * air_volume  / 3600;
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
 }
+
 
 TEST_F(TemperatureUpdatorTester, WindowConduction)
 {
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5;
   Real min_temp = 0;
   Real max_temp = 10000;
   Real rho = 2;
@@ -328,7 +223,6 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
   Real window_area = 6;
   Real initial_air_temp = 298;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -337,40 +231,22 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
   heat_eqn.initialize(sol_vec, t_start);
 
-  Real energy_change =  (window_area * (edata.air_temp - air_updator->getTemperature()) / r_val)* delta_t * 3600;
-  Real temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  EXPECT_GE(temperature_change, 0);
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change/2, 1e-10);
-
-  Real air_temp = initial_air_temp + temperature_change/2;
-  energy_change =  (window_area * (edata.air_temp - air_updator->getTemperature()) / r_val)* delta_t * 3600;
-  temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-
-  air_temp = air_updator->getTemperature();
-  energy_change =  (window_area * (edata.air_temp - air_temp) / r_val)* delta_t * 3600;
-  temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-  EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change/2, 2);
+  Real expected_flux =  (window_area * (edata.air_temp - initial_air_temp) / r_val);
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
 }
+
 
 TEST_F(TemperatureUpdatorTester, WallConduction)
 {
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
+  Real hvac_restore_time = 5;
   Real min_temp = -10000;
   Real max_temp = 10000;
   Real rho = 2;
@@ -384,7 +260,6 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   Real initial_air_temp = 298;
   Real wall_temp = 320;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -393,7 +268,7 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   Real surface_area = 2;
@@ -407,6 +282,7 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   auto wall_bc = std::make_shared<Heat::TarpBC>(disc->getSurfDisc(0), surface_area, perimeter, roughness_index, vertical_vector,
                                                 point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
   heat_eqn.addNeumannBC(wall_bc, false);
+  heat_eqn.getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
 
   Heat::TarpModel model(surface_area, perimeter, roughness_index, vertical_vector,
                         point_at_zero_altitude,
@@ -421,26 +297,10 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   sol_vec->set(wall_temp);
   heat_eqn.initialize(sol_vec, t_start);
 
-  Real energy_change = (wall_temp - air_updator->getTemperature()) * wall_area * heat_transfer_coeff * delta_t * 3600;
-  Real temperature_change = energy_change/(rho*cp*air_volume);
-  air_updator->updateTemperature(sol_vec, t_start + delta_t);
-
-  EXPECT_GE(temperature_change, 0);
-  // the factor of 1/2 is because of the initialization: the previous flux is zero, so applying
-  // the trapizoid rule gives a net change of 1/2 the constant flux
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + temperature_change/2, 1e-10);
-
-  Real air_temp = initial_air_temp + temperature_change/2;
-  model.setAirTemperature(air_temp);
-  heat_transfer_coeff = model.computeHeatTransferCoeff(wall_temp, {0, 0, 0}, {0, 1, 0});
-  energy_change = (wall_temp - air_updator->getTemperature()) * wall_area * heat_transfer_coeff * delta_t * 3600;
-  temperature_change = energy_change/(rho*cp*air_volume);
-
-  air_updator->startNewTimestep(sol_vec, t_start + delta_t);
-  air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
-  EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change, 2);
+  Real expected_flux = (wall_temp - initial_air_temp) * wall_area * heat_transfer_coeff;
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-12);
 }
 
-*/
+
 
 //TODO: test multiple iterations of same time step
