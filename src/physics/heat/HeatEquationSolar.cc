@@ -5,6 +5,15 @@
 
 namespace Heat {
 
+HeatEquationSolar::HeatEquationSolar(DiscPtr disc, SolarPositionCalculator solar_position, std::shared_ptr<EnvironmentInterface> environment_interface,
+                  std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator)
+: HeatEquation(disc),
+  m_solar_position(solar_position),
+  m_environment(environment_interface),
+  m_air_temp(air_temp_updator),
+  m_aux_equations(std::make_shared<AuxiliaryEquationsSolar>(*this, air_temp_updator))
+{}
+
 //TODO: arguments are unused?
 void HeatEquationSolar::initialize(DiscVectorPtr sol_vec, Real t_start) 
 { 

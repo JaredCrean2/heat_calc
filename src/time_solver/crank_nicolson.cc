@@ -6,7 +6,7 @@ namespace timesolvers {
 
 AuxiliaryEquationsStoragePtr CrankNicolsonAuxiliaryEquations::createStorage()
 {
-  return std::make_shared<AuxiliaryEquationStorage>(m_aux_eqns);
+  return std::make_shared<AuxiliaryEquationStorage>(*m_aux_eqns);
 }
 
 

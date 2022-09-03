@@ -137,13 +137,12 @@ class AuxiliaryEquations
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
     virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
-    void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals);
+    virtual void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) = 0;
 
-    ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block);
+    virtual ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) = 0;  //TODO: should return const ref?
 
   private:
     DiscPtr m_disc;
-    AuxiliaryEquationsStoragePtr m_solutions;
 };
 
 using AuxiliaryEquationsPtr = std::shared_ptr<AuxiliaryEquations>;
@@ -152,31 +151,31 @@ using AuxiliaryEquationsPtr = std::shared_ptr<AuxiliaryEquations>;
 class AuxiliaryEquationStorage
 {
   public:
-    explicit AuxiliaryEquationStorage(AuxiliaryEquationsPtr aux_eqns) :
+    explicit AuxiliaryEquationStorage(AuxiliaryEquations& aux_eqns) :
     m_aux_eqns(aux_eqns),
-    m_vectors(aux_eqns->getNumBlocks()-1)
+    m_vectors(0)
     {
-      for (int i=0; i < aux_eqns->getNumBlocks()-1; ++i)
+      for (int i=0; i < aux_eqns.getNumBlocks()-1; ++i)
       {
-        int size = aux_eqns->getBlockSize(i+1);
-        m_vectors[i] = ArrayType<Real, 1>(boost::extents[size]);
+        int size = aux_eqns.getBlockSize(i+1);
+        m_vectors.emplace_back(boost::extents[size]);
       }
     }
 
     ArrayType<Real, 1>& getVector(int block)
     {
-      assertAlways(block > 1 && block < m_aux_eqns->getNumBlocks(), "block is out of range");
+      assertAlways(block > 0 && block < m_aux_eqns.getNumBlocks(), "block is out of range");
       return m_vectors[block-1];
     }
 
     const ArrayType<Real, 1>& getVector(int block) const
     {
-      assertAlways(block > 1 && block < m_aux_eqns->getNumBlocks(), "block is out of range");
+      assertAlways(block > 0 && block < m_aux_eqns.getNumBlocks(), "block is out of range");
       return m_vectors[block-1];
     }
     
   private:
-    AuxiliaryEquationsPtr m_aux_eqns;
+    AuxiliaryEquations& m_aux_eqns;
     std::vector<ArrayType<Real, 1>> m_vectors;
 };
 
@@ -216,13 +215,13 @@ class AuxiliaryEquationsJacobians
 class AuxiliaryEquationsJacobiansDense : public AuxiliaryEquationsJacobians
 {
   public:
-    explicit AuxiliaryEquationsJacobiansDense(AuxiliaryEquationsPtr aux_eqns) :
-      AuxiliaryEquationsJacobians(aux_eqns->getNumBlocks()),
-      m_jacs(aux_eqns->getNumBlocks()-1) 
+    explicit AuxiliaryEquationsJacobiansDense(AuxiliaryEquations& aux_eqns) :
+      AuxiliaryEquationsJacobians(aux_eqns.getNumBlocks()),
+      m_jacs(aux_eqns.getNumBlocks()-1) 
     {
-      for (int i=0; i < aux_eqns->getNumBlocks()-1; ++i)
+      for (int i=0; i < aux_eqns.getNumBlocks()-1; ++i)
       {
-        int size = aux_eqns->getBlockSize(i+1);
+        int size = aux_eqns.getBlockSize(i+1);
         auto matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
         m_jacs[i] = linear_system::largeMatrixFactory(linear_system::LargeMatrixType::Dense, size, size, matrix_opts);
       }
@@ -297,6 +296,18 @@ class AuxiliaryEquationsNone : public AuxiliaryEquations
     virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       assertAlways(false, "cannot compute auxiliary Jacobian vector product for AuxiliaryEquationsNone"); 
+    }
+
+    void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) override
+    {
+      assertAlways(false, "cannot set solution for AuxiliaryEquationsNone"); 
+    }
+
+    virtual ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) override
+    {
+      assertAlways(false, "cannot get solution for AuxiliaryEquationsNone");
+      static ArrayType<Real, 1> tmp(boost::extents[0]);
+      return tmp;
     }
 
   private:

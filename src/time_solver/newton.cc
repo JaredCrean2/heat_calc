@@ -125,7 +125,9 @@ void NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
 
   //TODO: there is a more efficient way to do this.  when going from one iblock to the
   //      next, only 1 matrix-vector product needs to be updated
-
+  //TODO: also, if doing a linear solve, only need to compute rhs once
+  //TODO: no need to allocate a temporary vector each iteration
+  
   // do all other rows
   for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
   {

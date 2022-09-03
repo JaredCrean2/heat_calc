@@ -3,6 +3,7 @@
 
 #include "HeatEquationSolar.h"
 #include "interior_temperature_update.h"
+#include "physics/AuxiliaryEquations.h"
 
 namespace Heat {
 
@@ -12,25 +13,28 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
     explicit AuxiliaryEquationsSolar(HeatEquationSolar& heat_eqn, std::shared_ptr<InteriorAirTemperatureUpdator> air_temp) :
       AuxiliaryEquations(heat_eqn.getDiscretization()),
       m_heat_eqn(heat_eqn),
-      m_air_temp(air_temp)
-    {}
+      m_air_temp(air_temp),
+      m_jacs(std::make_shared<AuxiliaryEquationsJacobiansDense>(*this))
+    {
+      m_solutions = std::make_shared<AuxiliaryEquationStorage>(*this);
+    }
 
   protected:
 
     // return number of auxiliary sets of equations
-    virtual int getNumAuxiliaryBlocks() const { return 1; }
+    int getNumAuxiliaryBlocks() const override { return 1; }
     
     // returns number of variables in each block
-    virtual int getAuxiliaryBlockSize(int block) const { return 1; }
+    int getAuxiliaryBlockSize(int block) const override { return 1; }
 
     // each auxiliary block must be of the form du/dt = rhs(u, t).  This function computes the rhs
-    virtual void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs)
+    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs) override
     {
       Real interior_temp = getAuxiliaryBlockSolution(block)[0];
       rhs[0] = m_air_temp->computeNetFlux(u_vec, interior_temp, t);
     }
 
-    virtual void computeAuxiliaryMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr assembler)
+    void computeAuxiliaryMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr assembler) override
     {
       std::vector<DofInt> dofs = {0};
       ArrayType<Real, 2> mat(boost::extents[1][1]);
@@ -38,14 +42,14 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
       assembler->assembleEntry(dofs, mat);
     }
 
-    virtual void multiplyAuxiliaryMassMatrix(int block, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+    void multiplyAuxiliaryMassMatrix(int block, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       Real val = m_air_temp->getThermalMass();
       b[0] = x[0] * val;
     }
 
     // compute the diagonal Jacobian block for the given block
-    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat)
+    void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat) override
     {
       Real interior_temp = getAuxiliaryBlockSolution(0)[0];
       Real val = m_air_temp->computeNetFluxJacobian(u_vec, interior_temp, t);
@@ -60,13 +64,13 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
     //virtual void computeAuxiliaryJacobian(int block, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
-    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+    void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       m_heat_eqn.computedRdTinterior_airProduct(u_vec, t, x[0], b);
     }
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
-    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+    void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       void computeNetFlux_rev(DiscVectorPtr sol_vec, Real interior_temp, Real t, DiscVectorPtr sol_vec_bar);
 
@@ -85,10 +89,18 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
         b[0] += u_bar_vec[i] * x[i];
     }
 
+    AuxiliaryEquationsJacobiansPtr getJacobians() override { return m_jacs; }
+
+    void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) override;
+
+    ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) override;
+
 
   private:
     HeatEquationSolar& m_heat_eqn;
     std::shared_ptr<InteriorAirTemperatureUpdator> m_air_temp;
+    AuxiliaryEquationsJacobiansPtr m_jacs;
+    AuxiliaryEquationsStoragePtr m_solutions;
 };
 
 }

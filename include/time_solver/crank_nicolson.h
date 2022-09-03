@@ -22,8 +22,8 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       m_tn(-1),
       m_tnp1(t0),
       m_un(makeDiscVector(physics_model->getDiscretization())),
-      m_aux_un(m_aux_eqns),
-      m_aux_unp1(m_aux_eqns)
+      m_aux_un(*m_aux_eqns),
+      m_aux_unp1(*m_aux_eqns)
     {}
 
     virtual int getNumBlocks() const override { return m_aux_eqns->getNumBlocks(); }

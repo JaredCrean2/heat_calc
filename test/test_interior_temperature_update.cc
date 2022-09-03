@@ -61,6 +61,7 @@ TEST_F(TemperatureUpdatorTester, Initialization)
   EXPECT_EQ(air_updator->getTemperature(), initial_air_temp);
   EXPECT_EQ(air_updator->getHVACFlux(), -interior_load);
 }
+*/
 
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
@@ -78,7 +79,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   Real window_area = 0;
   Real initial_air_temp = 298;
   Real t_start = 0;
-  Real delta_t = 1.0/60;  // time is in hours
+  //Real delta_t = 1.0/60;  // time is in hours
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -94,6 +95,9 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   sol_vec->set(0);
   heat_eqn.initialize(sol_vec, t_start);
 
+  EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), interior_load, 1e-13);
+
+/*
   Real energy_change = interior_load * delta_t * 3600;
   Real temperature_change = energy_change/(rho*cp*air_volume);
   std::cout << "temperature change expected = " << temperature_change << std::endl;
@@ -110,9 +114,9 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   air_updator->updateTemperature(sol_vec, t_start + 2*delta_t);
   EXPECT_NEAR(air_updator->getTemperature(), air_temp + temperature_change, 1e-10);
   std::cout << "after second update, temperature = " << air_updator->getTemperature() << std::endl;
-
+*/
 }
-
+/*
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 {
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};

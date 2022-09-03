@@ -14,7 +14,6 @@ set(src_files EpwReader.cc
               discretization/disc_vector.cc
               #discretization/model.cc
               physics/PhysicsModel.cc
-              physics/AuxiliaryEquations.cc
               physics/heat/HeatEquation.cc
               physics/heat/HeatEquationSolar.cc
               physics/heat/mass_matrix.cc
@@ -28,6 +27,7 @@ set(src_files EpwReader.cc
               physics/heat/dates.cc
               physics/heat/solar_position.cc
               physics/heat/basis_vals.cc
+              physics/heat/AuxiliaryEquationsSolar.cc
               physics/heat/interior_temperature_update.cc
               linear_system/assembler.cc
               linear_system/bla_wrapper.cc

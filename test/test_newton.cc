@@ -81,7 +81,7 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
 
     AuxiliaryEquationsStoragePtr createStorage() override
     {
-      return std::make_shared<AuxiliaryEquationStorage>(m_aux_eqns);
+      return std::make_shared<AuxiliaryEquationStorage>(*m_aux_eqns);
     }
 
   private:
