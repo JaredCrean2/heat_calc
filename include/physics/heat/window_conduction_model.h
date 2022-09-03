@@ -20,6 +20,11 @@ class WindowConductionModel
       return (t_exterior - t_interior) * m_area/m_r_val;
     }
 
+    Real computeConductionPowerDot(Real t_interior, Real t_exterior, Real& flux_dot)
+    {
+      flux_dot = -m_area/m_r_val;
+      return (t_exterior - t_interior) * m_area/m_r_val;
+    }
 
   private:
     Real m_r_val;  // (m^2 * K)/W

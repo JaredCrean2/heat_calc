@@ -3,8 +3,16 @@
 
 namespace timesolvers {
 
+
+AuxiliaryEquationsStoragePtr CrankNicolsonAuxiliaryEquations::createStorage()
+{
+  return std::make_shared<AuxiliaryEquationStorage>(m_aux_eqns);
+}
+
+
 CrankNicolsonFunction::CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physics_model, linear_system::LargeMatrixPtr mat, Real t0) :
   m_physics_model(physics_model),
+  m_aux_eqns(std::make_shared<CrankNicolsonAuxiliaryEquations>(physics_model, t0)),
   m_assembler(std::make_shared<linear_system::Assembler>(physics_model->getDiscretization(), mat)),
   m_tn(t0),
   m_un(makeDiscVector(physics_model->getDiscretization())),
@@ -89,16 +97,18 @@ void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, linear_system
   m_assembler->setAlpha(1);
 }
 
-
+/*
 void CrankNicolsonFunction::updateDependentQuantities(DiscVectorPtr u)
 {
   m_physics_model->updateDependentQuantities(u, m_tnp1);
 }
-
+*/
+/*
 void CrankNicolsonFunction::completeTimestep(DiscVectorPtr u)
 {
   m_physics_model->completeTimestep(u, m_tnp1);
 }
+*/
 
 // create an empty vector
 DiscVectorPtr CrankNicolsonFunction::createVector()
@@ -111,6 +121,8 @@ void CrankNicolsonFunction::setTnp1(DiscVectorPtr u_n, Real t_np1)
   m_tn = m_tnp1;
   m_tnp1 = t_np1;
   *m_un = *u_n;
+
+  m_aux_eqns->setTnp1(u_n, t_np1);
 }
 
 
@@ -138,6 +150,7 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
   auto sparsity = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
   m_matrix      = largeMatrixFactory(opts.mat_type, mesh->getNumOwnedDofs(), mesh->getNumOwnedDofs(), opts.matrix_opts, sparsity);
   m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start);
+  std::cout << "m_func->getAuxiliaryEquations() = " << m_func->getAuxiliaryEquations() << std::endl;
   m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix);
 }
 
@@ -165,7 +178,7 @@ void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
   std::cout << "CN advancing to time " << t_new << std::endl;
   m_func->setTnp1(m_u, t_new);
   NewtonResult result = m_newton->solve(m_u, m_opts.nonlinear_abs_tol, m_opts.nonlinear_rel_tol, m_opts.nonlinear_itermax);
-  m_func->completeTimestep(m_u);
+  //m_func->completeTimestep(m_u);
 
   if (!result.isConverged())
   {

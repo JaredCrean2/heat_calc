@@ -14,6 +14,8 @@ class AirLeakageModel
     // compute the power of the air leakage (W).  Positive values mean
     // energy is removed from the interior air
     virtual Real computeAirLeakagePower(Real t_interior, Real t_exterior) = 0;
+
+    virtual Real computeAirLeakagePowerDot(Real t_interior, Real t_exterior, Real& flux_dot) = 0;
 };
 
 // implements a simple model: given ach50, compute ach natural as natural pressure / 50;
@@ -35,6 +37,14 @@ class AirLeakageModelPressure : public AirLeakageModel
       return m_rho * m_cp * air_volume_per_hour * (t_interior - t_exterior) / 3600;
     }
 
+    Real computeAirLeakagePowerDot(Real t_interior, Real t_exterior, Real& flux_dot) override
+    {
+      Real ach_natural         = m_ach50 * m_expected_pressure / 50;
+      Real air_volume_per_hour = ach_natural * m_volume;
+      return m_rho * m_cp * air_volume_per_hour/ 3600;      
+    }
+
+
   private:
     Real m_ach50;
     Real m_expected_pressure;
@@ -43,6 +53,8 @@ class AirLeakageModelPressure : public AirLeakageModel
     Real m_rho;
 };
 
+//TODO: the above model used (t_interior - t_exterior), but the model below
+//      is (t_exterior - t_interior)
 
 class HRVModel : public AirLeakageModel
 {
@@ -58,6 +70,12 @@ class HRVModel : public AirLeakageModel
     Real computeAirLeakagePower(Real t_interior, Real t_exterior) override
     {
       return m_efficiency * m_rho * m_cp * m_flow_rate * (t_exterior - t_interior);
+    }
+
+    Real computeAirLeakagePowerDot(Real t_interior, Real t_exterior, Real& flux_dot) override
+    {
+      flux_dot = m_efficiency * m_rho * m_cp * m_flow_rate;
+      return m_efficiency * m_rho * m_cp * m_flow_rate * (t_exterior - t_interior); 
     }
 
   private:

@@ -13,6 +13,10 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
   rhs->markArrayModified();
 }
 
+//TODO: a face could be a ghost face.  Need weighting factor?
+//      or maybe it is ok beause we throw away any non-owned nodes,
+//      and the the owned nodes have the correct parallel value
+
 void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 {
   // Note: we currently don't require that a given surface has a single volume as

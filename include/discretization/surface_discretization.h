@@ -169,4 +169,31 @@ typename Array::element integrateFaceVector(SurfDiscPtr surf, const int face, co
   return val;
 }
 
+template <typename Array>
+typename Array::element integrateFaceVector_rev(SurfDiscPtr surf, const int face, Array& vals_bar, Real val_bar)
+{
+  using Element = typename Array::element;
+  assert(vals_bar.num_dimensions() == 2);
+  assert(vals_bar.shape()[0] == static_cast<unsigned int>(surf->getNumQuadPtsPerFace()));
+  assert(vals_bar.shape()[1] == 3);
+
+  Element val = 0;
+  int idx = 0;
+  for (int i=0; i < surf->quad.getNumPoints(); ++i)
+    for (int j=0; j < surf->quad.getNumPoints(); ++j)
+    {
+      auto weight = surf->quad.getWeight(i) * surf->quad.getWeight(j);
+      Real val_j_bar = weight * val_bar;
+
+      for (int d=0; d < 3; ++d)
+      {
+        vals_bar[idx][d] += surf->normals[face][idx][d] * val_j_bar;
+      }
+
+      idx++;
+    }
+
+  return val;
+}
+
 #endif

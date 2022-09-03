@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "discretization/disc_vector.h"
 #include "discretization/discretization.h"
+#include "linear_system/assembler.h"
+#include "physics/AuxiliaryEquations.h"
 #include "time_solver/newton.h"
 #include "mesh_helper.h"
 #include "linear_system/large_matrix_petsc.h"
@@ -42,10 +44,56 @@ class NewtonTester : public ::testing::Test,
     DiscVectorPtr u;
 };
 
+class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquations
+{
+  public:
+    NewtonTestAuxiliaryEquations(DiscPtr disc) :
+      m_aux_eqns(std::make_shared<AuxiliaryEquationsNone>(disc))
+    {}
+
+    int getNumBlocks() const override { return m_aux_eqns->getNumBlocks(); }
+
+    // returns the number of variables in the given block
+    int getBlockSize(int block) const override { return m_aux_eqns->getBlockSize(block); }
+
+    void computeRhs(int block, DiscVectorPtr u_vec, ArrayType<Real, 1>& rhs) override { return m_aux_eqns->computeRhs(block, u_vec, 0.0, rhs); }
+
+    void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) override
+    {
+      auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
+      return m_aux_eqns->computeJacobian(block, u_vec, 0.0, assembler);
+    }
+
+    void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    {
+      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, 0.0, x, b);
+    }
+
+    void setBlockSolution(int block, const ArrayType<Real, 1>& vals) override
+    {
+      m_aux_eqns->setBlockSolution(block, vals);
+    }
+
+    AuxiliaryEquationsJacobiansPtr getJacobians() override
+    {
+      return m_aux_eqns->getJacobians();
+    }
+
+    AuxiliaryEquationsStoragePtr createStorage() override
+    {
+      return std::make_shared<AuxiliaryEquationStorage>(m_aux_eqns);
+    }
+
+  private:
+    AuxiliaryEquationsPtr m_aux_eqns;
+};
+
 class NewtonTestFunc : public timesolvers::NewtonFunction
 {
   public:
-    explicit NewtonTestFunc(DiscPtr disc) : m_disc(disc)
+    explicit NewtonTestFunc(DiscPtr disc) : 
+      m_disc(disc),
+      m_aux_eqns(std::make_shared<NewtonTestAuxiliaryEquations>(disc))
     {
       disc->getMesh()->getOwnedLocalDofInfo(m_owned_dof_to_local);
       disc->getMesh()->getLocalToGlobalDofs(m_local_dof_to_global);
@@ -96,6 +144,9 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
       }
     }
 
+
+    timesolvers::NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() override { return m_aux_eqns; }
+
     virtual DiscVectorPtr createVector() override
     {
       return makeDiscVector(m_disc);
@@ -105,6 +156,7 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
     DiscPtr m_disc;
     std::vector<DofInt> m_owned_dof_to_local;
     std::vector<DofInt> m_local_dof_to_global;
+    timesolvers::NewtonAuxiliaryEquationsPtr m_aux_eqns;
 };
 
 

@@ -7,6 +7,10 @@
 #include "discretization/disc_vector.h"
 #include "discretization/discretization.h"
 #include "linear_system/assembler.h"
+#include "linear_system/large_matrix.h"
+#include "AuxiliaryEquations.h"
+
+
 
 // Evaluates a discretization for the given equation
 // Produces linear systems K u = f, where K is the left-hand side
@@ -15,7 +19,8 @@ class PhysicsModel
 {
   public:
     explicit PhysicsModel(DiscPtr disc) :
-        m_disc(disc)
+        m_disc(disc),
+        m_aux_equations_none(makeAuxiliaryEquationsNone(disc))
     {}
 
     virtual ~PhysicsModel() {}
@@ -52,12 +57,14 @@ class PhysicsModel
 
     bool hasSourceTerm(size_t idx) const { return idx < m_source_terms.size(); }
 
+    virtual AuxiliaryEquationsPtr getAuxEquations() { return m_aux_equations_none; }
+/*
     virtual void updateDependentQuantities(DiscVectorPtr u, Real t) {};
 
     // mark the timestep complete.  u is the solution at the end of the
     // timestep, which has time t.
     virtual void completeTimestep(DiscVectorPtr u, Real t) {};
-    
+*/    
   protected:
     virtual void checkInitialization();
 
@@ -67,6 +74,7 @@ class PhysicsModel
     std::vector<DirichletBCPtr> m_dirichlet_bcs;
     std::vector<NeumannBCPtr> m_neumann_bcs;
     std::vector<SourceTermPtr> m_source_terms;
+    AuxiliaryEquationsPtr m_aux_equations_none;
 };
 
 #endif

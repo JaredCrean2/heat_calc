@@ -8,6 +8,13 @@
 namespace Heat {
 
 template <typename T>
+void zeroArray(ArrayType<T, 1>& arr)
+{
+  for (unsigned int i=0; i < arr.shape()[0]; ++i)
+    arr[i] = 0;
+}
+
+template <typename T>
 void zeroMatrix(ArrayType<T, 2>& arr)
 {
   for (unsigned int i=0; i < arr.shape()[0]; ++i)

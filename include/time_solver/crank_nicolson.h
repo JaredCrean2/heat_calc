@@ -3,6 +3,7 @@
 
 #include "ProjectDefs.h"
 #include "discretization/disc_vector.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/PhysicsModel.h"
 #include "linear_system/large_matrix.h"
 #include "linear_system/assembler.h"
@@ -12,6 +13,95 @@
 
 
 namespace timesolvers {
+
+class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
+{
+  public:
+    CrankNicolsonAuxiliaryEquations(std::shared_ptr<PhysicsModel> physics_model, Real t0) :
+      m_aux_eqns(physics_model->getAuxEquations()),
+      m_tn(-1),
+      m_tnp1(t0),
+      m_un(makeDiscVector(physics_model->getDiscretization())),
+      m_aux_un(m_aux_eqns),
+      m_aux_unp1(m_aux_eqns)
+    {}
+
+    virtual int getNumBlocks() const override { return m_aux_eqns->getNumBlocks(); }
+
+    // returns the number of variables in the given block
+    virtual int getBlockSize(int block) const override { return m_aux_eqns->getBlockSize(block); }
+
+    virtual void computeRhs(int block, DiscVectorPtr u_vec, ArrayType<Real, 1>& rhs) override
+    {
+      int num_vars = getBlockSize(block);
+
+      // compute M * (u_np1 - u_n)/delta_t
+      ArrayType<Real, 1> delta_u(boost::extents[num_vars]);
+      auto& u_np1 = m_aux_unp1.getVector(block);
+      auto& u_n   = m_aux_un.getVector(block);
+      for (int i=0; i < num_vars; ++i)
+        delta_u[i] = (u_np1[i] - u_n[i])/(m_tnp1 - m_tn);
+      m_aux_eqns->multiplyMassMatrix(block, m_tnp1, delta_u, rhs);
+
+      // compute 1/2(f(u_np1, t_np1) + f(u_n, t_n))
+      ArrayType<Real, 1> rhs_tmp(boost::extents[num_vars]), rhs_tmp2(boost::extents[num_vars]);
+      m_aux_eqns->computeRhs(block, m_un, m_tn, rhs_tmp);
+      m_aux_eqns->computeRhs(block, u_vec, m_tnp1, rhs_tmp2);
+
+      for (int i=0; i < num_vars; ++i)
+        rhs[i] -= 0.5*(rhs_tmp[i] + rhs_tmp2[i]);
+    }
+
+    virtual void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) override
+    {
+      auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
+      assembler->setAlpha(1.0/(m_tnp1 - m_tn));
+      m_aux_eqns->computeMassMatrix(block, m_tnp1, assembler);
+
+      assembler->setAlpha(0.5);
+      m_aux_eqns->computeJacobian(block, u_vec, m_tnp1, assembler);
+    }
+
+    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    {
+      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, m_tnp1, x, b);
+      int num_vars = getBlockSize(iblock);
+      for (int i=0; i < num_vars; ++i)
+        b[i] *= -0.5;
+    }
+
+    virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals) override
+    {
+      m_aux_eqns->setBlockSolution(block, vals);
+    }
+
+    virtual AuxiliaryEquationsJacobiansPtr getJacobians() override
+    {
+      return m_aux_eqns->getJacobians();
+    }
+
+    virtual AuxiliaryEquationsStoragePtr createStorage() override;
+
+
+  private:
+
+    void setTnp1(DiscVectorPtr u_n, Real t_np1)
+    {
+      *m_un  = *u_n;
+      m_tn   = m_tnp1;
+      m_tnp1 = t_np1;
+    }
+
+    AuxiliaryEquationsPtr m_aux_eqns;
+    Real m_tn;
+    Real m_tnp1;
+    DiscVectorPtr m_un;
+    AuxiliaryEquationStorage m_aux_un;
+    AuxiliaryEquationStorage m_aux_unp1;
+
+    friend class CrankNicolsonFunction;
+};
+
 
 class CrankNicolsonFunction : public NewtonFunction
 {
@@ -25,11 +115,9 @@ class CrankNicolsonFunction : public NewtonFunction
     // compute jac = df/du, overwriting jac
     void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) override;
 
-    void updateDependentQuantities(DiscVectorPtr u) override;
+    //void updateDependentQuantities(DiscVectorPtr u) override;
 
-    // mark the timestep complete.  u is the solution at the end of the
-    // timestep, which has time t.
-    void completeTimestep(DiscVectorPtr u) override;
+    virtual NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() override { return m_aux_eqns; }
 
     // create an empty vector
     DiscVectorPtr createVector() override;
@@ -38,6 +126,7 @@ class CrankNicolsonFunction : public NewtonFunction
 
   private:
     std::shared_ptr<PhysicsModel> m_physics_model;
+    std::shared_ptr<CrankNicolsonAuxiliaryEquations> m_aux_eqns;
     linear_system::AssemblerPtr m_assembler;
     Real m_tn;
     //TODO: how many of these need to be true DiscVectors? Some of them may only

@@ -1,7 +1,9 @@
 #ifndef HEAT_EQUATION_H
 #define HEAT_EQUATION_H
 
+#include "ProjectDefs.h"
 #include "lagrange_basis.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/PhysicsModel.h"
 #include "physics/heat/air_leakage.h"
 #include "physics/heat/bc_defs.h"
@@ -64,60 +66,6 @@ class HeatEquation : public PhysicsModel
 
 
     std::vector<VolumeGroupParams> m_params;
-};
-
-
-
-
-class InteriorAirTemperatureUpdator;
-
-class HeatEquationSolar : public HeatEquation
-{
-  public:
-
-    HeatEquationSolar(DiscPtr disc, SolarPositionCalculator solar_position, std::shared_ptr<EnvironmentInterface> environment_interface,
-                      std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator)
-    : HeatEquation(disc),
-      m_solar_position(solar_position),
-      m_environment(environment_interface),
-      m_air_temp(air_temp_updator)
-    {}
-
-    using HeatEquation::initialize; 
-    using HeatEquation::addNeumannBC;
-
-    void initialize(DiscVectorPtr sol_vec, Real t_start) ;
-
-    // is_exterior: true if this BC uses the environment air temperature and is exposed to
-    //              thermal radiation
-    void addNeumannBC(NeumannBCPtr bc, bool is_exterior);
-
-    void setTimeParameters(Real t);
-
-    const EnvironmentData& getEnvironmentData() const { return m_env_data; }
-
-    void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs) override
-    {
-      setTimeParameters(t);
-      HeatEquation::computeRhs(u, t, rhs);
-    }
-        
-    void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) override
-    {
-      setTimeParameters(t);
-      HeatEquation::computeJacobian(u, t, assembler);
-    }
-
-    void updateDependentQuantities(DiscVectorPtr u, Real t) override;
-
-    void completeTimestep(DiscVectorPtr u, Real t) override;
-
-  private:
-    std::vector<bool> m_is_neumann_bc_exterior;
-    SolarPositionCalculator m_solar_position;
-    std::shared_ptr<EnvironmentInterface> m_environment;
-    std::shared_ptr<InteriorAirTemperatureUpdator> m_air_temp;
-    EnvironmentData m_env_data;
 };
 
 

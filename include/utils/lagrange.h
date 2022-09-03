@@ -594,6 +594,27 @@ class LagrangeEvaluatorTPFlatToNonTP
       }
     }
 
+    template <typename ArrayIn, typename ArrayOut>
+    void interpolateVals_rev(ArrayIn& vals_in_bar, ArrayOut& vals_out_bar) const
+    {
+      assert(vals_in_bar.num_dimensions()  == 1);
+      assert(vals_out_bar.num_dimensions() == 1);
+      assert(vals_in_bar.shape()[0] == getNumPointsIn());
+      assert(vals_out_bar.shape()[0] == getNumPointsOut());
+
+      for (Index i_out =0; i_out < getNumPointsOut(); ++i_out)
+        for (Index i_in=0; i_in < getNumTPPointsIn(); ++i_in)
+          for (Index j_in=0; j_in < getNumTPPointsIn(); ++j_in)
+            for (Index k_in=0; k_in < getNumTPPointsIn(); ++k_in)
+            {
+              // TODO: precompute first two multiplications
+              vals_in_bar[m_nodemap_in[i_in][j_in][k_in]] += m_vals[i_out][i_in][0] *
+                                                             m_vals[i_out][j_in][1] *
+                                                             m_vals[i_out][k_in][2] *
+                                                             vals_out_bar[i_out];
+            }
+    }
+
     template <typename Array1D, typename Array2D>
     void interpolateDerivs(const Array1D& vals_in, Array2D& vals_out) const
     {

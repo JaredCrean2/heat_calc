@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "ProjectDefs.h"
+#include "physics/AuxiliaryEquations.h"
 #include "time_solver/newton_result.h"
 
 class DiscVector;
@@ -15,8 +16,36 @@ namespace linear_system {
 
 namespace timesolvers {
 
+class NewtonAuxiliaryEquations
+{
+  public:
+    virtual ~NewtonAuxiliaryEquations() {};
+
+    virtual int getNumBlocks() const = 0;
+
+    // returns the number of variables in the given block
+    virtual int getBlockSize(int block) const = 0;
+
+    virtual void computeRhs(int block, DiscVectorPtr u_vec, ArrayType<Real, 1>& rhs) = 0;
+
+    virtual void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) =0;
+
+    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
+
+    virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals) = 0;
+
+    virtual AuxiliaryEquationsJacobiansPtr getJacobians() = 0;
+
+    virtual AuxiliaryEquationsStoragePtr createStorage() = 0;
+};
+
+using NewtonAuxiliaryEquationsPtr = std::shared_ptr<NewtonAuxiliaryEquations>;
+
+
 // solve a function f(u) = 0 using Newton's method
 // The iteration is u_n+1 = u_n - (df/du_n)^-1 f(u_n)
+// If there are auxiliary equations, block Gauss-Seidel is used
+// to converge them too.
 class NewtonFunction
 {
   public:
@@ -27,17 +56,20 @@ class NewtonFunction
     // repeated solves
     virtual void resetForNewSolve() = 0;
   
+    //TODO: change the API: the completeTimestep function should be the only
+    //      function that changes the state u at which the function and
+    //      jacobian are evaluated.  Remove u as an explicit argument of
+    //      computeFunc, computeJacobian
+
     // compute f(u), overwriting f.  Computes norm of f if required
     virtual Real computeFunc(const DiscVectorPtr u, bool compute_norm, DiscVectorPtr f) = 0;
 
     // compute jac = df/du, overwriting jac
     virtual void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) = 0;
 
-    virtual void updateDependentQuantities(DiscVectorPtr u) {};
+    virtual NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() = 0;
 
-    // mark the timestep complete.  u is the solution at the end of the
-    // timestep, which has time t.
-    virtual void completeTimestep(DiscVectorPtr u) {};
+    //virtual void updateDependentQuantities(DiscVectorPtr u) {};
 
     // create an empty vector
     virtual DiscVectorPtr createVector() = 0;
@@ -58,10 +90,19 @@ class NewtonSolver
 
     void solveStep(DiscVectorPtr u);
 
+    void computeJacobians(DiscVectorPtr u);
+
+    void gaussSeidelStep(DiscVectorPtr u);
+
+
     NewtonFunctionPtr m_func;
     linear_system::LargeMatrixPtr m_jac;
+    AuxiliaryEquationsJacobiansPtr m_aux_jacs;
     DiscVectorPtr m_f;
     DiscVectorPtr m_delta_u;
+    AuxiliaryEquationsStoragePtr m_aux_u;
+    AuxiliaryEquationsStoragePtr m_aux_delta_u;
+    AuxiliaryEquationsStoragePtr m_aux_rhs;
     Real m_abs_tol;
     Real m_rel_tol;
     int m_itermax;

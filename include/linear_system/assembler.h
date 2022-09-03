@@ -50,6 +50,38 @@ class Assembler
 
 using AssemblerPtr = std::shared_ptr<Assembler>;
 
+
+class SimpleAssembler
+{
+  public:
+    explicit SimpleAssembler(LargeMatrixPtr mat)
+    {}
+
+    void setAlpha(Real alpha) { m_alpha = alpha; }
+
+    Real getAlpha() const { return m_alpha; }
+
+    int getNumDofs() const { return m_matrix->getMLocal(); }
+
+    void assembleEntry(const std::vector<DofInt>& dofs, ArrayType<Real, 2>& jac)
+    {
+      for (int i=0; i < jac.shape()[0]; ++i)
+        for (int j=0; j < jac.shape()[1]; ++j)
+          jac[i][j] *= m_alpha;
+      
+      m_matrix->assembleValues(dofs, jac);
+    }
+
+    void zeroMatrix();
+
+  private:
+    Real m_alpha = 1;
+    LargeMatrixPtr m_matrix;
+};
+
+using SimpleAssemblerPtr = std::shared_ptr<SimpleAssembler>;
+
+
 } // namespace
 
 #endif

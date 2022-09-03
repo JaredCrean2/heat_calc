@@ -7,6 +7,7 @@
 #include "linear_system/assembler.h"
 #include "linear_system/large_matrix.h"
 #include "physics/heat/HeatEquation.h"
+#include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/basis_vals.h"
 #include "physics/heat/interior_loads.h"
 #include "physics/heat/window_conduction_model.h"

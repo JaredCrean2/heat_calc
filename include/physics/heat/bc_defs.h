@@ -3,6 +3,7 @@
 
 #include "discretization/NeumannBC.h"
 #include "discretization/surface_discretization.h"
+#include "error_handling.h"
 #include "physics/heat/solar_position.h"
 #include "tarp.h"
 #include "sky_radiation.h"
@@ -52,6 +53,11 @@ class AirWindSkyNeumannBC : public NeumannBC
     virtual void setDiffuseRadiation(Real flux) {}
 
     virtual void setSolarDirection(const DirectionCosines& cosines) {}
+
+    // compute derivative of flux_vals wrt air temperature
+    virtual void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) = 0;
+
+    virtual void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) = 0;
 };
 
 
@@ -86,6 +92,17 @@ class TarpBC : public AirWindSkyNeumannBC
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
 
     void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
+
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
+    {
+      assertAlways(false, "unimplemented");
+    }
+
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
+    {
+      assertAlways(false, "unimplemented");
+    }
+
 
   private:
     TarpModel m_tarp;
@@ -131,6 +148,16 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
       }
     }
 
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
+    {
+      assertAlways(false, "unimplemented");
+    }
+
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
+    {
+      assertAlways(false, "unimplemented");
+    }
+
   private:
     SkyRadiationModel m_model;
 };
@@ -159,6 +186,16 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
         for (int d=0; d < 3; ++d)
           flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
       }
+    }
+
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
+    {
+      assertAlways(false, "unimplemented");
+    }
+
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
+    {
+      assertAlways(false, "unimplemented");
     }
 
   private:
