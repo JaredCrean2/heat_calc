@@ -39,8 +39,9 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       ArrayType<Real, 1> delta_u(boost::extents[num_vars]);
       auto& u_np1 = m_aux_unp1.getVector(block);
       auto& u_n   = m_aux_un.getVector(block);
+      Real delta_t = 3600*(m_tnp1 - m_tn);
       for (int i=0; i < num_vars; ++i)
-        delta_u[i] = (u_np1[i] - u_n[i])/(m_tnp1 - m_tn);
+        delta_u[i] = (u_np1[i] - u_n[i])/delta_t;
       m_aux_eqns->multiplyMassMatrix(block, m_tnp1, delta_u, rhs);
 
       // compute 1/2(f(u_np1, t_np1) + f(u_n, t_n))
@@ -55,10 +56,12 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
     virtual void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) override
     {
       auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
-      assembler->setAlpha(1.0/(m_tnp1 - m_tn));
+
+      Real delta_t = 3600*(m_tnp1 - m_tn);
+      assembler->setAlpha(1.0/delta_t);
       m_aux_eqns->computeMassMatrix(block, m_tnp1, assembler);
 
-      assembler->setAlpha(0.5);
+      assembler->setAlpha(-0.5);
       m_aux_eqns->computeJacobian(block, u_vec, m_tnp1, assembler);
     }
 
@@ -73,6 +76,11 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
     virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals) override
     {
       m_aux_eqns->setBlockSolution(block, vals);
+    }
+
+    virtual ArrayType<Real, 1>& getBlockSolution(int block) override
+    {
+      return m_aux_eqns->getBlockSolution(block);
     }
 
     virtual AuxiliaryEquationsJacobiansPtr getJacobians() override

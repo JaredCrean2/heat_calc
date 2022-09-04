@@ -34,6 +34,8 @@ class NewtonAuxiliaryEquations
 
     virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals) = 0;
 
+    virtual ArrayType<Real, 1>& getBlockSolution(int block) = 0;
+
     virtual AuxiliaryEquationsJacobiansPtr getJacobians() = 0;
 
     virtual AuxiliaryEquationsStoragePtr createStorage() = 0;

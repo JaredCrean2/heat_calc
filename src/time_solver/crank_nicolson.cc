@@ -26,7 +26,6 @@ CrankNicolsonFunction::CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physi
 
 void CrankNicolsonFunction::resetForNewSolve()
 {
-  std::cout << "\nEntered resetForNewSolve" << std::endl;
   m_fn->set(0);
   m_physics_model->computeRhs(m_un, m_tn, m_fn);
   if (!m_fn->isVectorCurrent())
@@ -150,7 +149,6 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
   auto sparsity = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
   m_matrix      = largeMatrixFactory(opts.mat_type, mesh->getNumOwnedDofs(), mesh->getNumOwnedDofs(), opts.matrix_opts, sparsity);
   m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start);
-  std::cout << "m_func->getAuxiliaryEquations() = " << m_func->getAuxiliaryEquations() << std::endl;
   m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix);
 }
 

@@ -45,7 +45,7 @@ Real src_func(Real x, Real y, Real z, Real t)
 };
 
 class CNDependentTester : public StandardDiscSetup,
-                 public testing::Test
+                          public testing::Test
 {
   protected:
     using HeatPtr = std::shared_ptr<Heat::HeatEquation>;
@@ -89,7 +89,7 @@ class CNDependentTester : public StandardDiscSetup,
                   { return ex_sol(x, y, z, 0); };
       u_vec->setFunc(f);
 
-      heat_model->initialize(u_vec, 0);
+      heat_model->initialize();
 
     }
 
@@ -101,7 +101,7 @@ class CNDependentTester : public StandardDiscSetup,
 }
 
 
-/*
+
 TEST_F(CNDependentTester, InteriorLoad)
 {
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
@@ -118,6 +118,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   Real window_area = 0;
   Real initial_air_temp = 298;
   Real delta_t = 1.0/60;  // time is in hours
+  Real hvac_restore_time = 1;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -126,12 +127,15 @@ TEST_F(CNDependentTester, InteriorLoad)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp);
+    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
 
-  Real energy_change = interior_load * delta_t * 3600;
-  Real temperature_change = energy_change/(rho*cp*air_volume);
+  Real energy_change_rate = interior_load;
+  Real temperature_change_rate = energy_change_rate/(rho*cp*air_volume);
+  std::cout << "temperature change rate = " << temperature_change_rate << std::endl;
+  std::cout << "temperature change per timestep = " << temperature_change_rate * delta_t * 3600 << std::endl;
 
   setSolution(ex_sol, ex_sol_deriv, src_func,  env_interface, air_updator);
+  heat_model->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
 
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
@@ -148,8 +152,8 @@ TEST_F(CNDependentTester, InteriorLoad)
 
   // the -0.5 is because the previous flux is zero at the initial condition, and the trapizoid
   // rule gives 1/2 of the first timestep flux
-  Real timesteps = opts.t_end/delta_t - 0.5;
-  Real total_temperature_change = temperature_change * timesteps;
-  EXPECT_NEAR(air_updator->getTemperature(), initial_air_temp + total_temperature_change, 1e-10);
+  //eal timesteps = opts.t_end/delta_t;
+  Real total_temperature_change = temperature_change_rate * opts.t_end * 3600;
+  std::cout << "total temperature change = " << total_temperature_change << std::endl;
+  EXPECT_NEAR(heat_model->getAuxEquations()->getBlockSolution(1)[0], initial_air_temp + total_temperature_change, 1e-10);
 }
-*/

@@ -74,6 +74,11 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
       m_aux_eqns->setBlockSolution(block, vals);
     }
 
+    ArrayType<Real, 1>& getBlockSolution(int block) override
+    {
+      return m_aux_eqns->getBlockSolution(block);
+    }
+
     AuxiliaryEquationsJacobiansPtr getJacobians() override
     {
       return m_aux_eqns->getJacobians();

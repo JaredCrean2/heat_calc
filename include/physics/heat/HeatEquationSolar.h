@@ -20,7 +20,7 @@ class HeatEquationSolar : public HeatEquation
     using HeatEquation::initialize; 
     using HeatEquation::addNeumannBC;
 
-    void initialize(DiscVectorPtr sol_vec, Real t_start) ;
+    void initialize() override;
 
     // is_exterior: true if this BC uses the environment air temperature and is exposed to
     //              thermal radiation

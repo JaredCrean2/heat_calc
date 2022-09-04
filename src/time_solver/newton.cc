@@ -11,7 +11,6 @@ NewtonSolver::NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr
   m_aux_jacs(func->getAuxiliaryEquations()->getJacobians()),
   m_f(func->createVector()),
   m_delta_u(func->createVector()),
-  m_aux_u(func->getAuxiliaryEquations()->createStorage()),
   m_aux_delta_u(func->getAuxiliaryEquations()->createStorage()),
   m_aux_rhs(func->getAuxiliaryEquations()->createStorage())
 {
@@ -72,12 +71,13 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
   for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
   {
     int num_vars = aux_eqns->getBlockSize(block);
-    auto& u_block = m_aux_u->getVector(block);
+    //auto& u_block = m_aux_u->getVector(block);
+    auto& u_block = aux_eqns->getBlockSolution(block);
     auto& delta_u_block = m_aux_delta_u->getVector(block);
     for (int i=0; i < num_vars; ++i)
+    {
       u_block[i] -= delta_u_block[i];
-
-    aux_eqns->setBlockSolution(block, u_block);
+    }
   }
 
   u->markVectorModified();
@@ -97,7 +97,9 @@ void NewtonSolver::computeJacobians(DiscVectorPtr u)
   for (int iblock=1; iblock < m_func->getAuxiliaryEquations()->getNumBlocks(); ++iblock)
   {
     auto jac = m_aux_jacs->getMatrix(iblock);
+    jac->zeroMatrix();
     m_func->getAuxiliaryEquations()->computeJacobian(iblock, u, jac);
+    jac->factor();
   }
 }
 

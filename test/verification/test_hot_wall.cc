@@ -77,7 +77,7 @@ namespace {
                     { return initial_wall_temp; };
         u_vec->setFunc(f);
         
-        heat->initialize(u_vec, 0);
+        heat->initialize();
 
       }
 

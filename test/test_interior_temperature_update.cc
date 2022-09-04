@@ -42,7 +42,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   Real r_val = 7;
   Real window_area = 0;
   Real initial_air_temp = 298;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -56,7 +55,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), interior_load, 1e-13);
 }
@@ -76,7 +75,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
   Real r_val = 7;
   Real window_area = 0;
   Real initial_air_temp = max_temp + 20;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -90,7 +88,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   Real expected_flux = rho * cp * air_volume * (max_temp - initial_air_temp)/hvac_restore_time;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux ,1e-13);
@@ -111,7 +109,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
   Real r_val = 7;
   Real window_area = 0;
   Real initial_air_temp = min_temp - 20;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -125,7 +122,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   Real expected_flux = rho * cp * air_volume * (min_temp - initial_air_temp)/hvac_restore_time;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux ,1e-13);
@@ -148,7 +145,6 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
   Real r_val = 7;
   Real window_area = 0;
   Real initial_air_temp = 298;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -162,7 +158,7 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   Real expected_flux =  ach50_air * (5.0/50) * (edata.air_temp - initial_air_temp) * rho * cp * air_volume / 3600;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
@@ -185,7 +181,6 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
   Real r_val = 7;
   Real window_area = 0;
   Real initial_air_temp = 298;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -199,7 +194,7 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   Real expected_flux =  ach50_vent * (5.0/50) * (edata.air_temp - initial_air_temp) * rho * cp * air_volume  / 3600;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
@@ -222,7 +217,6 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
   Real r_val = 7;
   Real window_area = 6;
   Real initial_air_temp = 298;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
@@ -236,7 +230,7 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(0);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   Real expected_flux =  (window_area * (edata.air_temp - initial_air_temp) / r_val);
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
@@ -259,7 +253,6 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   Real window_area = 0;
   Real initial_air_temp = 298;
   Real wall_temp = 320;
-  Real t_start = 0;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
   auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
@@ -295,7 +288,7 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
 
   auto sol_vec = makeDiscVector(disc);
   sol_vec->set(wall_temp);
-  heat_eqn.initialize(sol_vec, t_start);
+  heat_eqn.initialize();
 
   Real expected_flux = (wall_temp - initial_air_temp) * wall_area * heat_transfer_coeff;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-12);

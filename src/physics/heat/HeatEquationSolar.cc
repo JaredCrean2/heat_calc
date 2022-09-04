@@ -15,7 +15,7 @@ HeatEquationSolar::HeatEquationSolar(DiscPtr disc, SolarPositionCalculator solar
 {}
 
 //TODO: arguments are unused?
-void HeatEquationSolar::initialize(DiscVectorPtr sol_vec, Real t_start) 
+void HeatEquationSolar::initialize() 
 { 
   HeatEquation::initialize();
   

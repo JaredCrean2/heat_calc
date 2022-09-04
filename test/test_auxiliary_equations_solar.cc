@@ -46,7 +46,7 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
       auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
         air_leakage, ventilation, interior_loads, window_conduction, interior_air_temp, hvac_restore_time);
       heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, env_interface, air_updator);
-      heat_eqn->initialize(sol_vec, 0.0);
+      heat_eqn->initialize();
       aux_eqn = heat_eqn->getAuxEquations();
     }
 
@@ -84,7 +84,7 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
                                                     point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
       heat_eqn->addNeumannBC(wall_bc, false);
 
-      heat_eqn->initialize(sol_vec, 0.0);
+      heat_eqn->initialize();
       aux_eqn = heat_eqn->getAuxEquations();
     }
 
