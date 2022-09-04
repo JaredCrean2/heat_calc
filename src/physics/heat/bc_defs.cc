@@ -137,6 +137,91 @@ void TarpBC::getValue_rev(const Index face, const Real t, const Real* sol_vals, 
   }
 }
 
+//-----------------------------------------------------------------------------
+// SkyRadiationBC
+
+void SkyRadiationBC::getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    auto unit_normal = getUnitNormal(face, i);
+    Real flux = m_model.computeFlux(sol_vals[i], unit_normal);
+    for (int d=0; d < 3; ++d)
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+  }
+}
+
+void SkyRadiationBC::getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    auto unit_normal = getUnitNormal(face, i);
+    Real flux_dot = 0;
+    m_model.computeFluxdTwall(sol_vals[i], unit_normal, flux_dot);
+    for (int d=0; d < 3; ++d)
+      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
+  }
+}
+
+void SkyRadiationBC::getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    auto unit_normal = getUnitNormal(face, i);
+    Real flux_dot = 0;
+    Real flux = m_model.computeFluxdTair(sol_vals[i], unit_normal, flux_dot);
+    for (int d=0; d < 3; ++d)
+    {
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
+    }
+  }
+}
+
+void SkyRadiationBC::getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    auto unit_normal = getUnitNormal(face, i);
+    Real flux_dot;
+    m_model.computeFluxdTwall(sol_vals[i], unit_normal, flux_dot);
+    Real flux_bar = 0;
+    for (int d=0; d < 3; ++d)
+    {
+      //flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+      flux_bar += unit_normal[d] * flux_vals_bar[d * m_surf->getNumQuadPtsPerFace() + i];
+    }
+
+    sol_vals_bar[i] = flux_dot * flux_bar;
+  }
+}
+
+//-----------------------------------------------------------------------------
+// SolarRadiationBC
+
+void SolarRadiationBC::getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    auto unit_normal = getUnitNormal(face, i);
+    Real flux = m_model.computeFlux(unit_normal);
+    for (int d=0; d < 3; ++d)
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+  }
+}
+
+void SolarRadiationBC::getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv)
+{
+  for (int i=0; i < 3*m_surf->getNumQuadPtsPerFace(); ++i)
+    flux_vals_deriv[i] = 0;
+}
+
+void SolarRadiationBC::getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+    sol_vals_bar[i] = 0;
+}
+
 
 
 }  // namespace

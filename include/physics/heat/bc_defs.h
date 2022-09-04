@@ -119,61 +119,13 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
     // set the air temperature (which the model uses as the temperature of the ground)
     void setAirTemperature(Real t_air) override { m_model.setAirTemperature(t_air); }
 
-    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
-    {
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        auto unit_normal = getUnitNormal(face, i);
-        Real flux = m_model.computeFlux(sol_vals[i], unit_normal);
-        for (int d=0; d < 3; ++d)
-          flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
-      }
-    }
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
 
-    void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override
-    {
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        auto unit_normal = getUnitNormal(face, i);
-        Real flux_dot = 0;
-        m_model.computeFluxdTwall(sol_vals[i], unit_normal, flux_dot);
-        for (int d=0; d < 3; ++d)
-          flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
-      }
-    }
+    void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
 
-    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
-    {
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        auto unit_normal = getUnitNormal(face, i);
-        Real flux_dot = 0;
-        Real flux = m_model.computeFluxdTair(sol_vals[i], unit_normal, flux_dot);
-        for (int d=0; d < 3; ++d)
-        {
-          flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
-          flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
-        }
-      }
-    }
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
 
-    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
-    {
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        auto unit_normal = getUnitNormal(face, i);
-        Real flux_dot;
-        m_model.computeFluxdTwall(sol_vals[i], unit_normal, flux_dot);
-        Real flux_bar = 0;
-        for (int d=0; d < 3; ++d)
-        {
-          //flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
-          flux_bar += unit_normal[d] * flux_vals_bar[d * m_surf->getNumQuadPtsPerFace() + i];
-        }
-
-        sol_vals_bar[i] = flux_dot * flux_bar;
-      }
-    }
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
 
   private:
     SkyRadiationModel m_model;
@@ -194,28 +146,11 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
 
     void setSolarDirection(const DirectionCosines& cosines) override { m_model.setSolarDirection(cosines); }
 
-    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override
-    {
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-      {
-        auto unit_normal = getUnitNormal(face, i);
-        Real flux = m_model.computeFlux(unit_normal);
-        for (int d=0; d < 3; ++d)
-          flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
-      }
-    }
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
 
-    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
-    {
-      for (int i=0; i < 3*m_surf->getNumQuadPtsPerFace(); ++i)
-        flux_vals_deriv[i] = 0;
-    }
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
 
-    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
-    {
-      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
-        sol_vals_bar[i] = 0;
-    }
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
 
   private:
     SolarRadiationModel m_model;
