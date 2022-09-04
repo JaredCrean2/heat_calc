@@ -81,6 +81,7 @@ AuxiliaryEquationsPtr HeatEquationSolar::getAuxEquations()
 void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real t, Real x, ArrayType<Real, 1>& b)
 {
   //TODO: cache these
+  setTimeParameters(t);
   auto rhs = makeDiscVector(getDiscretization());
   auto rhs_dot = makeDiscVector(getDiscretization());
   computeNeumannBC_dotTair(*this, t, u, x, rhs, rhs_dot);
@@ -132,14 +133,15 @@ void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior_
 
   for (int face=0; face < surf->getNumFaces(); ++face)
   {
-    auto& face_spec = surf->face_group.faces[face];
-    auto& u_arr = u->getArray(face_spec.vol_group);
-    auto& res_arr = rhs->getArray(face_spec.vol_group);
+    auto& face_spec   = surf->face_group.faces[face];
+    auto& u_arr       = u->getArray(face_spec.vol_group);
+    auto& res_arr     = rhs->getArray(face_spec.vol_group);
     auto& res_arr_dot = rhs_dot->getArray(face_spec.vol_group);
+    std::fill(flux_vals_dot.begin(), flux_vals_dot.end(), 0); //TODO: should be unnecessary
 
 
     auto u_el = u_arr[boost::indices[face_spec.el_group][range()]];
-    auto res_el = res_arr[boost::indices[face_spec.el_group][range()]];
+    //auto res_el = res_arr[boost::indices[face_spec.el_group][range()]];
 
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
     bc_air_wind_sky->getValuedTair(face, t, u_quad.data(), flux_vals.data(), flux_vals_dot.data());

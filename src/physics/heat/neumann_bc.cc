@@ -39,6 +39,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
     auto res_el = res_arr[boost::indices[face_spec.el_group][range()]];
 
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
+
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
 
     for (int ki=0; ki < quad.getNumPoints(); ++ki)
@@ -51,7 +52,6 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
           flux_normal += surf->normals[face][k][d] * flux_vals[k + surf->getNumQuadPtsPerFace() * d];
 
         Real val = weight * flux_normal;
-
         for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)
         {
           int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][i];
