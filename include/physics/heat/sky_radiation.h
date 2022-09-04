@@ -21,11 +21,17 @@ class SkyRadiationModel
     void setIRHorizontalRadiation(Real flux) { m_t_sky4 = flux/m_sigma; }
 
     // set the air temperature (which the model uses as the temperature of the ground)
-    void setAirTemperature(Real t_air) { m_t_air4 = std::pow(t_air, 4); }
+    void setAirTemperature(Real t_air) 
+    {
+      m_t_air = t_air;
+      m_t_air4 = std::pow(t_air, 4);
+    }
 
     Real computeFlux(Real t_surf, const std::array<Real, 3>& unit_normal);
 
-    Real computeFluxDeriv(Real t_surf, const std::array<Real, 3>& unit_normal, Real& flux_dot);
+    Real computeFluxdTwall(Real t_surf, const std::array<Real, 3>& unit_normal, Real& flux_dot);
+
+    Real computeFluxdTair(Real t_surf, const std::array<Real, 3>& unit_normal, Real& flux_dot);
 
   private:
 
@@ -36,6 +42,7 @@ class SkyRadiationModel
 
     Real m_sigma = 5.6697E-8;  // Stefan-Boltzmann constant
     Real m_emittance;
+    Real m_t_air  = -1;
     Real m_t_air4 = -1;
     Real m_t_sky4 = -1;
     std::array<Real, 3> m_vertical_vector;

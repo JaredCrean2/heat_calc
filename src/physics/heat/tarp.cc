@@ -27,11 +27,23 @@ Real TarpModel::computeHeatTransferCoeff(Real wall_temp, const std::array<Real, 
   return h_f + h_n;
 }
 
-Real TarpModel::computeHeatTransferCoeffDeriv(Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal, Real& h_n_dot)
+Real TarpModel::computeHeatTransferCoeffdTwall(Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal, Real& h_n_dot)
 {
   Real delta_t = m_air_temp - wall_temp;
   Real delta_t_dot = -1;
+  return computeHeatTransferCoeffDeriv_impl(delta_t, delta_t_dot, pt, unit_normal, h_n_dot);
+}
 
+Real TarpModel::computeHeatTransferCoeffdTair(Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal, Real& h_n_dot)
+{
+  Real delta_t = m_air_temp - wall_temp;
+  Real delta_t_dot = 1;
+  return computeHeatTransferCoeffDeriv_impl(delta_t, delta_t_dot, pt, unit_normal, h_n_dot);
+}
+
+Real TarpModel::computeHeatTransferCoeffDeriv_impl(Real delta_t, Real delta_t_dot, const std::array<Real, 3>& pt, 
+                                                   const std::array<Real, 3>& unit_normal, Real& h_n_dot)
+{
   Real air_speed = computeLocalWindSpeed(pt);
   bool is_windward = dot(unit_normal, m_air_direction) < 0;
 
@@ -62,7 +74,7 @@ Real TarpModel::computeHeatTransferCoeffDeriv(Real wall_temp, const std::array<R
   }
 
   return h_f + h_n;
-}
+} 
 
 
 Real TarpModel::computeCosTiltAngle(const std::array<Real, 3>& unit_normal)

@@ -62,13 +62,19 @@ class TarpModel
 
     // returns the heat transfer coefficient, and h_n_dot is overwritten with its derivative
     // with respect to the surface temperature
-    Real computeHeatTransferCoeffDeriv(Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal, Real& h_n_dot);
+    Real computeHeatTransferCoeffdTwall(Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal, Real& h_n_dot);
+
+    Real computeHeatTransferCoeffdTair(Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal, Real& h_n_dot);
 
     Real computeCosTiltAngle(const std::array<Real, 3>& unit_normal);
 
     Real computeLocalWindSpeed(const std::array<Real, 3>& pt);
 
   private:
+
+    Real computeHeatTransferCoeffDeriv_impl(Real delta_t, Real delta_t_dot, const std::array<Real, 3>& pt, 
+                                            const std::array<Real, 3>& unit_normal, Real& h_n_dot);
+
     Real m_air_temp     = std::numeric_limits<Real>::min();
     Real m_air_speed = std::numeric_limits<Real>::min();
     std::array<Real, 3>  m_air_direction{0, 0, 0};

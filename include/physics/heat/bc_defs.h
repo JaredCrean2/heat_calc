@@ -93,15 +93,9 @@ class TarpBC : public AirWindSkyNeumannBC
 
     void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
 
-    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
-    {
-      assertAlways(false, "unimplemented");
-    }
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
 
-    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
-    {
-      assertAlways(false, "unimplemented");
-    }
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
 
 
   private:
@@ -142,7 +136,7 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
       {
         auto unit_normal = getUnitNormal(face, i);
         Real flux_dot = 0;
-        m_model.computeFluxDeriv(sol_vals[i], unit_normal, flux_dot);
+        m_model.computeFluxdTwall(sol_vals[i], unit_normal, flux_dot);
         for (int d=0; d < 3; ++d)
           flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
       }
@@ -150,12 +144,35 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
 
     void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
     {
-      assertAlways(false, "unimplemented");
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+      {
+        auto unit_normal = getUnitNormal(face, i);
+        Real flux_dot = 0;
+        Real flux = m_model.computeFluxdTair(sol_vals[i], unit_normal, flux_dot);
+        for (int d=0; d < 3; ++d)
+        {
+          flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+          flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux_dot;
+        }
+      }
     }
 
     void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
     {
-      assertAlways(false, "unimplemented");
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+      {
+        auto unit_normal = getUnitNormal(face, i);
+        Real flux_dot;
+        m_model.computeFluxdTwall(sol_vals[i], unit_normal, flux_dot);
+        Real flux_bar = 0;
+        for (int d=0; d < 3; ++d)
+        {
+          //flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+          flux_bar += unit_normal[d] * flux_vals_bar[d * m_surf->getNumQuadPtsPerFace() + i];
+        }
+
+        sol_vals_bar[i] = flux_dot * flux_bar;
+      }
     }
 
   private:
@@ -190,12 +207,14 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
 
     void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
     {
-      assertAlways(false, "unimplemented");
+      for (int i=0; i < 3*m_surf->getNumQuadPtsPerFace(); ++i)
+        flux_vals_deriv[i] = 0;
     }
 
     void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
     {
-      assertAlways(false, "unimplemented");
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+        sol_vals_bar[i] = 0;
     }
 
   private:

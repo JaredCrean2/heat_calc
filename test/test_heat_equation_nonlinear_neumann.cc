@@ -2,6 +2,7 @@
 #include "discretization/NeumannBC.h"
 #include "discretization/surface_discretization.h"
 #include "mesh_helper.h"
+#include "physics/heat/solar_position.h"
 #include "test_helper.h"
 #include "physics/heat/bc_defs.h"
 
@@ -43,7 +44,108 @@ class NeumannBCTester : public StandardDiscSetup,
         EXPECT_NEAR(flux_vals_deriv[i], flux_vals_deriv_fd[i], 1e-6);
     }
 
+    void testDerivativeWrtTair(std::shared_ptr<Heat::AirWindSkyNeumannBC> bc)
+    {
+      Real air_temp = 300;
+      Real air_speed = 5;
+      std::array<Real, 3> air_direction{1.0/std::sqrt(14.0), 2.0/std::sqrt(14.0), 3.0/std::sqrt(14.0)};
+      Real ir_horizontal_radiation = 10;
+      Real direct_normal_radiation = 20;
+      Real diffuse_radiation = 30;
+      Heat::DirectionCosines solar_direction{std::cos(0.25), std::cos(0.5), std::cos(0.9)};
+
+      bc->setAirTemperature(air_temp);
+      bc->setAirSpeed(air_speed);
+      bc->setAirDirection(air_direction);
+      bc->setIRHorizontalRadiation(ir_horizontal_radiation);
+      bc->setDirectNormalRadiation(direct_normal_radiation);
+      bc->setDiffuseRadiation(diffuse_radiation);
+      bc->setSolarDirection(solar_direction);
+
+      auto surf = bc->getSurfDisc();
+      std::vector<Real> u_vals(surf->getNumQuadPtsPerFace()), flux_vals_deriv(3*surf->getNumQuadPtsPerFace());
+      for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+        u_vals[i] = 1 + 0.1 * i;
+
+      auto dflux_dtair_fd = computeTairFiniteDifference(bc, u_vals, air_temp);
+
+      std::vector<Real> flux(3*surf->getNumQuadPtsPerFace()), dflux_dtair(3*surf->getNumQuadPtsPerFace());
+      bc->setAirTemperature(air_temp);
+      bc->getValuedTair(0, 0.0, u_vals.data(), flux.data(), dflux_dtair.data());
+      for (int i=0; i < 3*surf->getNumQuadPtsPerFace(); ++i)
+        EXPECT_NEAR(dflux_dtair[i], dflux_dtair_fd[i], 5e-5);
+    }
+
+    void testDerivativeWrtTwall_rev(std::shared_ptr<Heat::AirWindSkyNeumannBC> bc)
+    {
+      //TODO: move setup to own function
+      Real air_temp = 300;
+      Real air_speed = 5;
+      std::array<Real, 3> air_direction{1.0/std::sqrt(14.0), 2.0/std::sqrt(14.0), 3.0/std::sqrt(14.0)};
+      Real ir_horizontal_radiation = 10;
+      Real direct_normal_radiation = 20;
+      Real diffuse_radiation = 30;
+      Heat::DirectionCosines solar_direction{std::cos(0.25), std::cos(0.5), std::cos(0.9)};
+
+      bc->setAirTemperature(air_temp);
+      bc->setAirSpeed(air_speed);
+      bc->setAirDirection(air_direction);
+      bc->setIRHorizontalRadiation(ir_horizontal_radiation);
+      bc->setDirectNormalRadiation(direct_normal_radiation);
+      bc->setDiffuseRadiation(diffuse_radiation);
+      bc->setSolarDirection(solar_direction);
+
+      // test against forward mode code
+      auto surf = bc->getSurfDisc();
+      std::vector<Real> u_vals(surf->getNumQuadPtsPerFace()), u_vals_bar(surf->getNumQuadPtsPerFace()),
+                        flux_vals_deriv(3*surf->getNumQuadPtsPerFace()),
+                        flux_vals_deriv_rev(3*surf->getNumQuadPtsPerFace()),
+                        flux_vals_bar(3*surf->getNumQuadPtsPerFace());
+
+      for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+        u_vals[i] = 1 + 0.1 * i;
+
+      bc->getValueDeriv(0, 0.0, u_vals.data(), flux_vals_deriv.data());
+
+
+      for (int d=0; d < 3; ++d)
+      {
+        std::fill(u_vals_bar.begin(), u_vals_bar.end(), 0);
+        std::fill(flux_vals_bar.begin(), flux_vals_bar.end(), 0);
+        for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+          flux_vals_bar[d * surf->getNumQuadPtsPerFace() + i] = 1;
+
+        bc->getValue_rev(0, 0.0, u_vals.data(), u_vals_bar.data(), flux_vals_bar.data());
+
+        for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+          flux_vals_deriv_rev[d * surf->getNumQuadPtsPerFace() + i] = u_vals_bar[i];
+      }
+
+      for (int i=0; i < 3*surf->getNumQuadPtsPerFace(); ++i)
+        EXPECT_NEAR(flux_vals_deriv[i], flux_vals_deriv_rev[i], 1e-13);
+      
+    }
+
   private:
+
+    void setParameters(std::shared_ptr<Heat::AirWindSkyNeumannBC> bc)
+    {
+      Real air_temp = 300;
+      Real air_speed = 5;
+      std::array<Real, 3> air_direction{1.0/std::sqrt(14.0), 2.0/std::sqrt(14.0), 3.0/std::sqrt(14.0)};
+      Real ir_horizontal_radiation = 10;
+      Real direct_normal_radiation = 20;
+      Real diffuse_radiation = 30;
+      Heat::DirectionCosines solar_direction{std::cos(0.25), std::cos(0.5), std::cos(0.9)};
+
+      bc->setAirTemperature(air_temp);
+      bc->setAirSpeed(air_speed);
+      bc->setAirDirection(air_direction);
+      bc->setIRHorizontalRadiation(ir_horizontal_radiation);
+      bc->setDirectNormalRadiation(direct_normal_radiation);
+      bc->setDiffuseRadiation(diffuse_radiation);
+      bc->setSolarDirection(solar_direction);
+    }
 
     std::vector<Real> computeDerivFiniteDifference(NeumannBCPtr bc, std::vector<Real> u_vals)
     {
@@ -65,10 +167,32 @@ class NeumannBCTester : public StandardDiscSetup,
 
       bc->getValue(0, 0.0, u_vals.data(), flux_vals2.data());
       for (int i=0; i < 3*surf->getNumQuadPtsPerFace(); ++i)
-          flux_vals_deriv_fd[i] = (flux_vals2[i] - flux_vals[i])/eps;
+        flux_vals_deriv_fd[i] = (flux_vals2[i] - flux_vals[i])/eps;
 
       return flux_vals_deriv_fd;
     }
+
+    std::vector<Real> computeTairFiniteDifference(std::shared_ptr<Heat::AirWindSkyNeumannBC> bc, std::vector<Real> u_vals, Real t_air)
+    {
+      auto surf = bc->getSurfDisc();
+      std::vector<Real> flux_vals(3*surf->getNumQuadPtsPerFace()), 
+                        flux_vals2(3*surf->getNumQuadPtsPerFace()),
+                        flux_vals_deriv_fd(3*surf->getNumQuadPtsPerFace());
+
+      Real eps = 1e-7;
+      bc->setAirTemperature(t_air);
+      bc->getValue(0, 0.0, u_vals.data(), flux_vals.data());
+
+      bc->setAirTemperature(t_air + eps);
+      bc->getValue(0, 0.0, u_vals.data(), flux_vals2.data());
+
+      for (int i=0; i < 3*surf->getNumQuadPtsPerFace(); ++i)
+        flux_vals_deriv_fd[i] = (flux_vals2[i] - flux_vals[i])/eps;
+
+      return flux_vals_deriv_fd;
+    }
+
+
 };
 
 
@@ -138,6 +262,8 @@ TEST_F(NeumannBCTester, TarpBC)
   bc->setAirDirection(air_direction);
 
   testDerivative(bc);
+  testDerivativeWrtTair(bc);
+  testDerivativeWrtTwall_rev(bc);
 }
 
 
@@ -156,7 +282,28 @@ TEST_F(NeumannBCTester, SkyRadiationBC)
   bc->setAirTemperature(t_air);
 
   testDerivative(bc);
+  testDerivativeWrtTair(bc);
+  testDerivativeWrtTwall_rev(bc);
 }
+
+TEST_F(NeumannBCTester, SolarRadiationBC)
+{
+  Real absorbtivity = 0.9;
+  auto bc = std::make_shared<Heat::SolarRadiationBC>(disc->getSurfDisc(0), absorbtivity);
+
+  Real direct_normal_radiation = 100;
+  Real diffuse_radiation = 200;
+  Heat::DirectionCosines solar_direction{std::cos(0.25), std::cos(0.5), std::cos(0.9)};
+
+  bc->setDirectNormalRadiation(direct_normal_radiation);
+  bc->setDiffuseRadiation(diffuse_radiation);
+  bc->setSolarDirection(solar_direction);
+
+  testDerivative(bc);
+  testDerivativeWrtTair(bc);
+  testDerivativeWrtTwall_rev(bc);
+}
+
 
 //-----------------------------------------------------------------------------
 // Test overall Jacobian
