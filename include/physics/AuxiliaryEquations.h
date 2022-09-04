@@ -91,7 +91,7 @@ class AuxiliaryEquations
       assertAlways(b.shape()[0] == getBlockSize(iblock), "b size is incorrect");
 
       if (iblock == 0)
-        computeFiniteElementJacobianVectorProduct(jblock-1, u_vec, t, x, b);
+        computeFiniteElementJacobianVectorProduct(jblock, u_vec, t, x, b);
       else
         computeAuxiliaryJacobianVectorProduct(iblock, jblock, u_vec, t, x, b);
     }
@@ -191,13 +191,13 @@ class AuxiliaryEquationsJacobians
 
     linear_system::LargeMatrixPtr getMatrix(int block)
     {
-      assertAlways(block > 1 && block < m_num_blocks, "block is out of range");
+      assertAlways(block > 0 && block < m_num_blocks, "block is out of range");
       return getAuxiliaryBlockMatrix(block-1);
     }
 
     const linear_system::LargeMatrixPtr getMatrix(int block) const
     {
-      assertAlways(block > 1 && block < m_num_blocks, "block is out of range");
+      assertAlways(block > 0 && block < m_num_blocks, "block is out of range");
       return getAuxiliaryBlockMatrix(block-1);
     }
 

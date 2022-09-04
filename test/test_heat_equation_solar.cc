@@ -79,7 +79,6 @@ class HeatEquationSolarTester : public StandardDiscSetup, public ::testing::Test
 
 TEST_F(HeatEquationSolarTester, dRdTair)
 {
-  //TODO: set rhs to non-zero value
   DiscVectorPtr rhs0 = makeDiscVector(disc); rhs0->set(666);
   DiscVectorPtr rhs1 = makeDiscVector(disc); rhs1->set(555);
   DiscVectorPtr dRdTair_fd = makeDiscVector(disc); 

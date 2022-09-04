@@ -27,7 +27,7 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
     // returns number of variables in each block
     int getAuxiliaryBlockSize(int block) const override { return 1; }
 
-    // each auxiliary block must be of the form du/dt = rhs(u, t).  This function computes the rhs
+    // each auxiliary block must be of the form M du/dt = rhs(u, t).  This function computes the rhs
     void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs) override
     {
       Real interior_temp = getAuxiliaryBlockSolution(block)[0];
@@ -55,7 +55,7 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
       Real val = m_air_temp->computeNetFluxJacobian(u_vec, interior_temp, t);
 
       std::vector<DofInt> dofs = {0};
-      ArrayType<Real, 2> vals(boost::extents[0][0]);
+      ArrayType<Real, 2> vals(boost::extents[1][1]);
       vals[0][0] = val;
       mat->assembleEntry(dofs, vals);
     }
@@ -72,9 +72,6 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
     void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
-      void computeNetFlux_rev(DiscVectorPtr sol_vec, Real interior_temp, Real t, DiscVectorPtr sol_vec_bar);
-
-
       Real t_interior = getAuxiliaryBlockSolution(0)[0];
       auto u_bar = makeDiscVector(m_heat_eqn.getDiscretization());  //TODO: cache this
       u_bar->set(0);

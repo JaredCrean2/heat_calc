@@ -54,7 +54,8 @@ using AssemblerPtr = std::shared_ptr<Assembler>;
 class SimpleAssembler
 {
   public:
-    explicit SimpleAssembler(LargeMatrixPtr mat)
+    explicit SimpleAssembler(LargeMatrixPtr mat) :
+      m_matrix(mat)
     {}
 
     void setAlpha(Real alpha) { m_alpha = alpha; }
