@@ -85,10 +85,10 @@ class NewtonSolver
   public:
     explicit NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr jac);
 
-    NewtonResult solve(DiscVectorPtr u, Real abs_tol, Real rel_tol, int itermax);
+    NewtonResult solve(DiscVectorPtr u, NewtonOpts opts);
 
   private:
-    void setupForSolve(DiscVectorPtr u, Real abs_tol, Real rel_tol, int itermax);
+    void setupForSolve(DiscVectorPtr u, NewtonOpts opts);
 
     void solveStep(DiscVectorPtr u);
 
@@ -96,10 +96,12 @@ class NewtonSolver
 
     void computeJacobians(DiscVectorPtr u);
 
-    void gaussSeidelStep(DiscVectorPtr u);
+    // returns some kind of relative norm of delta_u
+    Real gaussSeidelStep(DiscVectorPtr u);
 
 
     NewtonFunctionPtr m_func;
+    NewtonOpts m_opts;
     linear_system::LargeMatrixPtr m_jac;
     AuxiliaryEquationsJacobiansPtr m_aux_jacs;
     DiscVectorPtr m_f;
@@ -107,9 +109,6 @@ class NewtonSolver
     AuxiliaryEquationsStoragePtr m_aux_u;
     AuxiliaryEquationsStoragePtr m_aux_delta_u;
     AuxiliaryEquationsStoragePtr m_aux_rhs;
-    Real m_abs_tol;
-    Real m_rel_tol;
-    int m_itermax;
 };
 
 }

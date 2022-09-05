@@ -175,7 +175,13 @@ void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
 {
   std::cout << "CN advancing to time " << t_new << std::endl;
   m_func->setTnp1(m_u, t_new);
-  NewtonResult result = m_newton->solve(m_u, m_opts.nonlinear_abs_tol, m_opts.nonlinear_rel_tol, m_opts.nonlinear_itermax);
+
+  NewtonOpts opts;
+  opts.nonlinear_abs_tol = m_opts.nonlinear_abs_tol;
+  opts.nonlinear_rel_tol = m_opts.nonlinear_rel_tol;
+  opts.nonlinear_itermax = m_opts.nonlinear_itermax;
+
+  NewtonResult result = m_newton->solve(m_u, opts);
   //m_func->completeTimestep(m_u);
 
   if (!result.isConverged())

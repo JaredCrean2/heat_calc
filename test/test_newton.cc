@@ -7,6 +7,7 @@
 #include "mesh_helper.h"
 #include "linear_system/large_matrix_petsc.h"
 #include "linear_system/sparsity_pattern_mesh.h"
+#include "time_solver/newton_result.h"
 
 namespace {
 
@@ -289,7 +290,12 @@ TEST_F(NewtonTester, Quadratic)
 
   timesolvers::NewtonSolver newton(func, mat);
   u->set(2);
-  auto result = newton.solve(u, abstol, -1, itermax);
+  timesolvers::NewtonOpts opts;
+  opts.nonlinear_abs_tol = abstol;
+  opts.nonlinear_itermax = itermax;
+  opts.nonlinear_rel_tol = -1;
+  opts.linear_itermax = 5;
+  auto result = newton.solve(u, opts);
 
   if (!u->isVectorCurrent())
     u->syncArrayToVector();
@@ -323,7 +329,12 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
   u->set(2);
   aux_eqns->getBlockSolution(1)[0] = 1;
   aux_eqns->getBlockSolution(2)[0] = 2;
-  auto result = newton.solve(u, abstol, -1, itermax);
+
+  timesolvers::NewtonOpts opts;
+  opts.nonlinear_abs_tol = abstol;
+  opts.nonlinear_itermax = itermax;
+  opts.nonlinear_rel_tol = -1;
+  auto result = newton.solve(u, opts);
 
   if (!u->isVectorCurrent())
     u->syncArrayToVector();
@@ -344,8 +355,6 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
 
   Real x = aux_eqns->getBlockSolution(1)[0];
   Real y = aux_eqns->getBlockSolution(2)[0];
-  std::cout << "x = " << x << std::endl;
-  std::cout << "y = " << y << std::endl;
 
   EXPECT_NEAR(x, 0.0, abstol);
   EXPECT_NEAR(y, 0.0, abstol);

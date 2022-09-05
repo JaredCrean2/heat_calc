@@ -22,8 +22,8 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       m_tn(-1),
       m_tnp1(t0),
       m_un(makeDiscVector(physics_model->getDiscretization())),
-      m_aux_un(*m_aux_eqns),
-      m_aux_unp1(*m_aux_eqns)
+      m_aux_un(*m_aux_eqns)
+      //m_aux_unp1(*m_aux_eqns)
     {}
 
     virtual int getNumBlocks() const override { return m_aux_eqns->getNumBlocks(); }
@@ -37,8 +37,10 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
 
       // compute M * (u_np1 - u_n)/delta_t
       ArrayType<Real, 1> delta_u(boost::extents[num_vars]);
-      auto& u_np1 = m_aux_unp1.getVector(block);
+      //auto& u_np1 = m_aux_unp1.getVector(block);
+      auto& u_np1 = m_aux_eqns->getBlockSolution(block);
       auto& u_n   = m_aux_un.getVector(block);
+      std::cout << "u_np1 = " << u_np1[0] << ", u_n = " << u_n[0] << std::endl;
       Real delta_t = m_tnp1 - m_tn;
       for (int i=0; i < num_vars; ++i)
         delta_u[i] = (u_np1[i] - u_n[i])/delta_t;
@@ -55,6 +57,8 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
         rhs[i] -= 0.5*(rhs_tmp[i] + rhs_tmp2[i]);
         norm += rhs[i]*rhs[i];
       }
+
+      std::cout << "rhs = " << rhs[0] << std::endl;
 
       return std::sqrt(norm);
     }
@@ -96,7 +100,6 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
 
     virtual AuxiliaryEquationsStoragePtr createStorage() override;
 
-
   private:
 
     void setTnp1(DiscVectorPtr u_n, Real t_np1)
@@ -104,6 +107,15 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       *m_un  = *u_n;
       m_tn   = m_tnp1;
       m_tnp1 = t_np1;
+
+      for (int iblock=1; iblock < m_aux_eqns->getNumBlocks(); ++iblock)
+      {
+        auto& aux_u_np1 = m_aux_eqns->getBlockSolution(iblock); //m_aux_unp1.getVector(iblock);
+        auto& aux_u_n = m_aux_un.getVector(iblock);
+        for (int i=0; i < m_aux_eqns->getBlockSize(iblock); ++i)
+          aux_u_n[i] = aux_u_np1[i];
+      }
+
     }
 
     AuxiliaryEquationsPtr m_aux_eqns;
@@ -111,7 +123,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
     Real m_tnp1;
     DiscVectorPtr m_un;
     AuxiliaryEquationStorage m_aux_un;
-    AuxiliaryEquationStorage m_aux_unp1;
+    //AuxiliaryEquationStorage m_aux_unp1;
 
     friend class CrankNicolsonFunction;
 };
