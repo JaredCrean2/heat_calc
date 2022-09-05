@@ -20,6 +20,7 @@ class EnvironmentInterface
   public:
     virtual ~EnvironmentInterface() {}
     
+    // t is in seconds since the starting time
     virtual EnvironmentData getEnvironmentData(Real t) = 0;
 };
 

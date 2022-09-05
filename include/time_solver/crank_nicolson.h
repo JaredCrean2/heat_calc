@@ -31,7 +31,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
     // returns the number of variables in the given block
     virtual int getBlockSize(int block) const override { return m_aux_eqns->getBlockSize(block); }
 
-    virtual void computeRhs(int block, DiscVectorPtr u_vec, ArrayType<Real, 1>& rhs) override
+    virtual Real computeRhs(int block, DiscVectorPtr u_vec, bool compute_norm, ArrayType<Real, 1>& rhs) override
     {
       int num_vars = getBlockSize(block);
 
@@ -39,7 +39,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       ArrayType<Real, 1> delta_u(boost::extents[num_vars]);
       auto& u_np1 = m_aux_unp1.getVector(block);
       auto& u_n   = m_aux_un.getVector(block);
-      Real delta_t = 3600*(m_tnp1 - m_tn);
+      Real delta_t = m_tnp1 - m_tn;
       for (int i=0; i < num_vars; ++i)
         delta_u[i] = (u_np1[i] - u_n[i])/delta_t;
       m_aux_eqns->multiplyMassMatrix(block, m_tnp1, delta_u, rhs);
@@ -49,15 +49,21 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       m_aux_eqns->computeRhs(block, m_un, m_tn, rhs_tmp);
       m_aux_eqns->computeRhs(block, u_vec, m_tnp1, rhs_tmp2);
 
+      Real norm = 0;
       for (int i=0; i < num_vars; ++i)
+      {
         rhs[i] -= 0.5*(rhs_tmp[i] + rhs_tmp2[i]);
+        norm += rhs[i]*rhs[i];
+      }
+
+      return std::sqrt(norm);
     }
 
     virtual void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) override
     {
       auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
 
-      Real delta_t = 3600*(m_tnp1 - m_tn);
+      Real delta_t = m_tnp1 - m_tn;
       assembler->setAlpha(1.0/delta_t);
       m_aux_eqns->computeMassMatrix(block, m_tnp1, assembler);
 

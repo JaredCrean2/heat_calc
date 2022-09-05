@@ -37,7 +37,7 @@ void HeatEquationSolar::addNeumannBC(NeumannBCPtr bc, bool is_exterior)
 
 void HeatEquationSolar::setTimeParameters(Real t)
 {
-  DirectionCosines solar_dir = m_solar_position.computePosition(t);
+  DirectionCosines solar_dir = m_solar_position.computePositionFromSeconds(t);
   EnvironmentData env_data   = m_environment->getEnvironmentData(t);
   Real interior_air_temp     = m_aux_equations->getBlockSolution(1)[0];
   const auto& neumann_bcs    = getNeumannBCs();

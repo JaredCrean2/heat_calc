@@ -39,7 +39,7 @@ struct DecTimeDist
   Real distance_to_sun   = 0;  // R in Walton
 };
 
-DecTimeDist computeDecTimeDist(int julian_day);
+DecTimeDist computeDecTimeDist(Real julian_day);
 
 // time_hours is the time in hours since midnight
 // time_zone is the integer identifying the time zone.

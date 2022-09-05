@@ -16,11 +16,17 @@ class SolarPositionCalculator
       m_latitude(latitude)
     {}
 
-    DirectionCosines computePosition(int t)
+    DirectionCosines computePositionFromSeconds(Real t_seconds)
     {
-      Real julian_date = m_julian_date_start + t;
+      return computePosition(t_seconds/(60*60*24));
+    }
+
+    // t is in days
+    DirectionCosines computePosition(Real t)
+    {
+      Real julian_date = m_julian_date_start + static_cast<Real>(t);
       int julian_date_whole = static_cast<int>(julian_date);
-      Real time_hours = julian_date_whole - julian_date;
+      Real time_hours = 24*(julian_date_whole - julian_date);
       return solar::computeDirectionCosines(julian_date_whole, time_hours, m_time_zone, m_longitude, m_latitude);
     }
 

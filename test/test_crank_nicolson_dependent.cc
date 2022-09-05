@@ -117,7 +117,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   Real r_val = 7;
   Real window_area = 0;
   Real initial_air_temp = 298;
-  Real delta_t = 1.0/60;  // time is in hours
+  Real delta_t = 2;  // time is in seconds
   Real hvac_restore_time = 1;
   
   auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
@@ -132,7 +132,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   Real energy_change_rate = interior_load;
   Real temperature_change_rate = energy_change_rate/(rho*cp*air_volume);
   std::cout << "temperature change rate = " << temperature_change_rate << std::endl;
-  std::cout << "temperature change per timestep = " << temperature_change_rate * delta_t * 3600 << std::endl;
+  std::cout << "temperature change per timestep = " << temperature_change_rate * delta_t << std::endl;
 
   setSolution(ex_sol, ex_sol_deriv, src_func,  env_interface, air_updator);
   heat_model->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
@@ -153,7 +153,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   // the -0.5 is because the previous flux is zero at the initial condition, and the trapizoid
   // rule gives 1/2 of the first timestep flux
   //eal timesteps = opts.t_end/delta_t;
-  Real total_temperature_change = temperature_change_rate * opts.t_end * 3600;
+  Real total_temperature_change = temperature_change_rate * opts.t_end;
   std::cout << "total temperature change = " << total_temperature_change << std::endl;
   EXPECT_NEAR(heat_model->getAuxEquations()->getBlockSolution(1)[0], initial_air_temp + total_temperature_change, 1e-10);
 }

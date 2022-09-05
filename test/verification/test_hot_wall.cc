@@ -137,7 +137,7 @@ TEST_F(HotWallTester, CaseOne)
 
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
-  opts.delta_t = 0.1/60; 
+  opts.delta_t = 6; 
   opts.t_end   = 10*opts.delta_t;
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());

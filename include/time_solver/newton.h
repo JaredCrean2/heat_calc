@@ -26,7 +26,7 @@ class NewtonAuxiliaryEquations
     // returns the number of variables in the given block
     virtual int getBlockSize(int block) const = 0;
 
-    virtual void computeRhs(int block, DiscVectorPtr u_vec, ArrayType<Real, 1>& rhs) = 0;
+    virtual Real computeRhs(int block, DiscVectorPtr u_vec, bool compute_norm, ArrayType<Real, 1>& rhs) = 0;
 
     virtual void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) =0;
 
@@ -91,6 +91,8 @@ class NewtonSolver
     void setupForSolve(DiscVectorPtr u, Real abs_tol, Real rel_tol, int itermax);
 
     void solveStep(DiscVectorPtr u);
+
+    Real computeRhsAndNorm(DiscVectorPtr u);
 
     void computeJacobians(DiscVectorPtr u);
 

@@ -29,10 +29,11 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, Real abs_tol, Real rel_tol, in
 
   for (int i=0; i < itermax; ++i)
   {
+    std::cout << "newton step" << i << std::endl;
 
     solveStep(u);
 
-    norm = m_func->computeFunc(u, true, m_f);
+    Real norm = computeRhsAndNorm(u);
     
     if (norm < m_abs_tol || norm/norm0 < rel_tol)
       return NewtonResult(norm0, norm, i, abs_tol, rel_tol, itermax);
@@ -49,6 +50,23 @@ void NewtonSolver::setupForSolve(DiscVectorPtr u, Real abs_tol, Real rel_tol, in
   m_rel_tol = rel_tol;
   m_itermax = itermax;
   m_func->resetForNewSolve();
+}
+
+Real NewtonSolver::computeRhsAndNorm(DiscVectorPtr u)
+{
+  Real norm = m_func->computeFunc(u, true, m_f);
+  Real norm_squared = norm*norm;
+
+
+  auto aux_eqns = m_func->getAuxiliaryEquations();
+  for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
+  {
+    auto& rhs = m_aux_rhs->getVector(iblock);
+    norm = aux_eqns->computeRhs(iblock, u, true, rhs);
+    norm_squared += norm*norm;
+  }
+
+  return std::sqrt(norm_squared);
 }
 
 
@@ -74,6 +92,7 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
     //auto& u_block = m_aux_u->getVector(block);
     auto& u_block = aux_eqns->getBlockSolution(block);
     auto& delta_u_block = m_aux_delta_u->getVector(block);
+    std::cout << "block " << block << " delta_u = " << delta_u_block[0] << std::endl;
     for (int i=0; i < num_vars; ++i)
     {
       u_block[i] -= delta_u_block[i];
@@ -133,9 +152,12 @@ void NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
   // do all other rows
   for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
   {
-    auto& rhs = m_aux_rhs->getVector(iblock);
-    aux_eqns->computeRhs(iblock, u, rhs);
-    ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]);
+    auto& rhs0 = m_aux_rhs->getVector(iblock);
+    ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]),
+                       rhs(boost::extents[aux_eqns->getBlockSize(iblock)]);
+    for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
+      rhs[i] = rhs0[i];
+      
     for (int jblock=0; jblock < aux_eqns->getNumBlocks(); ++jblock)
     {
       if (iblock == jblock)

@@ -91,7 +91,7 @@ class InteriorAirTemperatureUpdator
     Real m_air_volume;
     Real m_hvac_restore_time;  // after the temperature exceeds the bounds, the HVAC
                                // system will restore it within (approximately) this
-                               // much time
+                               // much time, in seconds
 
     // sub-models
     HeatEquationSolar* m_heat_eqn;
