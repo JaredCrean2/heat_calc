@@ -14,7 +14,7 @@ struct NewtonOpts
   int nonlinear_itermax  = 10;
 
   // parameters for Gauss-Seidel iteration
-  int linear_itermax = 1;
+  int linear_itermax = 10;
   Real linear_delta_u_tol = 1e-2;  // terminate Gauss-Seidel iteration if
                                    // the current iteration's contribution to
                                    // delta_u is less than the total delta_u

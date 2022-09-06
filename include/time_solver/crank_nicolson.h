@@ -14,6 +14,9 @@
 
 namespace timesolvers {
 
+//TODO: DEBUGGING
+class CrankNicolsonFunction;
+
 class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
 {
   public:
@@ -25,6 +28,8 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       m_aux_un(*m_aux_eqns)
       //m_aux_unp1(*m_aux_eqns)
     {}
+
+    void setCNFunc(CrankNicolsonFunction* cn_func) { m_cn_func = cn_func; }
 
     virtual int getNumBlocks() const override { return m_aux_eqns->getNumBlocks(); }
 
@@ -40,7 +45,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       //auto& u_np1 = m_aux_unp1.getVector(block);
       auto& u_np1 = m_aux_eqns->getBlockSolution(block);
       auto& u_n   = m_aux_un.getVector(block);
-      std::cout << "u_np1 = " << u_np1[0] << ", u_n = " << u_n[0] << std::endl;
+      //std::cout << "u_np1 = " << u_np1[0] << ", u_n = " << u_n[0] << std::endl;
       Real delta_t = m_tnp1 - m_tn;
       for (int i=0; i < num_vars; ++i)
         delta_u[i] = (u_np1[i] - u_n[i])/delta_t;
@@ -58,7 +63,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
         norm += rhs[i]*rhs[i];
       }
 
-      std::cout << "rhs = " << rhs[0] << std::endl;
+      //std::cout << "rhs = " << rhs[0] << std::endl;
 
       return std::sqrt(norm);
     }
@@ -75,13 +80,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       m_aux_eqns->computeJacobian(block, u_vec, m_tnp1, assembler);
     }
 
-    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
-    {
-      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, m_tnp1, x, b);
-      int num_vars = getBlockSize(iblock);
-      for (int i=0; i < num_vars; ++i)
-        b[i] *= -0.5;
-    }
+    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
 
     virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals) override
     {
@@ -124,6 +123,9 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
     DiscVectorPtr m_un;
     AuxiliaryEquationStorage m_aux_un;
     //AuxiliaryEquationStorage m_aux_unp1;
+
+    //TODO: DEBUGGING:
+    CrankNicolsonFunction* m_cn_func;
 
     friend class CrankNicolsonFunction;
 };

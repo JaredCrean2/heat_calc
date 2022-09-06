@@ -99,6 +99,8 @@ class NewtonSolver
     // returns some kind of relative norm of delta_u
     Real gaussSeidelStep(DiscVectorPtr u);
 
+    void computeLinearResidual(DiscVectorPtr u_vec);
+
 
     NewtonFunctionPtr m_func;
     NewtonOpts m_opts;

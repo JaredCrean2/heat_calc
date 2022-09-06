@@ -199,6 +199,7 @@ Real InteriorAirTemperatureUpdator::computeBCFlux(NeumannBCPtr bc, DiscVectorPtr
 Real InteriorAirTemperatureUpdator::computeBCFluxDotTair(NeumannBCPtr bc, DiscVectorPtr sol_vec, Real t, Real& flux_dot)
 {
   auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(bc);
+  assertAlways(!!bc_air_wind_sky, "could not cast to AirWindSkyNeumannBC");
 
   auto surf = bc->getSurfDisc();
   ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);

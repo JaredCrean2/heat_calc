@@ -304,6 +304,16 @@ TEST_F(NeumannBCTester, SolarRadiationBC)
   testDerivativeWrtTwall_rev(bc);
 }
 
+TEST_F(NeumannBCTester, SimpleConvectionBC)
+{
+  Real heat_transfer_coeff = 2;
+  auto bc = std::make_shared<Heat::SimpleConvectionBC>(disc->getSurfDisc(0), heat_transfer_coeff);
+
+  testDerivative(bc);
+  testDerivativeWrtTair(bc);
+  testDerivativeWrtTwall_rev(bc);
+}
+
 
 //-----------------------------------------------------------------------------
 // Test overall Jacobian

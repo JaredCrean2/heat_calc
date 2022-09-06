@@ -9,6 +9,7 @@
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/basis_vals.h"
+#include "physics/heat/bc_defs.h"
 #include "physics/heat/interior_loads.h"
 #include "physics/heat/window_conduction_model.h"
 #include "physics/heat/interior_temperature_update.h"
@@ -19,6 +20,9 @@
 
 namespace {
 
+  // sets up a case where the yminus wall is held a constant temperature,
+  // the yplus wall is in thermal contact with the interior air,
+  // and the other walls are well insulated
   class HotWallTester : public StandardDiscSetup,
                                            public testing::Test
   {
@@ -46,7 +50,7 @@ namespace {
         heat        = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, environment_interface, air_temp_updator);
         u_vec       = makeDiscVector(disc);
         Real surface_temp = 320;
-        Real initial_wall_temp = 310;
+        Real initial_wall_temp = 320; // 310;
 
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
           heat->addVolumeGroupParams(params);
@@ -57,19 +61,20 @@ namespace {
 
           if (i == 0)
           {
-
             // y minus surface is held at constant temperature
             assertAlways(surf->getIsDirichlet(), "first surface must be dirichlet");
             auto f = [=](Real x, Real y, Real z, Real t) { return surface_temp; };
             heat->addDirichletBC(makeDirichletBCMMS(surf, f, &(impl::zeroFunc)));
           } else if (i == 2)
           {
-            auto bc = std::make_shared<Heat::TarpBC>(surf, 80.0*144/(39*39), 36.0*12/39, 0, std::array<Real, 3>{0, 0, 1});
+            // area = 80 sq ft, perimeter is 36 ft (8 x 10 rectangle)
+            //auto bc = std::make_shared<Heat::TarpBC>(surf, 80.0*144/(39*39), 36.0*12/39, 0, std::array<Real, 3>{0, 0, 1});
+            auto bc = std::make_shared<Heat::SimpleConvectionBC>(surf, 0.5);
             heat->addNeumannBC(bc, false);
           } else
           {
             auto f = [](Real x, Real y, Real z, Real t) { return std::array<Real, 3>{0, 0, 0}; };
-            heat->addNeumannBC(makeNeumannBCMMS(surf, f), false);
+            heat->addNeumannBC(makeNeumannBCMMS(surf, f), true);
           }
         }
 
@@ -132,7 +137,7 @@ TEST_F(HotWallTester, CaseOne)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
 
 
   timesolvers::TimeStepperOpts opts;
@@ -141,9 +146,9 @@ TEST_F(HotWallTester, CaseOne)
   opts.t_end   = 10*opts.delta_t;
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
-  opts.nonlinear_abs_tol = 1e-12;
-  opts.nonlinear_rel_tol = 1e-12;
-  opts.nonlinear_itermax = 1000;  //TODO: test 1
+  opts.nonlinear_abs_tol = 1e-10;
+  opts.nonlinear_rel_tol = 1e-10;
+  opts.nonlinear_itermax = 30;  //TODO: test 1
 
   int sol_degree = 1;
   int nelem = 4;
@@ -151,10 +156,13 @@ TEST_F(HotWallTester, CaseOne)
 
   HotWallTester::setup_final(2*sol_degree, sol_degree, meshspec);
   setSolution(env_interface, air_updator);
+  heat->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
 
   //mesh->getFieldDataManager().attachVector(u_vec, "solution");
   //mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
   timesolvers::CrankNicolson crank(heat, u_vec, opts);
   crank.solve();
+
+  std::cout << "final air temperature = " << heat->getAuxEquations()->getBlockSolution(1)[0] << std::endl;
 }

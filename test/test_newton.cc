@@ -135,9 +135,9 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
       Real y = getAuxiliaryBlockSolution(1)[0];
 
       if (block == 0)
-        rhs[0] = m_a * x + m_c * y;
+        rhs[0] = m_a * x + m_c * y - 3;
       else
-        rhs[0] = m_c * x + m_b * y;
+        rhs[0] = m_c * x + m_b * y - 4;
     }
 
     void computeAuxiliaryMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr mat) override
@@ -178,7 +178,16 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
     void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
-      b[0] = m_c * x[0];
+      // the system we are solving is:
+      // [a c  [x  = [b1
+      //  c b]  y]    b2]
+      // so the off-diagonal product is always c times the given value
+      if (iblock == 0 || jblock == 0)
+      {
+        for (int i=0; i < b.shape()[0]; ++i)
+          b[i] = 0;
+      } else
+        b[0] = m_c * x[0];
     }
 
     void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) override
@@ -356,6 +365,6 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
   Real x = aux_eqns->getBlockSolution(1)[0];
   Real y = aux_eqns->getBlockSolution(2)[0];
 
-  EXPECT_NEAR(x, 0.0, abstol);
-  EXPECT_NEAR(y, 0.0, abstol);
+  EXPECT_NEAR(x, 2.81407035175875, abstol);
+  EXPECT_NEAR(y, 1.859296482412063, abstol);
 }

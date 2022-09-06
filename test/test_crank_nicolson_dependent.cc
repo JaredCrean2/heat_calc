@@ -127,7 +127,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
 
   auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, initial_air_temp, hvac_restore_time);
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
 
   Real energy_change_rate = interior_load;
   Real temperature_change_rate = energy_change_rate/(rho*cp*air_volume);

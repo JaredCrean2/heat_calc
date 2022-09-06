@@ -24,7 +24,6 @@ class InteriorAirTemperatureUpdator
                                   std::shared_ptr<AirLeakageModel> ventilation,
                                   std::shared_ptr<InteriorLoads> interior_loads,
                                   std::shared_ptr<WindowConductionModel> window_model,
-                                  Real initial_temp,
                                   Real hvac_restore_time) :
       m_min_temp(min_temp),
       m_max_temp(max_temp),

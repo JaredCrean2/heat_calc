@@ -56,10 +56,12 @@ void NewtonSolver::setupForSolve(DiscVectorPtr u, NewtonOpts opts)
 
 Real NewtonSolver::computeRhsAndNorm(DiscVectorPtr u)
 {
+  std::cout << "computing rhs and norm" << std::endl;
   Real norm = m_func->computeFunc(u, true, m_f);
   Real norm_squared = norm*norm;
 
-  std::cout << "after first block, norm = " << std::sqrt(norm) << std::endl;
+  std::cout << "block 0 norm = " << norm << std::endl;
+  std::cout << "after block 0, norm = " << std::sqrt(norm_squared) << std::endl;
 
 
   auto aux_eqns = m_func->getAuxiliaryEquations();
@@ -68,8 +70,8 @@ Real NewtonSolver::computeRhsAndNorm(DiscVectorPtr u)
     auto& rhs = m_aux_rhs->getVector(iblock);
     norm = aux_eqns->computeRhs(iblock, u, true, rhs);
     norm_squared += norm*norm;
-    std::cout << "after " << iblock << " block, norm = " << std::sqrt(norm) << std::endl;
-
+    std::cout << "block " << iblock << " norm = " << norm << std::endl;
+    std::cout << "after " << iblock << " block, norm = " << std::sqrt(norm_squared) << std::endl;
   }
 
   return std::sqrt(norm_squared);
@@ -87,9 +89,11 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
 
   for (int i=0; i < m_opts.linear_itermax; ++i)
   {
-    std::cout << "Gauss Seidel iteration " << i << std::endl;
+    std::cout << "\nGauss Seidel iteration " << i << std::endl;
     Real delta_u_relative_norm = gaussSeidelStep(u);
-    std::cout << "relative norm = " << delta_u_relative_norm << std::endl;
+
+    computeLinearResidual(u);
+    //std::cout << "relative norm = " << delta_u_relative_norm << std::endl;
 
     if (i > 0 && delta_u_relative_norm < m_opts.linear_delta_u_tol)
       break;
@@ -116,6 +120,8 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
       u_block[i] -= delta_u_block[i];
       delta_u_block[i] = 0;
     }
+
+    std::cout << "new air temperature value = " << u_block[0] << std::endl;
   }
 
   u->markVectorModified();
@@ -153,8 +159,12 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
   {
     ArrayType<Real, 1> rhs(boost::extents[aux_eqns->getBlockSize(0)]);
     auto& rhs0 = m_f->getVector();
+    //std::cout << "initial FE rhs" << std::endl;
     for (int i=0; i < aux_eqns->getBlockSize(0); ++i)
+    {
       rhs[i] = rhs0[i];
+      //std::cout << "dof " << i << ", rhs = " << rhs[i] << std::endl;
+    }
       
     ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(0)]);
     for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
@@ -165,13 +175,23 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
     }
 
     m_jac->solve(rhs, delta_u_tmp);
-
+/*
+    std::cout << "after solve" << std::endl;
+    for (int i=0; i < aux_eqns->getBlockSize(0); ++i)
+    {
+      std::cout << "dof " << i << ", rhs = " << rhs[i] << ", delta_u = " << delta_u_tmp[i] << std::endl;
+    }
+*/
     auto& delta_u_vec = m_delta_u->getVector();
     for (int i=0; i < rhs.shape()[0]; ++i)
     {
       Real delta_delta_u = std::abs(delta_u_tmp[i] - delta_u_vec[i]);
+      //std::cout << "dof " << i << ", previous delta_u_vec = " << delta_u_vec[i] << ", new delta_u = " << delta_u_tmp[i] << ", diff = " << delta_delta_u << std::endl;
       if (std::abs(delta_u_vec[i]) > 1e-13)
+      {
+        //std::cout << "updating relative norm" << std::endl;
         delta_u_relative_norm = std::max(delta_u_relative_norm, std::abs(delta_delta_u/delta_u_vec[i]));
+      }
       delta_u_vec[i] = delta_u_tmp[i];
     }
   }
@@ -182,11 +202,14 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
   //TODO: no need to allocate a temporary vector each iteration
   
   // do all other rows
+
   for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
   {
+    std::cout << "doing block " << iblock << std::endl;
     auto& rhs0 = m_aux_rhs->getVector(iblock);
     ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]),
                        rhs(boost::extents[aux_eqns->getBlockSize(iblock)]);
+    std::cout << "initial rhs = " << rhs0[0] << std::endl;
     for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
       rhs[i] = rhs0[i];
       
@@ -197,6 +220,7 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
 
       auto& delta_u_j = jblock == 0 ? m_delta_u->getVector() : m_aux_delta_u->getVector(jblock);
       aux_eqns->multiplyOffDiagonal(iblock, jblock, u, delta_u_j, rhs_tmp);
+      std::cout << "contribution from off diagonal block " << jblock << " = " << rhs_tmp[0] << std::endl;
       for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
         rhs[i] -= rhs_tmp[i];
     }
@@ -218,6 +242,91 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
   }
 
   return delta_u_relative_norm;
+}
+
+//TODO: DEBUGGING
+void NewtonSolver::computeLinearResidual(DiscVectorPtr u_vec)
+{
+  auto aux_eqns = m_func->getAuxiliaryEquations();
+  ArrayType<Real, 1> residual(boost::extents[u_vec->getNumDofs()]), 
+                     residual_tmp(boost::extents[u_vec->getNumDofs()]);
+  auto aux_residual = aux_eqns->createStorage();
+
+  // first row
+  {
+    m_jac->matVec(m_delta_u->getVector(), residual);
+    for (int jblock=1; jblock < aux_eqns->getNumBlocks(); ++jblock)
+    {
+      aux_eqns->multiplyOffDiagonal(0, jblock, u_vec, m_aux_delta_u->getVector(jblock), residual_tmp);
+      for (int i=0; i < u_vec->getNumDofs(); ++i)
+        residual[i] += residual_tmp[i];
+    }
+
+    auto residual_tmp2 = m_func->createVector();
+    m_func->computeFunc(u_vec, false, residual_tmp2);
+    for (int i=0; i < u_vec->getNumDofs(); ++i)
+      residual[i] -= residual_tmp2->getVector()[i];
+  }
+
+  // other rows
+  {
+    for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
+    {
+      //std::cout << "computing linear residual for block " << iblock << std::endl;
+      auto& aux_residual_i = aux_residual->getVector(iblock);
+      ArrayType<Real, 1> aux_residual_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]);
+      auto jac = m_aux_jacs->getMatrix(iblock);
+      jac->zeroMatrix();
+      aux_eqns->computeJacobian(iblock, u_vec, jac);
+      jac->matVec(m_aux_delta_u->getVector(iblock), aux_residual_i);
+      //std::cout << "diagonal contribution = " << aux_residual_i[0] << std::endl;
+
+      for (int jblock=0; jblock < aux_eqns->getNumBlocks(); ++jblock)
+      {
+        if (iblock == jblock)
+          continue;
+
+        auto& delta_u = jblock == 0 ? m_delta_u->getVector() : m_aux_delta_u->getVector(jblock);
+        aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, delta_u, aux_residual_tmp);
+        //std::cout << "block " << jblock << " contribution = " << aux_residual_tmp[0] << std::endl;
+        for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
+          aux_residual_i[i] += aux_residual_tmp[i];
+      }
+
+      aux_eqns->computeRhs(iblock, u_vec, false, aux_residual_tmp);
+      //std::cout << "rhs = " << aux_residual_tmp[0] << std::endl;
+      for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
+          aux_residual_i[i] -= aux_residual_tmp[i];
+      //std::cout << "final linear residual = " << aux_residual_i[0] << std::endl;     
+    }
+  }
+
+  std::vector<Real> residuals(aux_eqns->getNumBlocks(), 0);
+  //std::cout << "block 0 linear residual: " << std::endl;
+  for (int i=0; i < u_vec->getNumDofs(); ++i)
+  {
+    //std::cout << "dof " << i << " residual = " << residual[i] << std::endl;
+    residuals[0] += residual[i]*residual[i];
+  }
+  residuals[0] = std::sqrt(residuals[0]);
+
+  for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
+  {
+    std::cout << "block " << iblock << " linear residual: " << std::endl;
+    auto& aux_residual_i = aux_residual->getVector(iblock);
+    for (int i=0; i < aux_residual_i.shape()[0]; ++i)
+    {
+      std::cout << "dof " << i << " residual = " << aux_residual_i[i] << std::endl;
+      residuals[iblock] += aux_residual_i[i]*aux_residual_i[i];
+    }
+
+    residuals[iblock] = std::sqrt(residuals[iblock]);
+  }
+
+  for (int i=0; i < aux_eqns->getNumBlocks(); ++i)
+    std::cout << "block " << i << " linear residual norm = " << residuals[i] << std::endl;
+
+  computeJacobians(u_vec); // basically to factor the matrix again
 }
 
 

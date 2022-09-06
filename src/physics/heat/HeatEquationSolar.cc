@@ -80,6 +80,8 @@ AuxiliaryEquationsPtr HeatEquationSolar::getAuxEquations()
 
 void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real t, Real x, ArrayType<Real, 1>& b)
 {
+  //std::cout << "computing dRdTinterior_air product" << std::endl;
+  //std::cout << "x = " << x << std::endl;
   //TODO: cache these
   setTimeParameters(t);
   auto rhs = makeDiscVector(getDiscretization());
@@ -90,7 +92,10 @@ void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real t, 
   auto& rhs_dot_vec = rhs_dot->getVector();
   assertAlways(b.shape()[0] == rhs_dot_vec.shape()[0], "vector sizes are incompatible");
   for (size_t i=0; i < rhs_dot_vec.shape()[0]; ++i)
+  {
+    //std::cout << "dof " << i << ", result = " << rhs_dot_vec[i] << std::endl;
     b[i] = rhs_dot_vec[i];
+  }
 }
 
 
@@ -160,7 +165,7 @@ void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior_
         }
 
         Real val = weight * flux_normal;
-        Real val_dot = weight * flux_normal_dot;
+        Real val_dot = weight * flux_normal_dot * t_interior_dot;
         for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)
         {
           int node_sol = surf->face_group.getFaceNodesSol()[face_spec.face][i];
