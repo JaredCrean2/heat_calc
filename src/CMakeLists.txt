@@ -39,6 +39,8 @@ set(src_files EpwReader.cc
               time_solver/newton_result.cc
               time_solver/newton.cc
               time_solver/crank_nicolson.cc
+              time_solver/crank_nicolson_function.cc
+              time_solver/crank_nicolson_aux_equations.cc
               )
 
 add_subdirectory(mesh)
@@ -66,11 +68,11 @@ target_include_directories(heat_calc PUBLIC
 target_link_libraries(heat_calc PUBLIC heat_lib)
 
 
-add_executable(gauss_seidel gauss_seidel.cc)
-
-target_include_directories(gauss_seidel PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          "${PROJECT_SOURCE_DIR}/include"
-                          )
-
-target_link_libraries(gauss_seidel PUBLIC heat_lib)
+#add_executable(gauss_seidel gauss_seidel.cc)
+#
+#target_include_directories(gauss_seidel PUBLIC
+#                          "${PROJECT_BINARY_DIR}"
+#                          "${PROJECT_SOURCE_DIR}/include"
+#                          )
+#
+#target_link_libraries(gauss_seidel PUBLIC heat_lib)
