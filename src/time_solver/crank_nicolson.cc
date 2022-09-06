@@ -16,38 +16,6 @@ void CrankNicolsonAuxiliaryEquations::multiplyOffDiagonal(int iblock, int jblock
   int num_vars = getBlockSize(iblock);
   for (int i=0; i < num_vars; ++i)
     b[i] *= -0.5;
-
-  //TODO: DEBUGGING finite difference check
-  if (iblock == 0 && jblock == 1)
-  {
-    Real eps = 1e-7;
-    //ArrayType<Real, 1> rhs0(boost::extents[m_aux_eqns->getBlockSize(0)]);
-    //ArrayType<Real, 1> rhs1(boost::extents[m_aux_eqns->getBlockSize(0)]);
-    auto rhs0 = m_cn_func->createVector();
-    auto rhs1 = m_cn_func->createVector();
-    ArrayType<Real, 1> b_fd(boost::extents[m_aux_eqns->getBlockSize(0)]);
-
-    m_cn_func->computeFunc(u_vec, false, rhs0);
-    getBlockSolution(1)[0] += eps;
-    m_cn_func->computeFunc(u_vec, false, rhs1);
-    getBlockSolution(1)[0] -= eps;
-
-    if (!rhs0->isVectorCurrent())
-      rhs0->syncArrayToVector();
-
-    if (!rhs1->isVectorCurrent())
-      rhs1->syncArrayToVector();
-
-    auto& rhs0_vec = rhs0->getVector();
-    auto& rhs1_vec = rhs1->getVector();
-    for (int i=0; i < num_vars; ++i)
-      b_fd[i] = x[0] * (rhs1_vec[i] - rhs0_vec[i])/eps;
-
-    //std::cout << "multiplyOffDiagonal fd check:" << std::endl;
-    for (int i=0; i < num_vars; ++i)
-      assertAlways(std::abs(b[i] - b_fd[i]) < 1e-5, "failed fd check");
-      //std::cout << "dof " << i << ", b = " << b[i] << ", b_fd = " << b_fd[i] << ", diff = " << b[i] - b_fd[i] << std::endl;
-  }
 }
 
 
