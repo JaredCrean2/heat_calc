@@ -92,6 +92,8 @@ class NewtonSolver
 
     void solveStep(DiscVectorPtr u);
 
+    void updateSolution(DiscVectorPtr u);
+
     Real computeRhsAndNorm(DiscVectorPtr u);
 
     void computeJacobians(DiscVectorPtr u);

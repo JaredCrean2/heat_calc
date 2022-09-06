@@ -92,13 +92,18 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
     std::cout << "\nGauss Seidel iteration " << i << std::endl;
     Real delta_u_relative_norm = gaussSeidelStep(u);
 
-    computeLinearResidual(u);
+    //computeLinearResidual(u);
     //std::cout << "relative norm = " << delta_u_relative_norm << std::endl;
 
     if (i > 0 && delta_u_relative_norm < m_opts.linear_delta_u_tol)
       break;
   }
 
+  updateSolution(u);
+}
+
+void NewtonSolver::updateSolution(DiscVectorPtr u)
+{
   auto& u_vec = u->getVector();
   auto& delta_u_vec = m_delta_u->getVector();
   for (DofInt i=0; i < u->getNumDofs(); ++i)
@@ -106,13 +111,14 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
     u_vec[i] -= delta_u_vec[i];
     delta_u_vec[i] = 0;
   }
+  
+  u->markVectorModified();
 
   // update auxiliary quantities
   auto aux_eqns = m_func->getAuxiliaryEquations();
   for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
   {
     int num_vars = aux_eqns->getBlockSize(block);
-    //auto& u_block = m_aux_u->getVector(block);
     auto& u_block = aux_eqns->getBlockSolution(block);
     auto& delta_u_block = m_aux_delta_u->getVector(block);
     for (int i=0; i < num_vars; ++i)
@@ -120,13 +126,7 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
       u_block[i] -= delta_u_block[i];
       delta_u_block[i] = 0;
     }
-
-    std::cout << "new air temperature value = " << u_block[0] << std::endl;
   }
-
-  u->markVectorModified();
-
-  //m_func->updateDependentQuantities(u);
 }
 
 void NewtonSolver::computeJacobians(DiscVectorPtr u)
@@ -205,11 +205,9 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
 
   for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
   {
-    std::cout << "doing block " << iblock << std::endl;
     auto& rhs0 = m_aux_rhs->getVector(iblock);
     ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]),
                        rhs(boost::extents[aux_eqns->getBlockSize(iblock)]);
-    std::cout << "initial rhs = " << rhs0[0] << std::endl;
     for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
       rhs[i] = rhs0[i];
       
@@ -220,7 +218,6 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
 
       auto& delta_u_j = jblock == 0 ? m_delta_u->getVector() : m_aux_delta_u->getVector(jblock);
       aux_eqns->multiplyOffDiagonal(iblock, jblock, u, delta_u_j, rhs_tmp);
-      std::cout << "contribution from off diagonal block " << jblock << " = " << rhs_tmp[0] << std::endl;
       for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
         rhs[i] -= rhs_tmp[i];
     }
@@ -228,8 +225,6 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
     auto jac = m_aux_jacs->getMatrix(iblock);
     auto& delta_u_tmp_vec = delta_u_aux_tmp->getVector(iblock);
     jac->solve(rhs, delta_u_tmp_vec);
-
-    std::cout << "rhs = " << rhs[0] << ", delta_u = " << delta_u_tmp_vec[0] << std::endl;
 
     auto& delta_u_vec = m_aux_delta_u->getVector(iblock);
     for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)

@@ -68,8 +68,8 @@ namespace {
           } else if (i == 2)
           {
             // area = 80 sq ft, perimeter is 36 ft (8 x 10 rectangle)
-            //auto bc = std::make_shared<Heat::TarpBC>(surf, 80.0*144/(39*39), 36.0*12/39, 0, std::array<Real, 3>{0, 0, 1});
-            auto bc = std::make_shared<Heat::SimpleConvectionBC>(surf, 0.5);
+            auto bc = std::make_shared<Heat::TarpBC>(surf, 80.0*144/(39*39), 36.0*12/39, 0, std::array<Real, 3>{0, 0, 1});
+            //auto bc = std::make_shared<Heat::SimpleConvectionBC>(surf, 0.5);
             heat->addNeumannBC(bc, false);
           } else
           {
