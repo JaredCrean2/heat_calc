@@ -99,10 +99,10 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
       break;
   }
 
-  updateSolution(u);
+  updateNonlinearSolution(u);
 }
 
-void NewtonSolver::updateSolution(DiscVectorPtr u)
+void NewtonSolver::updateNonlinearSolution(DiscVectorPtr u)
 {
   auto& u_vec = u->getVector();
   auto& delta_u_vec = m_delta_u->getVector();
@@ -151,89 +151,99 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
 {
   //TODO: zero out vectors?
   auto aux_eqns = m_func->getAuxiliaryEquations();
-  ArrayType<Real, 1> delta_u_tmp(boost::extents[u->getNumDofs()]);
   auto delta_u_aux_tmp = aux_eqns->createStorage();
-  Real delta_u_relative_norm = 0;
 
   // compute first row
-  {
-    ArrayType<Real, 1> rhs(boost::extents[aux_eqns->getBlockSize(0)]);
-    auto& rhs0 = m_f->getVector();
-    //std::cout << "initial FE rhs" << std::endl;
-    for (int i=0; i < aux_eqns->getBlockSize(0); ++i)
-    {
-      rhs[i] = rhs0[i];
-      //std::cout << "dof " << i << ", rhs = " << rhs[i] << std::endl;
-    }
-      
-    ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(0)]);
-    for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
-    {
-      aux_eqns->multiplyOffDiagonal(0, block, u, m_aux_delta_u->getVector(block), rhs_tmp);
-      for (size_t j=0; j < rhs.shape()[0]; ++j)
-        rhs[j] -= rhs_tmp[j];
-    }
+  Real delta_u_relative_norm_first = gaussSeidelStepFirstRow(u);
 
-    m_jac->solve(rhs, delta_u_tmp);
-/*
-    std::cout << "after solve" << std::endl;
-    for (int i=0; i < aux_eqns->getBlockSize(0); ++i)
-    {
-      std::cout << "dof " << i << ", rhs = " << rhs[i] << ", delta_u = " << delta_u_tmp[i] << std::endl;
-    }
-*/
-    auto& delta_u_vec = m_delta_u->getVector();
-    for (int i=0; i < rhs.shape()[0]; ++i)
-    {
-      Real delta_delta_u = std::abs(delta_u_tmp[i] - delta_u_vec[i]);
-      //std::cout << "dof " << i << ", previous delta_u_vec = " << delta_u_vec[i] << ", new delta_u = " << delta_u_tmp[i] << ", diff = " << delta_delta_u << std::endl;
-      if (std::abs(delta_u_vec[i]) > 1e-13)
-      {
-        //std::cout << "updating relative norm" << std::endl;
-        delta_u_relative_norm = std::max(delta_u_relative_norm, std::abs(delta_delta_u/delta_u_vec[i]));
-      }
-      delta_u_vec[i] = delta_u_tmp[i];
-    }
+  Real delta_u_relative_norm_second = gaussSeidelStepOtherRows(u);
+
+  return std::max(delta_u_relative_norm_first, delta_u_relative_norm_second);
+
+  //TODO: no need to allocate a temporary vector each iteration
+
+}
+
+Real NewtonSolver::gaussSeidelStepFirstRow(DiscVectorPtr u)
+{
+  auto aux_eqns = m_func->getAuxiliaryEquations();
+  ArrayType<Real, 1> delta_u_tmp(boost::extents[u->getNumDofs()]);
+  ArrayType<Real, 1> rhs(boost::extents[aux_eqns->getBlockSize(0)]);
+  
+  auto& rhs0 = m_f->getVector();
+  for (int i=0; i < aux_eqns->getBlockSize(0); ++i)
+    rhs[i] = rhs0[i];
+    
+  ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(0)]);
+  for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
+  {
+    aux_eqns->multiplyOffDiagonal(0, block, u, m_aux_delta_u->getVector(block), rhs_tmp);
+    for (size_t j=0; j < rhs.shape()[0]; ++j)
+      rhs[j] -= rhs_tmp[j];
   }
 
-  //TODO: there is a more efficient way to do this.  when going from one iblock to the
-  //      next, only 1 matrix-vector product needs to be updated
-  //TODO: also, if doing a linear solve, only need to compute rhs once
-  //TODO: no need to allocate a temporary vector each iteration
-  
-  // do all other rows
+  m_jac->solve(rhs, delta_u_tmp);
 
+  auto& delta_u_vec = m_delta_u->getVector();
+  return updateLinearSolution(delta_u_tmp, delta_u_vec);
+}
+
+
+Real NewtonSolver::gaussSeidelStepOtherRows(DiscVectorPtr u)
+{
+  auto aux_eqns = m_func->getAuxiliaryEquations();
+  auto delta_u_aux_tmp = aux_eqns->createStorage();
+
+  Real delta_u_relative_norm = 0;
   for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
   {
-    auto& rhs0 = m_aux_rhs->getVector(iblock);
-    ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]),
-                       rhs(boost::extents[aux_eqns->getBlockSize(iblock)]);
-    for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
-      rhs[i] = rhs0[i];
-      
-    for (int jblock=0; jblock < aux_eqns->getNumBlocks(); ++jblock)
-    {
-      if (iblock == jblock)
-        continue;
-
-      auto& delta_u_j = jblock == 0 ? m_delta_u->getVector() : m_aux_delta_u->getVector(jblock);
-      aux_eqns->multiplyOffDiagonal(iblock, jblock, u, delta_u_j, rhs_tmp);
-      for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
-        rhs[i] -= rhs_tmp[i];
-    }
+    ArrayType<Real, 1> rhs(boost::extents[aux_eqns->getBlockSize(iblock)]);
+    gaussSeidelComputeRhs(iblock, u, rhs);
 
     auto jac = m_aux_jacs->getMatrix(iblock);
     auto& delta_u_tmp_vec = delta_u_aux_tmp->getVector(iblock);
     jac->solve(rhs, delta_u_tmp_vec);
 
     auto& delta_u_vec = m_aux_delta_u->getVector(iblock);
+    Real delta_u_relative_norm_i = updateLinearSolution(delta_u_tmp_vec, delta_u_vec);
+    delta_u_relative_norm = std::max(delta_u_relative_norm, delta_u_relative_norm_i);
+  }
+
+  return delta_u_relative_norm;
+}
+
+void NewtonSolver::gaussSeidelComputeRhs(int iblock, DiscVectorPtr u, ArrayType<Real, 1>& rhs)
+{
+  assertAlways(iblock > 0, "Cannot do first row");
+
+  auto aux_eqns = m_func->getAuxiliaryEquations();
+  auto& rhs0 = m_aux_rhs->getVector(iblock);
+  ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(iblock)]);
+  for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
+    rhs[i] = rhs0[i];
+    
+  for (int jblock=0; jblock < aux_eqns->getNumBlocks(); ++jblock)
+  {
+    if (iblock == jblock)
+      continue;
+
+    auto& delta_u_j = jblock == 0 ? m_delta_u->getVector() : m_aux_delta_u->getVector(jblock);
+    aux_eqns->multiplyOffDiagonal(iblock, jblock, u, delta_u_j, rhs_tmp);
     for (int i=0; i < aux_eqns->getBlockSize(iblock); ++i)
-    {
-      Real delta_delta_u = std::abs(delta_u_tmp_vec[i] - delta_u_vec[i]);
-      if (std::abs(delta_u_vec[i]) > 1e-13)
-        delta_u_relative_norm = std::max(delta_u_relative_norm, std::abs(delta_delta_u/delta_u_vec[i]));
-      delta_u_vec[i] = delta_u_tmp_vec[i];
-    }
+      rhs[i] -= rhs_tmp[i];
+  }
+}
+
+Real NewtonSolver::updateLinearSolution(const ArrayType<Real, 1>& delta_u_tmp, ArrayType<Real, 1>& delta_u)
+{
+  Real delta_u_relative_norm = 0;
+  for (int i=0; i < delta_u.shape()[0]; ++i)
+  {
+    Real delta_delta_u = std::abs(delta_u_tmp[i] - delta_u[i]);
+    if (std::abs(delta_u[i]) > 1e-13)
+      delta_u_relative_norm = std::max(delta_u_relative_norm, std::abs(delta_delta_u/delta_u[i]));
+
+    delta_u[i] = delta_u_tmp[i];
   }
 
   return delta_u_relative_norm;

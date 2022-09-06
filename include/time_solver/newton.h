@@ -92,7 +92,7 @@ class NewtonSolver
 
     void solveStep(DiscVectorPtr u);
 
-    void updateSolution(DiscVectorPtr u);
+    void updateNonlinearSolution(DiscVectorPtr u);
 
     Real computeRhsAndNorm(DiscVectorPtr u);
 
@@ -100,6 +100,14 @@ class NewtonSolver
 
     // returns some kind of relative norm of delta_u
     Real gaussSeidelStep(DiscVectorPtr u);
+
+    Real gaussSeidelStepFirstRow(DiscVectorPtr u);
+
+    Real gaussSeidelStepOtherRows(DiscVectorPtr u);
+
+    void gaussSeidelComputeRhs(int iblock, DiscVectorPtr u, ArrayType<Real, 1>& rhs);
+
+    Real updateLinearSolution(const ArrayType<Real, 1>& delta_u_tmp, ArrayType<Real, 1>& delta_u);
 
     void computeLinearResidual(DiscVectorPtr u_vec);
 
@@ -110,7 +118,8 @@ class NewtonSolver
     AuxiliaryEquationsJacobiansPtr m_aux_jacs;
     DiscVectorPtr m_f;
     DiscVectorPtr m_delta_u;
-    AuxiliaryEquationsStoragePtr m_aux_u;
+
+    // linear solver temporaries
     AuxiliaryEquationsStoragePtr m_aux_delta_u;
     AuxiliaryEquationsStoragePtr m_aux_rhs;
 };
