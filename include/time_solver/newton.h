@@ -57,11 +57,7 @@ class NewtonFunction
     // This function facilitates using the same NewtonFunction object for
     // repeated solves
     virtual void resetForNewSolve() = 0;
-  
-    //TODO: change the API: the completeTimestep function should be the only
-    //      function that changes the state u at which the function and
-    //      jacobian are evaluated.  Remove u as an explicit argument of
-    //      computeFunc, computeJacobian
+
 
     // compute f(u), overwriting f.  Computes norm of f if required
     virtual Real computeFunc(const DiscVectorPtr u, bool compute_norm, DiscVectorPtr f) = 0;
@@ -70,8 +66,6 @@ class NewtonFunction
     virtual void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) = 0;
 
     virtual NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() = 0;
-
-    //virtual void updateDependentQuantities(DiscVectorPtr u) {};
 
     // create an empty vector
     virtual DiscVectorPtr createVector() = 0;

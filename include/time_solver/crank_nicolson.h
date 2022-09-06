@@ -16,8 +16,6 @@
 
 namespace timesolvers {
 
-
-
 struct TimeStepperOpts
 {
   Real t_start = 0;

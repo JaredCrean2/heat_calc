@@ -222,6 +222,63 @@ void SolarRadiationBC::getValue_rev(const Index face, const Real t, const Real* 
     sol_vals_bar[i] = 0;
 }
 
+//-----------------------------------------------------------------------------
+// SimpleConvectionBC
+void SimpleConvectionBC::getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+    auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+    for (int d=0; d < 3; ++d)
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * m_heat_transfer_coeff * (m_air_temp - sol_vals[i]);
+  }
+}
+
+void SimpleConvectionBC::getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+    auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+    for (int d=0; d < 3; ++d)
+      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = -unit_normal[d] * m_heat_transfer_coeff;
+  }
+}
+
+void SimpleConvectionBC::getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+    auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+    for (int d=0; d < 3; ++d)
+    {
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * m_heat_transfer_coeff * (m_air_temp - sol_vals[i]);
+      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * m_heat_transfer_coeff;
+    }
+  }
+}
+
+void SimpleConvectionBC::getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar)
+{
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+    auto unit_normal = normal / std::sqrt(dot(normal, normal));
+    sol_vals_bar[i] = 0;
+
+    for (int d=0; d < 3; ++d)
+    {
+      //flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * m_heat_transfer_coeff * (m_air_temp - sol_vals[i]);
+      sol_vals_bar[i] += -unit_normal[d] * m_heat_transfer_coeff * flux_vals_bar[d * m_surf->getNumQuadPtsPerFace() + i];
+    }
+  }
+}
+
 
 
 }  // namespace
