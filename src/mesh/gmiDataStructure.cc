@@ -119,6 +119,7 @@ struct gmi_set* gmi_adjacent(struct gmi_model* m, struct gmi_ent* e, int dim)
 {
   GMITopoModel* model = reinterpret_cast<GMITopoModel*>(m);
   GMIEntity* ent = reinterpret_cast<GMIEntity*>(e);
+
   int e_dim = ent->getDim();
   if (dim == e_dim + 1)
   {

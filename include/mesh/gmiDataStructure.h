@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <algorithm>
+#include "error_handling.h"
 #include "gmi.h"
 
 namespace mesh_gmi {
@@ -29,6 +30,7 @@ class GMIEntity
 
     void addUpward(const GMIEntity& entity) 
     {
+      assertAlways(entity.getDim() == getDim() + 1, "Upward adjacency must have my dimension + 1");
       auto idx = entity.getIndex();
       auto it = std::find(m_upward_indices.begin(), m_upward_indices.end(), idx);
       if (it != m_upward_indices.end())

@@ -50,7 +50,7 @@ namespace {
         heat        = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, environment_interface, air_temp_updator);
         u_vec       = makeDiscVector(disc);
         Real surface_temp = 320;
-        Real initial_wall_temp = 320; // 310;
+        Real initial_wall_temp = 320;  // 310
 
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
           heat->addVolumeGroupParams(params);
@@ -142,8 +142,8 @@ TEST_F(HotWallTester, CaseOne)
 
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
-  opts.delta_t = 6; 
-  opts.t_end   = 10*opts.delta_t;
+  opts.delta_t = 120; 
+  opts.t_end   = 100*opts.delta_t;
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
   opts.nonlinear_abs_tol = 1e-10;
@@ -158,11 +158,15 @@ TEST_F(HotWallTester, CaseOne)
   setSolution(env_interface, air_updator);
   heat->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
 
-  //mesh->getFieldDataManager().attachVector(u_vec, "solution");
+  mesh->getFieldDataManager().attachVector(u_vec, "solution");
   //mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
   timesolvers::CrankNicolson crank(heat, u_vec, opts);
   crank.solve();
 
-  std::cout << "final air temperature = " << heat->getAuxEquations()->getBlockSolution(1)[0] << std::endl;
+  Real air_temp = heat->getAuxEquations()->getBlockSolution(1)[0];
+  std::cout << "final air temperature = " << air_temp << std::endl;
+
+  EXPECT_GE(air_temp, 319);
+  EXPECT_LE(air_temp, 321);
 }

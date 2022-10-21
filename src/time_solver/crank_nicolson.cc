@@ -39,6 +39,9 @@ void CrankNicolson::solve()
   {
     advanceTimestep(t + m_opts.delta_t, m_opts.delta_t);
     t += m_opts.delta_t;
+
+    m_physics_model->getDiscretization()->getMesh()->writeVtkFiles(std::string("mesh") + std::to_string(i));
+
   }
 
   Real delta_t_final = finalStepSize();

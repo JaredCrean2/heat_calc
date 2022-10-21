@@ -93,7 +93,7 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
     Real delta_u_relative_norm = gaussSeidelStep(u);
 
     //computeLinearResidual(u);
-    //std::cout << "relative norm = " << delta_u_relative_norm << std::endl;
+    std::cout << "relative norm = " << delta_u_relative_norm << std::endl;
 
     if (i > 0 && delta_u_relative_norm < m_opts.linear_delta_u_tol)
       break;
