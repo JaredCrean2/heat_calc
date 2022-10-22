@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "mesh/mesh_geometry_multi.h"
+#include "mesh/mesh_generator_multi_block.h"
 
 namespace {
 

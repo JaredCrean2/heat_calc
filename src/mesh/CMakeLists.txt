@@ -2,6 +2,9 @@ message("Processing mesh directory")
 
 add_library(mesh mesh_generator.cc
                  mesh_generator_multi.cc
+                 mesh_geometry_multi.cc
+                 mesh_block.cc
+                 mesh_generator_multi_block.cc
                  mesh_helper.cc
                  mesh.cc
                  apf_data.cc
