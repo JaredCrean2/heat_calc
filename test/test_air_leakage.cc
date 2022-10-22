@@ -13,5 +13,5 @@ TEST(AirLeakageNatural, Value)
 
   Heat::AirLeakageModelPressure model(ach50, expected_pressure, volume, cp, rho);
 
-  EXPECT_EQ(model.computeAirLeakagePower(t_interior, t_exterior), (t_interior - t_exterior) * (expected_pressure/50) * ach50 * volume * rho * cp / 3600);
+  EXPECT_NEAR(model.computeAirLeakagePower(t_interior, t_exterior), (t_interior - t_exterior) * (expected_pressure/50) * ach50 * volume * rho * cp / 3600, 1e-13);
 }

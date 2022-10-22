@@ -482,7 +482,7 @@ class MeshBlock
 
   void createEdges()
     {
-      std::cout << "\nMaking x direction edges" << std::endl;
+      //std::cout << "\nMaking x direction edges" << std::endl;
       apf::MeshEntity* verts[2];
       for (int i=0; i < m_meshspec.nx; ++i)
         for (int j=0; j < m_meshspec.ny+1; ++j)
@@ -499,7 +499,7 @@ class MeshBlock
             m_mesh->createEntity(apf::Mesh::EDGE, me, verts);
           }
 
-      std::cout << "\nMaking y direction edges" << std::endl;
+      //std::cout << "\nMaking y direction edges" << std::endl;
       for (int i=0; i < m_meshspec.nx+1; ++i)
         for (int j=0; j < m_meshspec.ny; ++j)
           for (int k=0; k < m_meshspec.nz+1; ++k)
@@ -517,7 +517,7 @@ class MeshBlock
             m_mesh->createEntity(apf::Mesh::EDGE, me, verts);
           }
 
-      std::cout << "\nMaking z direction edges" << std::endl;
+      //std::cout << "\nMaking z direction edges" << std::endl;
       for (int i=0; i < m_meshspec.nx+1; ++i)
         for (int j=0; j < m_meshspec.ny+1; ++j)
           for (int k=0; k < m_meshspec.nz; ++k)
@@ -669,7 +669,7 @@ class MeshBlock
     void createFaces()
     {
       apf::MeshEntity* verts[4];
-      std::cout << "\ncreating xz faces" << std::endl;
+      //std::cout << "\ncreating xz faces" << std::endl;
       for (int i=0; i < m_meshspec.nx; ++i)
         for (int j=0; j < m_meshspec.ny+1; ++j)
           for (int k=0; k < m_meshspec.nz; ++k)
@@ -688,7 +688,7 @@ class MeshBlock
             apf::buildElement(m_mesh, me, apf::Mesh::QUAD, verts);
           }
 
-      std::cout << "\ncreating yz faces" << std::endl;
+      //std::cout << "\ncreating yz faces" << std::endl;
       for (int i=0; i < m_meshspec.nx+1; ++i)
         for (int j=0; j < m_meshspec.ny; ++j)
           for (int k=0; k < m_meshspec.nz; ++k)
@@ -712,7 +712,7 @@ class MeshBlock
             apf::buildElement(m_mesh, me, apf::Mesh::QUAD, verts);
           }
 
-      std::cout << "\ncreating xy faces" << std::endl;
+      //std::cout << "\ncreating xy faces" << std::endl;
       for (int i=0; i < m_meshspec.nx; ++i)
         for (int j=0; j < m_meshspec.ny; ++j)
           for (int k=0; k < m_meshspec.nz+1; ++k)
@@ -783,7 +783,7 @@ class MeshBlock
 
     void createElements()
     {
-      std::cout << "\nCreating elements" << std::endl;
+      //std::cout << "\nCreating elements" << std::endl;
       apf::MeshEntity* verts[8];
       apf::ModelEntity* me = m_mesh->findModelEntity(3, m_block_geometry->getGeometricEntity(LocalGeometricEntity(3, 0)));
       for (int i=0; i < m_meshspec.nx; ++i)
@@ -908,6 +908,33 @@ class MeshGeneratorMultiBlock
     }
 
     std::shared_ptr<mesh_gmi::GMITopo> getGmiTopo() { return m_gmi_topo; }
+
+    int getSurfaceGeometricId(int i, int j, int k, int face)
+    {
+      auto block = getGeometryBlock(i, j, k);
+      return block->getGeometricEntity(LocalGeometricEntity(2, face));
+    }
+
+    int getVolumeGeometricId(int i, int j, int k)
+    {
+      auto block = getGeometryBlock(i, j, k);
+      return block->getGeometricEntity(LocalGeometricEntity(3, 0));
+    }
+
+    // indices are in the "middle block" coordinate system: the middle block has
+    // indices (0, 0, 0)
+    std::shared_ptr<BlockGeometry> getGeometryBlock(int i, int j, int k)
+    {
+      assert(i >= m_meshspec.numel_minusx.size() && i <= m_meshspec.numel_plusx.size());
+      assert(j >= m_meshspec.numel_minusy.size() && j <= m_meshspec.numel_plusy.size());
+      assert(k >= m_meshspec.numel_minusz.size() && k <= m_meshspec.numel_plusz.size());
+
+      int iprime = i + m_meshspec.numel_minusx.size();
+      int jprime = j + m_meshspec.numel_minusy.size();
+      int kprime = k + m_meshspec.numel_minusz.size();
+
+      return m_geometry_blocks[iprime][jprime][kprime];
+    }
 
   private:
 
