@@ -174,7 +174,7 @@ void printArray(DiscVectorPtr vec)
         std::string coord_str = std::string("coords = ") + std::to_string(sol_coords[j][0]) + ", " + 
                                 std::to_string(sol_coords[j][1]) + ", " + std::to_string(sol_coords[j][2]) + ", ";
         int nspaces = std::max(40 - coord_str.size(), size_t(1));
-        std::string space_str(nspaces, ' ');
+        std::string space_str(std::max(nspaces, 1), ' ');
         std::cout << "el " << el << " " << coord_str << space_str << "arr(" << el << ", " << j << ") = " << arr_i[el][j] << std::endl;
 
         val_sum += arr_i[el][j];

@@ -64,8 +64,17 @@ target_include_directories(heat_calc PUBLIC
                           "${PROJECT_BINARY_DIR}"
                           "${PROJECT_SOURCE_DIR}/include"
                           )
-
 target_link_libraries(heat_calc PUBLIC heat_lib)
+
+
+add_executable(simple_house simple_house.cc)
+
+target_include_directories(simple_house PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          "${PROJECT_SOURCE_DIR}/include"
+                          )
+target_link_libraries(simple_house PUBLIC heat_lib)
+
 
 
 #add_executable(gauss_seidel gauss_seidel.cc)

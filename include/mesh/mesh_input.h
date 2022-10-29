@@ -152,7 +152,26 @@ class MeshEntityGroupSpec
     bool m_is_dirichlet;
     std::string m_name = "";
     int m_idx = -1;
+
+  friend std::ostream& operator<<(std::ostream& os, const MeshEntityGroupSpec& spec);
+
+
 };
+
+inline std::ostream& operator<<(std::ostream& os, const MeshEntityGroupSpec& spec)
+{
+  for (int i=0; i < spec.m_model_entities.size(); ++i)
+  {
+    os << spec.m_model_entities[i];
+    if (i <= spec.m_parent_entities.size())
+      os << ", with parent " << spec.m_parent_entities[i];
+
+    if (i < int(spec.m_model_entities.size()) - 1)
+      os << std::endl;
+  }
+  
+  return os;
+}
 
 } // namespace
 

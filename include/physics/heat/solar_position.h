@@ -44,9 +44,10 @@ DecTimeDist computeDecTimeDist(Real julian_day);
 // time_hours is the time in hours since midnight
 // time_zone is the integer identifying the time zone.
 //   Ex. Eastern time is GMT - 5.  time_zone is 5
-// longtiude: longtiude (in radians)
+// longtiude: longtiude (in radians), west is positive
 Real computeHourAngle(Real time_hours, const DecTimeDist& dec_time_dist, int time_zone, Real longitude);
 
+// latitude: west is positive
 DirectionCosines computeDirectionCosines(const DecTimeDist& dec_time_dist, Real hour_angle, Real latitude);
 
 DirectionCosines computeDirectionCosines(int julian_day, int time_hours, int time_zone, Real longitude, Real latitude);

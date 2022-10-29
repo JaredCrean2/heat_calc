@@ -5,8 +5,6 @@
 
 namespace Mesh {
 
-
-
 struct MultiBlockMeshSpec
 {
   MeshSpec middle_block;  // Note: this is required, even if the block is not actually
@@ -42,7 +40,6 @@ class MeshGeneratorMultiBlock
   public:
     MeshGeneratorMultiBlock(MultiBlockMeshSpec meshspec);
 
-
     apf::Mesh2* generate();
 
     std::shared_ptr<mesh_gmi::GMITopo> getGmiTopo();
@@ -67,7 +64,6 @@ class MeshGeneratorMultiBlock
 
     void createGeometryBlocks();
 
-
     void createMeshBlocks();
 
     std::vector<std::shared_ptr<BlockGeometry>> getSurroundingGeometryBlocks(int i, int j, int k);
@@ -83,6 +79,7 @@ class MeshGeneratorMultiBlock
     std::array<std::vector<Real>, 3> m_thicknesses;
     std::array<std::vector<int>, 3> m_numels;
     std::array<Real, 3> m_lower_corner_coords;
+    std::array<int, 3> m_middle_block_indices;
 
     std::shared_ptr<mesh_gmi::GMITopo> m_gmi_topo;
     gmi_model* m_gmi_model;

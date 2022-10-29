@@ -82,9 +82,9 @@ int MeshGeneratorMultiBlock::getVolumeGeometricId(int i, int j, int k)
 // indices (0, 0, 0)
 std::shared_ptr<BlockGeometry> MeshGeneratorMultiBlock::getGeometryBlock(int i, int j, int k)
 {
-  assert(i >= m_meshspec.numel_minusx.size() && i <= m_meshspec.numel_plusx.size());
-  assert(j >= m_meshspec.numel_minusy.size() && j <= m_meshspec.numel_plusy.size());
-  assert(k >= m_meshspec.numel_minusz.size() && k <= m_meshspec.numel_plusz.size());
+  assert(i >= -int(m_meshspec.numel_minusx.size()) && i <= int(m_meshspec.numel_plusx.size()));
+  assert(j >= -int(m_meshspec.numel_minusy.size()) && j <= int(m_meshspec.numel_plusy.size()));
+  assert(k >= -int(m_meshspec.numel_minusz.size()) && k <= int(m_meshspec.numel_plusz.size()));
 
   int iprime = i + m_meshspec.numel_minusx.size();
   int jprime = j + m_meshspec.numel_minusy.size();
@@ -109,6 +109,10 @@ void MeshGeneratorMultiBlock::reformatBlockData()
   m_numels[0] = collectValues(m_meshspec.numel_minusx, m_meshspec.middle_block.nx, m_meshspec.numel_plusx);
   m_numels[1] = collectValues(m_meshspec.numel_minusy, m_meshspec.middle_block.ny, m_meshspec.numel_plusy);
   m_numels[2] = collectValues(m_meshspec.numel_minusz, m_meshspec.middle_block.nz, m_meshspec.numel_plusz);
+
+  m_middle_block_indices[0] = m_meshspec.numel_minusx.size();
+  m_middle_block_indices[1] = m_meshspec.numel_minusy.size();
+  m_middle_block_indices[2] = m_meshspec.numel_minusz.size();
 }
 
 void MeshGeneratorMultiBlock::computeBlockMeshSpecs()
@@ -186,6 +190,10 @@ void MeshGeneratorMultiBlock::createGeometryBlocks()
     for (int j=0; j < m_numels[1].size(); ++j)
       for (int k=0; k < m_numels[2].size(); ++k)
       {
+        if (i == m_middle_block_indices[0] && j == m_middle_block_indices[1] && k == m_middle_block_indices[2] && 
+            !m_meshspec.create_middle_block)
+          continue;
+
         std::cout << "\ncreating geometric block " << i << ", " << j << ", " << k << std::endl;
         auto surrounding_blocks = getSurroundingGeometryBlocks(i, j, k);
         m_geometry_blocks[i][j][k] = std::make_shared<BlockGeometry>(surrounding_blocks, m_geometric_id_gen, m_gmi_topo);
@@ -200,6 +208,10 @@ void MeshGeneratorMultiBlock::createMeshBlocks()
     for (int j=0; j < m_numels[1].size(); ++j)
       for (int k=0; k < m_numels[2].size(); ++k)
       {
+        if (i == m_middle_block_indices[0] && j == m_middle_block_indices[1] && k == m_middle_block_indices[2] && 
+            !m_meshspec.create_middle_block)
+          continue;
+
         std::cout << "\ncreating mesh block " << i << ", " << j << ", " << k << std::endl;
 
         auto surrounding_blocks = getSurroundingMeshBlocks(i, j, k);

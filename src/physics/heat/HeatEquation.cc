@@ -24,6 +24,7 @@ namespace Heat {
 
 void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 {
+  std::cout << "\ncomputing heat equation rhs" << std::endl;
   rhs->set(0);
   if (!(u->isArrayCurrent()))
   {

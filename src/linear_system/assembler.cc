@@ -58,10 +58,10 @@ void Assembler::assembleFace(int surf_disc_idx, int facenum, ArrayType<Real, 2>&
   for (int i=0; i < surf_disc->getNumSolPtsPerFace(); ++i)
   {
     auto dof = dofs[face_spec.el_group][ face_nodemap[face_spec.face][i] ];
-    if (!m_dof_nums->isDofActive(dof))
-      dof = -1;
-
-    m_face_dofs[i] = m_local_dof_to_global[dof];
+    if (m_dof_nums->isDofActive(dof))
+      m_face_dofs[i] = m_local_dof_to_global[dof];
+    else
+      m_face_dofs[i] = -1;
 
     for (int j=0; j < surf_disc->getNumSolPtsPerFace(); ++j)
       jac[i][j] *= m_alpha;

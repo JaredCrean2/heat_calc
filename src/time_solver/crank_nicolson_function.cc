@@ -32,6 +32,8 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
   assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
 
+  //std::cout << "evaluating CN function" << std::endl;
+
   f_np1->set(0);
   m_physics_model->computeRhs(u_np1, m_tnp1, f_np1);
   if (!f_np1->isVectorCurrent())
@@ -62,7 +64,11 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
   auto& f_n_vec      = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
   for (int i=0; i < f_np1->getNumDofs(); ++i)
+  {
+    //std::cout << "i = " << i << ", delta_t_inv = " << delta_t_inv << ", Mdelta_u = "
+    //         << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_vec[i] << ", f_n_vec = " << f_n_vec[i] << std::endl;
     f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1_vec[i] - 0.5*f_n_vec[i];
+  }
   f_np1->markVectorModified();
 
   Real norm = 0, norm_global = 0;

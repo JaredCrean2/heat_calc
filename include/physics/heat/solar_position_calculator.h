@@ -9,6 +9,9 @@ namespace Heat {
 class SolarPositionCalculator
 {
   public:
+    // time_zone is the integer identifying the time zone.
+    //   Ex. Eastern time is GMT - 5.  time_zone is 5
+   // longtiude and latitude are in radians, north and west are positive 
     SolarPositionCalculator(Real julian_date_start, int time_zone, Real longitude, Real latitude) :
     m_julian_date_start(julian_date_start),
       m_time_zone(time_zone),

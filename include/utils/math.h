@@ -72,6 +72,16 @@ std::array<T, N> operator*(const std::array<T, N>& a, const T2& b)
   return c;
 }
 
+template <typename T,  size_t N, typename T2>
+std::array<T, N> operator*(const T2& b, const std::array<T, N>& a)
+{
+  std::array<T, N> c;
+  for (int i=0; i < N; ++i)
+    c[i] = b * a[i];
+
+  return c;
+}
+
 template <typename T,  size_t N>
 std::array<T, N> operator/(const std::array<T, N>& a, const std::array<T, N>& b)
 {

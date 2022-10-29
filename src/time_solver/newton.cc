@@ -34,12 +34,14 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, NewtonOpts opts /*Real abs_tol
 
     std::cout << "after solveStep" << std::endl;
 
-    Real norm = computeRhsAndNorm(u);
+    norm = computeRhsAndNorm(u);
+    std::cout << "newton iteration " << i << " norm = " << norm << std::endl;
     
     if (norm < opts.nonlinear_abs_tol || norm/norm0 < opts.nonlinear_rel_tol)
       return NewtonResult(norm0, norm, i, opts);
   }
 
+  std::cout << "norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
   return NewtonResult(norm0, norm, opts.nonlinear_itermax + 1, opts);
 }
 
@@ -157,6 +159,9 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
   Real delta_u_relative_norm_first = gaussSeidelStepFirstRow(u);
 
   Real delta_u_relative_norm_second = gaussSeidelStepOtherRows(u);
+
+  std::cout << "delta_u_relative_norm_first = " << delta_u_relative_norm_first << std::endl;
+  std::cout << "delta_u_relative_norm_second = " << delta_u_relative_norm_second << std::endl;
 
   return std::max(delta_u_relative_norm_first, delta_u_relative_norm_second);
 

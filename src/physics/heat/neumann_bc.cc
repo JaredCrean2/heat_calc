@@ -7,8 +7,13 @@ namespace Heat {
 void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs)
 {
   const auto& neumann_bcs = physics.getNeumannBCs();
+  //int i=0;
   for (auto& bc : neumann_bcs)
+  {
+    //std::cout << "doing BC " << i << std::endl;
     computeNeumannBC(bc, u, t, rhs);
+    //i++;
+  }
 
   rhs->markArrayModified();
 }
@@ -31,6 +36,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
 
   for (int face=0; face < surf->getNumFaces(); ++face)
   {
+    //std::cout << "face = " << face << std::endl;
     auto& face_spec = surf->face_group.faces[face];
     auto& u_arr = u->getArray(face_spec.vol_group);
     auto& res_arr = rhs->getArray(face_spec.vol_group);
@@ -41,6 +47,9 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
     surf->interp_vsq_flat[face_spec.face].interpolateVals(u_el, u_quad);
 
     bc->getValue(face, t, u_quad.data(), flux_vals.data());
+    //for (int k=0; k < surf->getNumQuadPtsPerFace(); ++k)
+    //  for (int d=0; d < 3; ++d)
+    //    std::cout << "k = " << k << ", d = " << d << ", flux = " << flux_vals[k + surf->getNumQuadPtsPerFace()*d] << std::endl;
 
     for (int ki=0; ki < quad.getNumPoints(); ++ki)
       for (int kj=0; kj < quad.getNumPoints(); ++kj)
@@ -49,7 +58,12 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
         Real weight = quad.getWeight(ki) * quad.getWeight(kj);
         Real flux_normal = 0;
         for (int d=0; d < 3; ++d)
+        {
+          if (std::isnan(flux_vals[k + surf->getNumQuadPtsPerFace()*d]))
+            throw std::runtime_error("found nan");
+
           flux_normal += surf->normals[face][k][d] * flux_vals[k + surf->getNumQuadPtsPerFace() * d];
+        }
 
         Real val = weight * flux_normal;
         for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)
