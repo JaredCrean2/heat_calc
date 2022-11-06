@@ -35,11 +35,13 @@ void CrankNicolson::solve()
 {
   int nsteps = numWholeSteps();
   Real t = m_opts.t_start;
+  m_physics_model->runPostProcessors(0, m_u, t);
   for (int i=0; i < nsteps; ++i)
   {
     advanceTimestep(t + m_opts.delta_t, m_opts.delta_t);
     t += m_opts.delta_t;
 
+    m_physics_model->runPostProcessors(i, m_u, t);
     m_physics_model->getDiscretization()->getMesh()->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
   }
@@ -48,7 +50,11 @@ void CrankNicolson::solve()
   // Need to be careful with this: the Newton problem has a term
   // (u_np1 - u_n)/delta_t, so we don't want delta_t too small
   if (delta_t_final > 1e-10)
+  {
     advanceTimestep(t + delta_t_final, delta_t_final);
+    t += delta_t_final;
+    m_physics_model->runPostProcessors(nsteps, m_u, t);
+  }
 }
 
 
