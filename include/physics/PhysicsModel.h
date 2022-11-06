@@ -9,6 +9,7 @@
 #include "linear_system/assembler.h"
 #include "linear_system/large_matrix.h"
 #include "AuxiliaryEquations.h"
+#include "post_processor_manager.h"
 
 
 
@@ -58,13 +59,15 @@ class PhysicsModel
     bool hasSourceTerm(size_t idx) const { return idx < m_source_terms.size(); }
 
     virtual AuxiliaryEquationsPtr getAuxEquations() { return m_aux_equations_none; }
-/*
-    virtual void updateDependentQuantities(DiscVectorPtr u, Real t) {};
 
-    // mark the timestep complete.  u is the solution at the end of the
-    // timestep, which has time t.
-    virtual void completeTimestep(DiscVectorPtr u, Real t) {};
-*/    
+    void setProcessors(physics::PostProcessorManagerPtr postprocs) { m_postprocessors = postprocs; }
+
+    void runPostProcessors(int timestep, DiscVectorPtr u, double t)
+    {
+      if (m_postprocessors)
+        m_postprocessors->runPostProcessors(timestep, u, t);
+    }
+
   protected:
     virtual void checkInitialization();
 
@@ -75,6 +78,7 @@ class PhysicsModel
     std::vector<NeumannBCPtr> m_neumann_bcs;
     std::vector<SourceTermPtr> m_source_terms;
     AuxiliaryEquationsPtr m_aux_equations_none;
+    physics::PostProcessorManagerPtr m_postprocessors;
 };
 
 #endif
