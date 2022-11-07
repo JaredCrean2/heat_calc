@@ -60,7 +60,9 @@ class PhysicsModel
 
     virtual AuxiliaryEquationsPtr getAuxEquations() { return m_aux_equations_none; }
 
-    void setProcessors(physics::PostProcessorManagerPtr postprocs) { m_postprocessors = postprocs; }
+    void setPostProcessors(physics::PostProcessorManagerPtr postprocs) { m_postprocessors = postprocs; }
+
+    physics::PostProcessorManagerPtr getPostProcessors() { return m_postprocessors; }
 
     void runPostProcessors(int timestep, DiscVectorPtr u, double t)
     {

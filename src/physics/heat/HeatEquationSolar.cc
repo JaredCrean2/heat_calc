@@ -77,6 +77,11 @@ AuxiliaryEquationsPtr HeatEquationSolar::getAuxEquations()
   return m_aux_equations; 
 }
 
+AuxiliaryEquationsSolarPtr HeatEquationSolar::getAuxEquationsSolar()
+{ 
+  return m_aux_equations; 
+}
+
 
 void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real t, Real x, ArrayType<Real, 1>& b)
 {

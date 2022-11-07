@@ -35,7 +35,10 @@ void CrankNicolson::solve()
 {
   int nsteps = numWholeSteps();
   Real t = m_opts.t_start;
-  m_physics_model->runPostProcessors(0, m_u, t);
+
+  // this is unfortunate: it would be useful to have the initial state in the log
+  // file, but some of the BCs haven't been initialized yet
+  //m_physics_model->runPostProcessors(0, m_u, t);
   for (int i=0; i < nsteps; ++i)
   {
     advanceTimestep(t + m_opts.delta_t, m_opts.delta_t);

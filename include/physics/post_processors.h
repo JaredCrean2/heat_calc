@@ -48,8 +48,6 @@ class PostProcessorSurfaceIntegralAverage : public PostProcessorBase
         total_area += integrateFaceScalar(m_surf, i, vals);
       }
 
-      std::cout << "total_val = " << total_val << ", total_area = " << total_area << std::endl;
-
       return {total_val / total_area};
     }
 

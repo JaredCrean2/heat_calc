@@ -35,13 +35,13 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, NewtonOpts opts /*Real abs_tol
     std::cout << "after solveStep" << std::endl;
 
     norm = computeRhsAndNorm(u);
-    std::cout << "newton iteration " << i << " norm = " << norm << std::endl;
+    std::cout << "newton iteration " << i << " norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
     
     if (norm < opts.nonlinear_abs_tol || norm/norm0 < opts.nonlinear_rel_tol)
       return NewtonResult(norm0, norm, i, opts);
   }
 
-  std::cout << "norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
+  //std::cout << "norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
   return NewtonResult(norm0, norm, opts.nonlinear_itermax + 1, opts);
 }
 
@@ -58,12 +58,12 @@ void NewtonSolver::setupForSolve(DiscVectorPtr u, NewtonOpts opts)
 
 Real NewtonSolver::computeRhsAndNorm(DiscVectorPtr u)
 {
-  std::cout << "computing rhs and norm" << std::endl;
+  //std::cout << "computing rhs and norm" << std::endl;
   Real norm = m_func->computeFunc(u, true, m_f);
   Real norm_squared = norm*norm;
 
-  std::cout << "block 0 norm = " << norm << std::endl;
-  std::cout << "after block 0, norm = " << std::sqrt(norm_squared) << std::endl;
+  //std::cout << "block 0 norm = " << norm << std::endl;
+  //std::cout << "after block 0, norm = " << std::sqrt(norm_squared) << std::endl;
 
 
   auto aux_eqns = m_func->getAuxiliaryEquations();
@@ -72,8 +72,8 @@ Real NewtonSolver::computeRhsAndNorm(DiscVectorPtr u)
     auto& rhs = m_aux_rhs->getVector(iblock);
     norm = aux_eqns->computeRhs(iblock, u, true, rhs);
     norm_squared += norm*norm;
-    std::cout << "block " << iblock << " norm = " << norm << std::endl;
-    std::cout << "after " << iblock << " block, norm = " << std::sqrt(norm_squared) << std::endl;
+    //std::cout << "block " << iblock << " norm = " << norm << std::endl;
+    //std::cout << "after " << iblock << " block, norm = " << std::sqrt(norm_squared) << std::endl;
   }
 
   return std::sqrt(norm_squared);
@@ -159,9 +159,6 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
   Real delta_u_relative_norm_first = gaussSeidelStepFirstRow(u);
 
   Real delta_u_relative_norm_second = gaussSeidelStepOtherRows(u);
-
-  std::cout << "delta_u_relative_norm_first = " << delta_u_relative_norm_first << std::endl;
-  std::cout << "delta_u_relative_norm_second = " << delta_u_relative_norm_second << std::endl;
 
   return std::max(delta_u_relative_norm_first, delta_u_relative_norm_second);
 
@@ -322,19 +319,19 @@ void NewtonSolver::computeLinearResidual(DiscVectorPtr u_vec)
 
   for (int iblock=1; iblock < aux_eqns->getNumBlocks(); ++iblock)
   {
-    std::cout << "block " << iblock << " linear residual: " << std::endl;
+    //std::cout << "block " << iblock << " linear residual: " << std::endl;
     auto& aux_residual_i = aux_residual->getVector(iblock);
     for (int i=0; i < aux_residual_i.shape()[0]; ++i)
     {
-      std::cout << "dof " << i << " residual = " << aux_residual_i[i] << std::endl;
+      //std::cout << "dof " << i << " residual = " << aux_residual_i[i] << std::endl;
       residuals[iblock] += aux_residual_i[i]*aux_residual_i[i];
     }
 
     residuals[iblock] = std::sqrt(residuals[iblock]);
   }
 
-  for (int i=0; i < aux_eqns->getNumBlocks(); ++i)
-    std::cout << "block " << i << " linear residual norm = " << residuals[i] << std::endl;
+  //for (int i=0; i < aux_eqns->getNumBlocks(); ++i)
+  //  std::cout << "block " << i << " linear residual norm = " << residuals[i] << std::endl;
 
   computeJacobians(u_vec); // basically to factor the matrix again
 }

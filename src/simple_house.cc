@@ -12,10 +12,14 @@
 #include "physics/heat/air_leakage.h"
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/environment_interface.h"
+#include "physics/heat/post_processor_environment_data.h"
+#include "physics/heat/post_processor_interior.h"
 #include "physics/heat/solar_position.h"
 #include "physics/heat/solar_position_calculator.h"
 #include "physics/heat/interior_temperature_update.h"
 #include "physics/heat/window_conduction_model.h"
+#include "physics/post_processors.h"
+#include "physics/post_processor_scheduler.h"
 #include "time_solver/crank_nicolson.h"
 #include "utils/initialization.h"
 
@@ -326,6 +330,9 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
 {
   auto disc = heat_eqn->getDiscretization();
   heat_eqn->addDirichletBC(makeBottomBC(disc->getSurfDisc((0)), bottom_temp)); // TODO: currently using air temperature
+  auto postprocessors = heat_eqn->getPostProcessors();
+  std::vector<std::string> names = {"east_exterior_wall_flux", "north_exterior_wall_flux", 
+                                    "west_exterior_wall_flux", "south_exterior_wall_flux", "roof_flux"};
   for (int i=1; i <= 5; ++i)
   {
     auto surf = disc->getSurfDisc(i);
@@ -337,8 +344,61 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     // radient barrier emissivity", International Journal of Energy Research, 2000, 24:665
     Real emittance    = i < 5 ? 0.9 : 0.78;
     Real absorptivity = i < 5 ? 0.75 : 0.78;
-    heat_eqn->addNeumannBC(createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity), true);
+    auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity);
+    heat_eqn->addNeumannBC(bc, true);
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorBCFlux>(names[i-1], bc));
   }  
+}
+
+void setExteriorWallTempPostProcessors(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn)
+{
+  auto disc = heat_eqn->getDiscretization();
+  auto postprocessors = heat_eqn->getPostProcessors();
+
+  std::vector<std::string> names = {"east_exterior_wall_temp", "north_exterior_wall_temp", 
+                                    "west_exterior_wall_temp", "south_exterior_wall_temp", "roof_temp"};
+  for (int i=1; i <= 5; ++i)
+  {
+    auto surf = disc->getSurfDisc(i);
+    auto f = [](double val) { return val; };
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-1], f));
+  }  
+}
+
+
+void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn)
+{
+  auto disc = heat_eqn->getDiscretization();
+  std::array<Real, 3> vertical_vector = {0, 0, 1};
+  auto postprocessors = heat_eqn->getPostProcessors();
+  std::vector<std::string> names = {"floor_flux", "east_interior_wall_flux", "north_interior_wall_flux", 
+                                    "west_interior_wall_flux", "south_interior_wall_flux", "ceiling_flux"};
+  for (int i=6; i <= 11; ++i)
+  {
+    auto surf = disc->getSurfDisc(i);
+    int direction = i == 5 || i == 11 ? 3 : (i - 1) % 2;
+    Real surface_area = generator.computeExteriorSurfaceArea(direction);
+    Real perimeter    = generator.computeExteriorPerimeter(direction);
+
+    //TODO: need to account for solar heating of floor via windows
+    auto bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, 0, vertical_vector);
+    heat_eqn->addNeumannBC(bc, false);
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorBCFlux>(names[i-6], bc));
+  }  
+}
+
+void setInteriorWallTempPostProcessors(GeometryGenerator& generator,  std::shared_ptr<Heat::HeatEquationSolar> heat_eqn)
+{
+  auto disc = heat_eqn->getDiscretization();
+  auto postprocessors = heat_eqn->getPostProcessors();
+  std::vector<std::string> names = {"floor_average_temp", "east_interior_wall_temp", "north_interior_wall_temp", 
+                                    "west_interior_wall_temp", "south_interior_wall_temp", "ceiling_temp"};
+  for (int i=6; i <= 11; ++i)
+  {
+    auto surf = disc->getSurfDisc(i);
+    auto f = [](double val) { return val; };
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-6], f));
+  }
 }
 
 timesolvers::TimeStepperOpts getTimeStepperOpts()
@@ -362,24 +422,6 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
   opts.matrix_opts = matrix_opts;
 
   return opts;
-}
-
-
-void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn)
-{
-  auto disc = heat_eqn->getDiscretization();
-  std::array<Real, 3> vertical_vector = {0, 0, 1};
-  for (int i=6; i <= 11; ++i)
-  {
-    auto surf = disc->getSurfDisc(i);
-    int direction = i == 5 || i == 11 ? 3 : (i - 1) % 2;
-    Real surface_area = generator.computeExteriorSurfaceArea(direction);
-    Real perimeter    = generator.computeExteriorPerimeter(direction);
-
-    //TODO: need to account for solar heating of floor via windows
-    auto bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, 0, vertical_vector);
-    heat_eqn->addNeumannBC(bc, false);
-  }  
 }
 
 int main(int argc, char* argv[])
@@ -420,13 +462,21 @@ int main(int argc, char* argv[])
 
     auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator);
 
+    auto postprocessor_scheduler = std::make_shared<physics::PostProcessorScheduleFixedInterval>(1);
+    auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt");
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorInterior>(heat_eqn->getAuxEquationsSolar(), air_updator));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorEnvironmentData>(heat_eqn.get()));
+    heat_eqn->setPostProcessors(postprocessors);
+
     generator.createVolumeGroups(heat_eqn);
 
     // make exterior BCS
     setExteriorBCs(generator, heat_eqn, edata.air_temp);
+    setExteriorWallTempPostProcessors(generator, heat_eqn);
 
     // make interior BCS
     setInteriorBCs(generator, heat_eqn);
+    setInteriorWallTempPostProcessors(generator, heat_eqn);
 
     heat_eqn->initialize();
 

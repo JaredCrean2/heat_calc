@@ -47,6 +47,8 @@ class HeatEquationSolar : public HeatEquation
 
     AuxiliaryEquationsPtr getAuxEquations() override;
 
+    AuxiliaryEquationsSolarPtr getAuxEquationsSolar();
+
     bool isNeumannBCExterior(int i) const { return m_is_neumann_bc_exterior[i]; }
 
   private:

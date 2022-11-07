@@ -31,6 +31,8 @@ set(src_files EpwReader.cc
               physics/heat/basis_vals.cc
               physics/heat/AuxiliaryEquationsSolar.cc
               physics/heat/interior_temperature_update.cc
+              physics/heat/post_processor_interior.cc
+              physics/heat/post_processor_environment_data.cc
               linear_system/assembler.cc
               linear_system/bla_wrapper.cc
               linear_system/large_matrix.cc
