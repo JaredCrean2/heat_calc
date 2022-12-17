@@ -147,5 +147,23 @@ constexpr Real radiansToDegrees(Real radians)
   return radians * 180/ PI;
 }
 
+inline Real smoothAbs(Real x, Real delta)
+{
+  Real val1 = std::abs(x);
+  Real val2 = x*x/delta;
+  return val1 > delta ? val1 : val2;
+}
+
+inline Real smoothAbsDeriv(Real x, Real delta)
+{
+  double val1 = std::abs(x);
+  Real val1_deriv = x > 0 ? 1 : -1;
+
+  //Real val2 = x*x/delta;
+  Real val2_deriv = 2*x/delta;
+
+  return val1 > delta ? val1_deriv : val2_deriv;
+}
+
 
 #endif

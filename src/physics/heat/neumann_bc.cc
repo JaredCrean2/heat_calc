@@ -58,12 +58,7 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
         Real weight = quad.getWeight(ki) * quad.getWeight(kj);
         Real flux_normal = 0;
         for (int d=0; d < 3; ++d)
-        {
-          if (std::isnan(flux_vals[k + surf->getNumQuadPtsPerFace()*d]))
-            throw std::runtime_error("found nan");
-
           flux_normal += surf->normals[face][k][d] * flux_vals[k + surf->getNumQuadPtsPerFace() * d];
-        }
 
         Real val = weight * flux_normal;
         for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)
@@ -79,8 +74,10 @@ void computeNeumannBCJacobian(const HeatEquation& physics, DiscVectorPtr u, Real
 {
   const auto& neumann_bcs = physics.getNeumannBCs();
   for (auto& bc : neumann_bcs)
+  {
     if (bc->isNonlinear())
       computeNeumannBCJacobian(bc, u, t, assembler);
+  }
 }
 
 void computeNeumannBCJacobian(NeumannBCPtr bc, DiscVectorPtr u, Real t, linear_system::AssemblerPtr assembler)

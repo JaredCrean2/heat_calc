@@ -14,6 +14,8 @@ Real InteriorAirTemperatureUpdator::computeNetFlux(DiscVectorPtr sol_vec, Real i
   else
     m_hvac_flux = 0;
 
+  std::cout << "load_flux = " << load_flux << ", hvac flux = " << m_hvac_flux << std::endl;
+
   return load_flux + m_hvac_flux;
 }
 

@@ -51,11 +51,17 @@ Real TarpModel::computeHeatTransferCoeffDeriv_impl(Real delta_t, Real delta_t_do
   Real h_f = 2.537 * Wf * m_roughness_fac * std::sqrt(m_surface_perimeter * air_speed/m_surface_area);
   Real cos_eps = computeCosTiltAngle(unit_normal);
 
-  Real abs_delta_t = std::abs(delta_t);  
-  Real abs_delta_t_dot = delta_t > 0 ? delta_t_dot : -delta_t_dot;
+  Real abs_delta_t = smoothAbs(delta_t, 1e-6);
+  Real abs_delta_t_dot = smoothAbsDeriv(delta_t, 1e-6)*delta_t_dot;
+
 
   Real delta_t_one_third = std::pow(abs_delta_t, 1.0/3.0);
-  Real delta_t_one_third_dot = (1.0/3.0) * std::pow(abs_delta_t, -2.0/3.0) * abs_delta_t_dot;
+  Real delta_t_one_third_dot;
+  if (abs_delta_t == 0)
+    delta_t_one_third_dot = 0;
+  else
+    delta_t_one_third_dot = (1.0/3.0) * std::pow(abs_delta_t, -2.0/3.0) * abs_delta_t_dot;
+
 
   Real h_n = 0.0;
   h_n_dot = 0.0;

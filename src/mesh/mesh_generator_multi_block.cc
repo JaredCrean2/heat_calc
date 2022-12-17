@@ -194,7 +194,7 @@ void MeshGeneratorMultiBlock::createGeometryBlocks()
             !m_meshspec.create_middle_block)
           continue;
 
-        std::cout << "\ncreating geometric block " << i << ", " << j << ", " << k << std::endl;
+        //std::cout << "\ncreating geometric block " << i << ", " << j << ", " << k << std::endl;
         auto surrounding_blocks = getSurroundingGeometryBlocks(i, j, k);
         m_geometry_blocks[i][j][k] = std::make_shared<BlockGeometry>(surrounding_blocks, m_geometric_id_gen, m_gmi_topo);
       }
@@ -212,7 +212,7 @@ void MeshGeneratorMultiBlock::createMeshBlocks()
             !m_meshspec.create_middle_block)
           continue;
 
-        std::cout << "\ncreating mesh block " << i << ", " << j << ", " << k << std::endl;
+        //std::cout << "\ncreating mesh block " << i << ", " << j << ", " << k << std::endl;
 
         auto surrounding_blocks = getSurroundingMeshBlocks(i, j, k);
         m_mesh_blocks[i][j][k] = std::make_shared<MeshBlock>(m_mesh, m_meshspecs[i][j][k],

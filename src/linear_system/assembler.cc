@@ -40,7 +40,13 @@ void Assembler::assembleVolume(int vol_disc_idx, int elnum, ArrayType<Real, 2>& 
     m_vol_dofs[i] = dof;
 
     for (unsigned int j=0; j < dofs.shape()[1]; ++j)
+    {
+//#ifndef NDEBUG
+      if (std::isinf(jac[i][j]) || std::isnan(jac[i][j]))
+        throw std::runtime_error("attempting to assemble inf of nan");
+//#endif
       jac[i][j] *= m_alpha;
+    }
   }
 
   m_matrix->assembleValues(m_vol_dofs, jac);
@@ -64,7 +70,13 @@ void Assembler::assembleFace(int surf_disc_idx, int facenum, ArrayType<Real, 2>&
       m_face_dofs[i] = -1;
 
     for (int j=0; j < surf_disc->getNumSolPtsPerFace(); ++j)
+    {
+//#ifndef NDEBUG
+      if (std::isinf(jac[i][j]) || std::isnan(jac[i][j]))
+        throw std::runtime_error("attempting to assemble inf of nan");
+//#endif
       jac[i][j] *= m_alpha;
+    }
   }
 
   m_matrix->assembleValues(m_face_dofs, jac);

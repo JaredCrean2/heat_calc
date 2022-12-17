@@ -32,8 +32,6 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, NewtonOpts opts /*Real abs_tol
     std::cout << "\nnewton iteration " << i << std::endl;
     solveStep(u);
 
-    std::cout << "after solveStep" << std::endl;
-
     norm = computeRhsAndNorm(u);
     std::cout << "newton iteration " << i << " norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
     

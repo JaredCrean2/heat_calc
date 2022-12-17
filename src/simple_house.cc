@@ -238,7 +238,7 @@ class GeometryGenerator
           bc_groups[1].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, m_yrange[0], k, 1)),
                                       Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, m_yrange[0], k)));
           bc_groups[3].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, m_yrange[1], k, 3)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, m_yrange[0], k)));
+                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, m_yrange[1], k)));
         }    
 
       for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
@@ -405,7 +405,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 24*60*60;  // 1 day
+  opts.t_end   = 2*60*60; // 24*60*60;  // 1 day
   opts.delta_t = 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-6;
@@ -456,11 +456,14 @@ int main(int argc, char* argv[])
     // air properties from 6000 ft altitude
     Real interior_air_min_temp = 293.15;
     Real interior_air_max_temp = 297.039;
+    Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
     auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(interior_air_min_temp, interior_air_max_temp,
                                                     air_rho * air_cp, generator.computeInteriorVolume(),  
                                                     air_leakage, air_ventilation, interior_loads, window_model, hvac_restore_time);
 
     auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator);
+    std::cout << "initial air temp = " << initial_air_temp << std::endl;
+    heat_eqn->getAuxEquations()->getBlockSolution(1)[0] = 295.0945; //initial_air_temp;
 
     auto postprocessor_scheduler = std::make_shared<physics::PostProcessorScheduleFixedInterval>(1);
     auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt");
@@ -484,7 +487,7 @@ int main(int argc, char* argv[])
 
     timesolvers::TimeStepperOpts opts = getTimeStepperOpts();
     DiscVectorPtr u = makeDiscVector(disc);
-    u->set(0.5*(interior_air_min_temp + interior_air_max_temp));  //TODO: maybe set to steady state solution?
+    u->set(initial_air_temp);  //TODO: maybe set to steady state solution?
     timesolvers::CrankNicolson timesolver(heat_eqn, u, opts);
 
     // run solver
@@ -492,6 +495,8 @@ int main(int argc, char* argv[])
     mesh->writeVtkFiles("solution_initial");
     timesolver.solve();
     mesh->writeVtkFiles("solution_final");
+
+    std::cout << "\n\nFinished simple house run" << std::endl;
 
   } // force destructors to run before MPI_Finalize
 
