@@ -48,9 +48,11 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -64,7 +66,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 {
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5.0;
-  Real min_temp = 0;
+  Real min_temp = 300;
   Real max_temp = 320;
   Real rho = 2;
   Real cp = 3;
@@ -81,9 +83,11 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -115,9 +119,11 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -151,9 +157,11 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_vent, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -187,9 +195,11 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_vent, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -223,9 +233,11 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_vent, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   auto sol_vec = makeDiscVector(disc);
@@ -259,9 +271,11 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
   Heat::HeatEquationSolar heat_eqn(disc, solar_position_calc, env_interface, air_updator);
 
   Real surface_area = 2;

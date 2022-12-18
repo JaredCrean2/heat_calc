@@ -8,6 +8,7 @@
 #include "physics/heat/interior_temperature_update.h"
 #include "physics/heat/environment_interface.h"
 #include "physics/heat/window_conduction_model.h"
+#include "physics/heat/hvac_model.h"
 
 namespace {
 
@@ -42,9 +43,10 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
       auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
       auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
       auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+      auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-      auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-        air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+      auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+        air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
       heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, env_interface, air_updator);
       heat_eqn->initialize();
       aux_eqn = heat_eqn->getAuxEquations();
@@ -67,9 +69,11 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
       auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50, expected_pressure, air_volume, cp, rho);
       auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
       auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+      auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-      air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-        air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+      air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+        air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
       heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, env_interface, air_updator);
 
       Real surface_area = 2;

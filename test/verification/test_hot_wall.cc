@@ -135,9 +135,11 @@ TEST_F(HotWallTester, CaseOne)
   auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_vent, expected_pressure, air_volume, cp, rho);
   auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
   auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
 
-  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(min_temp, max_temp, rho*cp, air_volume, 
-    air_leakage, ventilation, interior_loads, window_conduction, hvac_restore_time);
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
 
 
   timesolvers::TimeStepperOpts opts;

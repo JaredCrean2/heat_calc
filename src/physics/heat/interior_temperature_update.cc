@@ -1,18 +1,13 @@
 #include "physics/heat/interior_temperature_update.h"
 #include "physics/heat/HeatEquationSolar.h"
+#include "spline.h"
 
 namespace Heat {
 
 Real InteriorAirTemperatureUpdator::computeNetFlux(DiscVectorPtr sol_vec, Real interior_temp, Real t)
 {
   Real load_flux = computeLoadFlux(sol_vec, interior_temp, t);
-
-  if (interior_temp > m_max_temp)
-    enforceTemperatureLimit(m_max_temp, interior_temp, load_flux);
-  else if (interior_temp < m_min_temp)
-    enforceTemperatureLimit(m_min_temp, interior_temp, load_flux);
-  else
-    m_hvac_flux = 0;
+  m_hvac_flux = m_hvac_model->enforceTemperatureLimit(interior_temp, load_flux);
 
   std::cout << "load_flux = " << load_flux << ", hvac flux = " << m_hvac_flux << std::endl;
 
@@ -23,13 +18,7 @@ Real InteriorAirTemperatureUpdator::computeNetFluxJacobian(DiscVectorPtr sol_vec
 {
   Real load_flux_dot;
   Real load_flux = computeLoadFluxDotTair(sol_vec, interior_temp, t, load_flux_dot);
-  Real hvac_flux_dot;
-  if (interior_temp > m_max_temp)
-    hvac_flux_dot = enforceTemperatureLimitDotTair(m_max_temp, interior_temp, load_flux, load_flux_dot);
-  else if (interior_temp < m_min_temp)
-    hvac_flux_dot = enforceTemperatureLimitDotTair(m_min_temp, interior_temp, load_flux, load_flux_dot);
-  else
-    hvac_flux_dot = 0;  
+  Real hvac_flux_dot = m_hvac_model->enforceTemperatureLimitDotTair(interior_temp, load_flux, load_flux_dot); 
 
   return load_flux_dot + hvac_flux_dot;
 }
@@ -38,14 +27,7 @@ Real InteriorAirTemperatureUpdator::computeNetFluxJacobian(DiscVectorPtr sol_vec
 void InteriorAirTemperatureUpdator::computeNetFlux_rev(DiscVectorPtr sol_vec, Real interior_temp, Real t, DiscVectorPtr sol_vec_bar, Real net_flux_bar)
 {
   Real load_flux = computeLoadFlux(sol_vec, interior_temp, t);
-
-  if (interior_temp > m_max_temp)
-    enforceTemperatureLimit(m_max_temp, interior_temp, load_flux);
-  else if (interior_temp < m_min_temp)
-    enforceTemperatureLimit(m_min_temp, interior_temp, load_flux);
-  else
-    m_hvac_flux = 0;
-
+  m_hvac_flux = m_hvac_model->enforceTemperatureLimit(interior_temp, load_flux);
 
   //-----------------------------------------------------------------------
   // Reverse mode
@@ -54,21 +36,18 @@ void InteriorAirTemperatureUpdator::computeNetFlux_rev(DiscVectorPtr sol_vec, Re
   Real hvac_flux_bar = net_flux_bar;
 
   Real interior_temp_bar = 0;
-  if (interior_temp > m_max_temp)
-    enforceTemperatureLimit_rev(m_max_temp, interior_temp, interior_temp_bar, load_flux, load_flux_bar, hvac_flux_bar);
-  else if (interior_temp < m_min_temp)
-    enforceTemperatureLimit_rev(m_min_temp, interior_temp, interior_temp_bar, load_flux, load_flux_bar, hvac_flux_bar);
-  
+  m_hvac_model->enforceTemperatureLimit_rev(interior_temp, interior_temp_bar, load_flux, load_flux_bar, hvac_flux_bar);  
   computeLoadFlux_rev(sol_vec, sol_vec_bar, interior_temp, interior_temp_bar, t, load_flux_bar);
 }
 
-
-void InteriorAirTemperatureUpdator::enforceTemperatureLimit(Real temp_limit, Real interior_temp, Real load_flux)
+/*
+Real InteriorAirTemperatureUpdator::enforceTemperatureLimitStraightLine(Real temp_limit, Real interior_temp, Real load_flux)
 {
-  m_hvac_flux = m_rho_cp * m_air_volume * (temp_limit - interior_temp)/m_hvac_restore_time - load_flux;
+  return m_rho_cp * m_air_volume * (temp_limit - interior_temp)/m_hvac_restore_time - load_flux;
 }
 
-Real InteriorAirTemperatureUpdator::enforceTemperatureLimitDotTair(Real temp_limit, Real interior_temp, Real load_flux, Real load_flux_dot)
+Real InteriorAirTemperatureUpdator::enforceTemperatureLimitStraightLineDotTair(Real temp_limit, Real interior_temp,
+                                                                               Real load_flux, Real load_flux_dot)
 {
   //m_hvac_flux = m_rho_cp * m_air_volume * (temp_limit - interior_temp)/m_hvac_restore_time - load_flux;
   Real hvac_flux_dot = m_rho_cp * m_air_volume / m_hvac_restore_time - load_flux_dot;
@@ -76,13 +55,132 @@ Real InteriorAirTemperatureUpdator::enforceTemperatureLimitDotTair(Real temp_lim
   return hvac_flux_dot;
 }
 
-void InteriorAirTemperatureUpdator::enforceTemperatureLimit_rev(Real temp_limit, Real interior_temp, Real& interior_temp_bar, Real load_flux, 
-                                  Real& load_flux_bar, Real hvac_flux_bar)
+void InteriorAirTemperatureUpdator::enforceTemperatureLimitStraightLineDotTair_rev(Real temp_limit, Real interior_temp,
+                                                                                   Real load_flux,
+                                                                                   Real load_flux_dot, Real& load_flux_dot_bar,
+                                                                                   Real hvac_flux_dot_bar)
+{
+  //m_hvac_flux = m_rho_cp * m_air_volume * (temp_limit - interior_temp)/m_hvac_restore_time - load_flux;
+  //Real hvac_flux_dot = m_rho_cp * m_air_volume / m_hvac_restore_time - load_flux_dot;
+
+  load_flux_dot_bar -= hvac_flux_dot_bar;
+}
+
+void InteriorAirTemperatureUpdator::enforceTemperatureLimitStraightLine_rev(Real temp_limit, Real interior_temp,
+                                                                            Real& interior_temp_bar, Real load_flux, 
+                                                                            Real& load_flux_bar, Real hvac_flux_bar)
 {
   //Real hvac_flux = m_rho_cp * m_air_volume * (temp_limit - interior_temp)/m_hvac_restore_time - load_flux;
   interior_temp_bar += -m_rho_cp * m_air_volume * hvac_flux_bar / m_hvac_restore_time;
   load_flux_bar     -= hvac_flux_bar;
 }
+
+// setup spline to smooth the activation of the HVAC system, which causes
+// convergence problems for Newtons method
+std::array<Real, 6> InteriorAirTemperatureUpdator::getSplineParams(Real interior_temp, Real load_flux)
+{
+  Real expansion_factor = 0.1;
+  Real delta_t = (m_max_temp - m_min_temp);
+  Real t_upper = m_max_temp + expansion_factor * delta_t;
+  Real t_lower = m_min_temp - expansion_factor * delta_t;
+  Real load_flux_dot = 0; // We are computing the spline so the HVAC flux is a continuous function of the air temperature,
+                          // so don't consider the derivative wrt load flux
+
+  Real flux_upper     = enforceTemperatureLimitStraightLine(m_max_temp, t_upper, load_flux);
+  Real flux_upper_dot = enforceTemperatureLimitStraightLineDotTair(m_max_temp, t_upper, load_flux, load_flux_dot);
+
+  Real flux_lower     = enforceTemperatureLimitStraightLine(m_min_temp, t_lower, load_flux);
+  Real flux_lower_dot = enforceTemperatureLimitStraightLineDotTair(m_min_temp, t_lower, load_flux, load_flux_dot);
+
+  return {t_lower, t_upper, flux_lower, flux_lower_dot, flux_upper, flux_upper_dot};
+}
+
+void InteriorAirTemperatureUpdator::getSplineParams_rev(Real interior_temp, Real& interior_temp_bar,
+                                                        Real load_flux, Real& load_flux_bar,
+                                                        const std::array<Real, 6> params_bar)
+{
+  Real expansion_factor = 0.1;
+  Real delta_t = (m_max_temp - m_min_temp);
+  Real t_upper = m_max_temp + expansion_factor * delta_t;
+  Real t_lower = m_min_temp - expansion_factor * delta_t;
+  Real load_flux_dot = 0; // We are computing the spline so the HVAC flux is a continuous function of the air temperature,
+                          // so don't consider the derivative wrt load flux
+
+  //Real flux_upper     = enforceTemperatureLimitStraightLine(m_max_temp, t_upper, load_flux);
+  //Real flux_upper_dot = enforceTemperatureLimitStraightLineDotTair(m_max_temp, t_upper, load_flux, load_flux_dot);
+
+  //Real flux_lower     = enforceTemperatureLimitStraightLine(m_min_temp, t_lower, load_flux);
+  //Real flux_lower_dot = enforceTemperatureLimitStraightLineDotTair(m_min_temp, t_lower, load_flux, load_flux_dot);
+
+  Real load_flux_dot_bar = 0;
+  enforceTemperatureLimitStraightLineDotTair_rev(m_min_temp, t_lower, load_flux, load_flux_dot, load_flux_dot_bar, params_bar[3]);
+  enforceTemperatureLimitStraightLine_rev(m_min_temp, t_lower, interior_temp_bar, load_flux, load_flux_bar, params_bar[2]);
+
+  enforceTemperatureLimitStraightLineDotTair_rev(m_max_temp, t_upper, load_flux, load_flux_dot, load_flux_dot_bar, params_bar[5]);
+  enforceTemperatureLimitStraightLine_rev(m_max_temp, t_upper, interior_temp_bar, load_flux, load_flux_bar, params_bar[4]);
+}
+
+Real InteriorAirTemperatureUpdator::enforceTemperatureLimit(Real interior_temp, Real load_flux)
+{
+  std::array<Real, 6> params = getSplineParams(interior_temp, load_flux);
+
+  if (interior_temp > params[1])
+    return enforceTemperatureLimitStraightLine(m_max_temp, interior_temp, load_flux);
+  else if (interior_temp < params[0])
+    return enforceTemperatureLimitStraightLine(m_min_temp, interior_temp, load_flux);
+  else
+  {
+    SingleCubicSpline spline;
+    spline.setupSpline(params[0], params[1], params[2], params[3], params[4], params[5]);
+    return spline.eval(interior_temp);
+  }
+}
+
+Real InteriorAirTemperatureUpdator::enforceTemperatureLimitDotTair(Real interior_temp, Real load_flux, Real load_flux_dot)
+{
+  std::array<Real, 6> params = getSplineParams(interior_temp, load_flux);
+
+  if (interior_temp > params[1])
+    return enforceTemperatureLimitStraightLineDotTair(m_max_temp, interior_temp, load_flux, load_flux_dot);
+  else if (interior_temp < params[0])
+    return enforceTemperatureLimitStraightLineDotTair(m_min_temp, interior_temp, load_flux, load_flux_dot);
+  else
+  {
+    SingleCubicSpline spline;
+    spline.setupSpline(params[0], params[1], params[2], params[3], params[4], params[5]);
+    Real hvac_flux_dot;
+    spline.evalDot(interior_temp, 1, hvac_flux_dot);
+    return hvac_flux_dot;
+  }
+}
+
+void InteriorAirTemperatureUpdator::enforceTemperatureLimit_rev(Real interior_temp, Real& interior_temp_bar,
+                                                                Real load_flux, Real& load_flux_bar,
+                                                                Real hvac_flux_bar)
+{
+  std::array<Real, 6> params = getSplineParams(interior_temp, load_flux);
+
+  if (interior_temp > params[1])
+    enforceTemperatureLimitStraightLine_rev(m_max_temp, interior_temp, interior_temp_bar, load_flux, load_flux_bar, hvac_flux_bar);
+  else if (interior_temp < params[0])
+    enforceTemperatureLimitStraightLine_rev(m_min_temp, interior_temp, interior_temp_bar, load_flux,load_flux_bar, hvac_flux_bar);
+  else
+  {
+    SingleCubicSpline spline;
+    spline.setupSpline(params[0], params[1], params[2], params[3], params[4], params[5]);
+
+    std::array<Real, 4> coeffs_bar;
+    spline.evalRev(interior_temp, hvac_flux_bar, interior_temp_bar, coeffs_bar);
+
+    std::array<Real, 6> params_bar = {0};
+    spline.setupSplineRev(params[0], params[1], coeffs_bar, params_bar[2], params_bar[3], params_bar[4], params_bar[5]);
+
+    getSplineParams_rev(interior_temp, interior_temp_bar, load_flux, load_flux_bar, params_bar);
+  }
+}
+
+*/
+
 
 
 Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real interior_temp, Real t)

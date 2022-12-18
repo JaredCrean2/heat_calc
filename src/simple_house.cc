@@ -457,9 +457,10 @@ int main(int argc, char* argv[])
     Real interior_air_min_temp = 293.15;
     Real interior_air_max_temp = 297.039;
     Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
-    auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(interior_air_min_temp, interior_air_max_temp,
-                                                    air_rho * air_cp, generator.computeInteriorVolume(),  
-                                                    air_leakage, air_ventilation, interior_loads, window_model, hvac_restore_time);
+    auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+
+    auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(air_rho * air_cp, generator.computeInteriorVolume(),  
+                                                    air_leakage, air_ventilation, interior_loads, window_model, hvac_model);
 
     auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator);
     std::cout << "initial air temp = " << initial_air_temp << std::endl;
