@@ -405,12 +405,12 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 2*60*60; // 24*60*60;  // 1 day
+  opts.t_end   = 4*60*60; // 24*60*60;  // 1 day
   opts.delta_t = 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-6;
   opts.nonlinear_rel_tol = 1e-8;
-  opts.nonlinear_itermax = 20;
+  opts.nonlinear_itermax = 30;
 
   auto matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>();
   matrix_opts->is_structurally_symmetric = true;
@@ -457,7 +457,9 @@ int main(int argc, char* argv[])
     Real interior_air_min_temp = 293.15;
     Real interior_air_max_temp = 297.039;
     Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
-    auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+    //auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+    auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+
 
     auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(air_rho * air_cp, generator.computeInteriorVolume(),  
                                                     air_leakage, air_ventilation, interior_loads, window_model, hvac_model);

@@ -104,11 +104,12 @@ void NewtonSolver::solveStep(DiscVectorPtr u)
 
 void NewtonSolver::updateNonlinearSolution(DiscVectorPtr u)
 {
+  Real damp_factor = 1;
   auto& u_vec = u->getVector();
   auto& delta_u_vec = m_delta_u->getVector();
   for (DofInt i=0; i < u->getNumDofs(); ++i)
   {
-    u_vec[i] -= delta_u_vec[i];
+    u_vec[i] -= damp_factor * delta_u_vec[i];
     delta_u_vec[i] = 0;
   }
   
@@ -123,7 +124,7 @@ void NewtonSolver::updateNonlinearSolution(DiscVectorPtr u)
     auto& delta_u_block = m_aux_delta_u->getVector(block);
     for (int i=0; i < num_vars; ++i)
     {
-      u_block[i] -= delta_u_block[i];
+      u_block[i] -= damp_factor * delta_u_block[i];
       delta_u_block[i] = 0;
     }
   }
