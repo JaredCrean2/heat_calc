@@ -41,6 +41,8 @@ class AirWindSkyNeumannBC : public NeumannBC
     {}
 
     virtual void setAirTemperature(Real temp) {}
+
+    virtual Real getAirTemperature() const = 0;
     
     virtual void setAirSpeed(Real velocity) {}
     
@@ -84,6 +86,8 @@ class TarpBC : public AirWindSkyNeumannBC
     {}
 
     void setAirTemperature(Real temp) override { m_tarp.setAirTemperature(temp); }
+
+    Real getAirTemperature() const override { return m_tarp.getAirTemperature(); }
     
     void setAirSpeed(Real velocity) override { m_tarp.setAirSpeed(velocity); }
     
@@ -119,6 +123,8 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
     // set the air temperature (which the model uses as the temperature of the ground)
     void setAirTemperature(Real t_air) override { m_model.setAirTemperature(t_air); }
 
+    Real getAirTemperature() const override { return m_model.getAirTemperature(); }
+
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
 
     void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
@@ -140,6 +146,10 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
       m_model(absorbtivity)
     {}
 
+    void setAirTemperature(Real t_air) override { m_t_air = t_air; }
+
+    Real getAirTemperature() const override { return m_t_air; }
+
     void setDirectNormalRadiation(Real flux) override { m_model.setDirectNormalRadiation(flux); }
 
     void setDiffuseRadiation(Real flux) override { m_model.setDiffuseRadiation(flux); }
@@ -154,6 +164,7 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
 
   private:
     SolarRadiationModel m_model;
+    Real m_t_air;
 };
 
 
@@ -168,6 +179,8 @@ class SimpleConvectionBC : public AirWindSkyNeumannBC
     {}
 
     void setAirTemperature(Real temp) override { m_air_temp = temp; }
+
+    Real getAirTemperature() const override { return m_air_temp; }
 
     void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
 
@@ -213,6 +226,8 @@ class CombinedAirWindSkyNeumannBC : public AirWindSkyNeumannBC
       for (auto& bc : m_bcs)
         bc->setAirTemperature(temp);
     }
+
+    Real getAirTemperature() const override { return m_bcs[0]->getAirTemperature(); }
     
     void setAirSpeed(Real velocity) override
     {

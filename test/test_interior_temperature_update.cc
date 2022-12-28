@@ -22,9 +22,51 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
       setup(3, 1, meshspec, is_surf_dirichlet);
     }
 
+    void test_reverse_derivative(std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_updator, DiscVectorPtr sol_vec, Real air_temp)
+    {
+      Real eps = 1e-7;
+      Real flux0 = air_updator->computeNetFlux(sol_vec, air_temp, 0.0);
+
+      auto sol_vec_bar = makeDiscVector(disc);
+      air_updator->computeNetFlux_rev(sol_vec, air_temp, 0.0, sol_vec_bar, 2);
+
+      if (!sol_vec_bar->isVectorCurrent())
+        sol_vec_bar->syncArrayToVector();
+
+      
+      auto& sol_vec_vec = sol_vec->getVector();
+      for (int i=0; i < sol_vec_vec.shape()[0]; ++i)
+      {
+        sol_vec_vec[i] += eps;
+        sol_vec->markVectorModified();
+
+        Real flux1 = air_updator->computeNetFlux(sol_vec, air_temp, 0.0);
+
+        sol_vec_vec[i] -= eps;
+        sol_vec->markVectorModified();
+
+        Real val_fd = (flux1 - flux0)/eps;
+        EXPECT_NEAR(sol_vec_bar->getVector()[i], 2*val_fd, 1e-5);
+      }  
+    }
+
   protected:
     Heat::SolarPositionCalculator solar_position_calc;
 };
+
+void test_forward_derivative(std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_updator, DiscVectorPtr sol_vec, Real air_temp)
+{
+  std::cout << std::setprecision(16);
+  Real eps = 1e-7;
+  Real flux0 = air_updator->computeNetFlux(sol_vec, air_temp, 0.0);
+  Real flux1 = air_updator->computeNetFlux(sol_vec, air_temp + eps, 0.0);
+  Real flux_fd = (flux1 - flux0)/eps;
+
+  Real flux_dot = air_updator->computeNetFluxJacobian(sol_vec, air_temp, 0.0);
+  EXPECT_NEAR(flux_dot, flux_fd, 1e-5);
+}
+
+
 }
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
@@ -60,6 +102,8 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
   heat_eqn.initialize();
 
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), interior_load, 1e-13);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
@@ -96,6 +140,8 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 
   Real expected_flux = rho * cp * air_volume * (max_temp - initial_air_temp)/hvac_restore_time;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux ,1e-13);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
@@ -132,6 +178,8 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 
   Real expected_flux = rho * cp * air_volume * (min_temp - initial_air_temp)/hvac_restore_time;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux ,1e-13);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 
@@ -170,6 +218,8 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
 
   Real expected_flux =  ach50_air * (5.0/50) * (edata.air_temp - initial_air_temp) * rho * cp * air_volume / 3600;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 
@@ -208,6 +258,8 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
 
   Real expected_flux =  ach50_vent * (5.0/50) * (edata.air_temp - initial_air_temp) * rho * cp * air_volume  / 3600;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 
@@ -246,6 +298,8 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
 
   Real expected_flux =  (window_area * (edata.air_temp - initial_air_temp) / r_val);
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-13);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 
@@ -306,6 +360,8 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
 
   Real expected_flux = (wall_temp - initial_air_temp) * wall_area * heat_transfer_coeff;
   EXPECT_NEAR(air_updator->computeNetFlux(sol_vec, initial_air_temp, 0.0), expected_flux , 1e-12);
+  test_forward_derivative(air_updator, sol_vec, initial_air_temp);
+  test_reverse_derivative(air_updator, sol_vec, initial_air_temp);
 }
 
 

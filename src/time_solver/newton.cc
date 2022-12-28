@@ -250,7 +250,7 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u)
     {
       Real val_fd = (b2_u->getVector()[i] - b1_u->getVector()[i])/eps;
       Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
-      std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
+      //std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
       if (error > tol)
         throw std::runtime_error("finite difference test failed");
     }    
@@ -262,6 +262,9 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u)
       if (error > tol)
         throw std::runtime_error("finite difference test failed");
     }
+
+    aux_eqns->getBlockSolution(1)[0] -= x_T[0]*eps;
+
   }
 }
 

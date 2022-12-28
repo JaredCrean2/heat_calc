@@ -191,17 +191,32 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
   m_heat_eqn->setTimeParameters(t);
 
   Real bc_flux = 0;
+  std::cout << "number of bcs = " << m_bcs.size() << std::endl;
   for (auto& bc : m_bcs )
   {
+    auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(bc);
+    Real t_air_orig = 0;
+    if (bc_air_wind_sky)
+    {
+      t_air_orig = bc_air_wind_sky->getAirTemperature();
+      bc_air_wind_sky->setAirTemperature(interior_temp);
+    }
+
     // BCs are defined such that flux into the wall is positive, so
     // the flux into the air is the negative
     bc_flux -= computeBCFlux(bc, sol_vec, t);
+
+    if (bc_air_wind_sky)
+    {
+      bc_air_wind_sky->setAirTemperature(t_air_orig);
+    }    
   }
 
   Real air_leakage_flux   = -m_air_leakage->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
   Real ventilation_flux   = -m_ventilation->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
   Real interior_load_flux = m_interior_loads->computeLoadPower();
   Real window_flux        = m_window_model->computeConductionPower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+
 
   std::cout << "bc_flux            = " << bc_flux << std::endl;
   std::cout << "air_leakage_flux   = " << air_leakage_flux << std::endl;
@@ -217,23 +232,42 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
   flux_dot = 0;
   m_heat_eqn->setTimeParameters(t);
 
-  Real flux = 0, flux_dot_tmp = 0;
+  Real flux = 0;
   for (auto& bc : m_bcs )
   {
+
+    auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(bc);
+    Real t_air_orig = 0;
+    if (bc_air_wind_sky)
+    {
+      t_air_orig = bc_air_wind_sky->getAirTemperature();
+      bc_air_wind_sky->setAirTemperature(interior_temp);
+    }
+
     // BCs are defined such that flux into the wall is positive, so
     // the flux into the air is the negative
+    Real flux_dot_tmp = 0;
     flux     -= computeBCFluxDotTair(bc, sol_vec, t, flux_dot_tmp);
     flux_dot -= flux_dot_tmp;
+
+    if (bc_air_wind_sky)
+    {
+      bc_air_wind_sky->setAirTemperature(t_air_orig);
+    }    
   }
 
+  Real flux_dot_tmp = 0;
   flux     -= m_air_leakage->computeAirLeakagePowerDot(interior_temp, m_heat_eqn->getEnvironmentData().air_temp, flux_dot_tmp);
+  std::cout << "flux_dot_tmp for air leakage = " << flux_dot_tmp << std::endl;
   flux_dot -= flux_dot_tmp;
 
+  flux_dot_tmp = 0;
   flux     -= m_ventilation->computeAirLeakagePowerDot(interior_temp, m_heat_eqn->getEnvironmentData().air_temp, flux_dot_tmp);
   flux_dot -= flux_dot_tmp;
 
   flux += m_interior_loads->computeLoadPower();
 
+  flux_dot_tmp = 0;
   flux     += m_window_model->computeConductionPowerDot(interior_temp, m_heat_eqn->getEnvironmentData().air_temp, flux_dot_tmp);
   flux_dot += flux_dot_tmp;
 
@@ -267,6 +301,7 @@ void InteriorAirTemperatureUpdator::computeLoadFlux_rev(DiscVectorPtr sol_vec, D
     computeBCFlux_rev(bc, sol_vec, sol_vec_bar, t, -flux_bar);
   }
 
+  //TODO: what about other models? interior_temp_bar?
 }
 
 

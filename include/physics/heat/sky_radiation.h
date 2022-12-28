@@ -27,6 +27,8 @@ class SkyRadiationModel
       m_t_air4 = std::pow(t_air, 4);
     }
 
+    Real getAirTemperature() const { return m_t_air; }
+
     Real computeFlux(Real t_surf, const std::array<Real, 3>& unit_normal);
 
     Real computeFluxdTwall(Real t_surf, const std::array<Real, 3>& unit_normal, Real& flux_dot);

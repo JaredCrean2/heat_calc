@@ -41,7 +41,8 @@ class AirLeakageModelPressure : public AirLeakageModel
     {
       Real ach_natural         = m_ach50 * m_expected_pressure / 50;
       Real air_volume_per_hour = ach_natural * m_volume;
-      return m_rho * m_cp * air_volume_per_hour/ 3600;      
+      flux_dot =  m_rho * m_cp * air_volume_per_hour/ 3600;      
+      return m_rho * m_cp * air_volume_per_hour * (t_interior - t_exterior) / 3600;
     }
 
 
