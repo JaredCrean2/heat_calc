@@ -29,6 +29,7 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobian(int block, DiscVectorPtr 
   Real interior_temp = getAuxiliaryBlockSolution(0)[0];
   Real val = m_air_temp->computeNetFluxJacobian(u_vec, interior_temp, t);
 
+  std::cout << "val = " << val << std::endl;
   std::vector<DofInt> dofs = {0};
   ArrayType<Real, 2> vals(boost::extents[1][1]);
   vals[0][0] = val;

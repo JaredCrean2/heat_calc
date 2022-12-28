@@ -24,6 +24,8 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, NewtonOpts opts /*Real abs_tol
   Real norm = computeRhsAndNorm(u);
   Real norm0 = norm;
 
+  std::cout << "at start of Newton iteration, norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
+
   if (norm < opts.nonlinear_abs_tol)
     return NewtonResult(norm0, norm, 0, opts);
 
@@ -39,7 +41,7 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, NewtonOpts opts /*Real abs_tol
       return NewtonResult(norm0, norm, i, opts);
   }
 
-  //std::cout << "norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
+  std::cout << "norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
   return NewtonResult(norm0, norm, opts.nonlinear_itermax + 1, opts);
 }
 
@@ -132,6 +134,7 @@ void NewtonSolver::updateNonlinearSolution(DiscVectorPtr u)
 
 void NewtonSolver::computeJacobians(DiscVectorPtr u)
 {
+  checkJacobianFiniteDifference(u);
   m_jac->zeroMatrix();
   m_func->computeJacobian(u, m_jac);
 
@@ -141,10 +144,124 @@ void NewtonSolver::computeJacobians(DiscVectorPtr u)
 
   for (int iblock=1; iblock < m_func->getAuxiliaryEquations()->getNumBlocks(); ++iblock)
   {
+    std::cout << "computing jacobian for block " << iblock << std::endl;
     auto jac = m_aux_jacs->getMatrix(iblock);
     jac->zeroMatrix();
     m_func->getAuxiliaryEquations()->computeJacobian(iblock, u, jac);
     jac->factor();
+  }
+}
+
+void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u)
+{
+  auto aux_eqns = m_func->getAuxiliaryEquations();
+
+  ArrayType<Real, 1> x_u(boost::extents[u->getVector().shape()[0]]);
+  ArrayType<Real, 1> b_u(boost::extents[u->getVector().shape()[0]]);
+  DiscVectorPtr      b1_u = m_func->createVector();
+  DiscVectorPtr      b2_u = m_func->createVector();
+  ArrayType<Real, 1> b3_u(boost::extents[u->getVector().shape()[0]]);
+  ArrayType<Real, 1> x_T(boost::extents[1]);
+  ArrayType<Real, 1> b1_T(boost::extents[1]);
+  ArrayType<Real, 1> b2_T(boost::extents[1]);
+  ArrayType<Real, 1> b3_T(boost::extents[1]);
+
+  m_jac->zeroMatrix();
+  m_func->computeJacobian(u, m_jac);
+  m_jac->finishMatrixAssembly();
+
+  auto jac = m_aux_jacs->getMatrix(1);
+  jac->zeroMatrix();
+  aux_eqns->computeJacobian(1, u, jac);
+
+
+  m_func->computeFunc(u, false, b1_u);
+  aux_eqns->computeRhs(1, u, false, b1_T);
+  const int nvectors = 10;
+  const Real eps = 1e-7;
+  const Real tol = 1e-2;
+
+  // finite difference u
+  std::cout << "\ndoing finite difference check of u" << std::endl;
+  for (int v=0; v < nvectors; ++v)
+  {
+    std::cout << "\nvector " << v << std::endl;
+    auto& u_vec = u->getVector();
+    for (int i=0; i < x_u.shape()[0]; ++i)
+    {
+      x_u[i] = (i % nvectors) == v ? 1 : 0;
+      u_vec[i] += x_u[i]*eps;
+    }
+    u->markVectorModified();
+
+    m_func->computeFunc(u, false, b2_u);
+    aux_eqns->computeRhs(1, u, false, b2_T);
+
+    if (!b1_u->isVectorCurrent())
+      b1_u->syncArrayToVector();
+
+    if (!b2_u->isVectorCurrent())
+      b2_u->syncArrayToVector();
+
+    m_jac->matVec(x_u, b3_u);
+    aux_eqns->multiplyOffDiagonal(1, 0, u, x_u, b3_T);
+
+    for (int i=0; i < x_u.shape()[0]; ++i)
+    {
+      Real val_fd = (b2_u->getVector()[i] - b1_u->getVector()[i])/eps;
+      Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
+      std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
+      if (error > tol)
+        throw std::runtime_error("finite difference test failed");
+    }
+
+    {
+      Real val_fd = (b2_T[0] - b1_T[0])/eps;
+      Real error = std::abs((val_fd - b3_T[0])/(std::max(std::abs(val_fd), std::abs(b3_T[0]))));
+      std::cout << "for aux equations, val_fd = " << val_fd << ", val_matvec = " << b3_T[0] << ", diff = " << error << std::endl;
+      if (error > tol)
+        throw std::runtime_error("finite difference test failed");
+    }
+
+    for (int i=0; i < x_u.shape()[0]; ++i)
+      u_vec[i] -= x_u[i]*eps;
+    u->markVectorModified();
+  }
+
+  // finite difference T
+  std::cout << "\ndoing finite difference check of T" << std::endl;
+  { 
+    x_T[0] = 1;
+    aux_eqns->getBlockSolution(1)[0] += x_T[0]*eps;
+
+    m_func->computeFunc(u, false, b2_u);
+    aux_eqns->computeRhs(1, u, false, b2_T);
+
+    if (!b1_u->isVectorCurrent())
+      b1_u->syncArrayToVector();
+
+    if (!b2_u->isVectorCurrent())
+      b2_u->syncArrayToVector();
+
+    aux_eqns->multiplyOffDiagonal(0, 1, u, x_T, b3_u);
+    jac->matVec(x_T, b3_T);
+
+    for (int i=0; i < x_u.shape()[0]; ++i)
+    {
+      Real val_fd = (b2_u->getVector()[i] - b1_u->getVector()[i])/eps;
+      Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
+      std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
+      if (error > tol)
+        throw std::runtime_error("finite difference test failed");
+    }    
+
+    {
+      Real val_fd = (b2_T[0] - b1_T[0])/eps;
+      Real error = std::abs((val_fd - b3_T[0])/(std::max(std::abs(val_fd), std::abs(b3_T[0]))));
+      std::cout << "for aux equations, val_fd = " << val_fd << ", val_matvec = " << b3_T[0] << ", diff = " << error << std::endl;
+      if (error > tol)
+        throw std::runtime_error("finite difference test failed");
+    }
   }
 }
 
@@ -159,6 +276,9 @@ Real NewtonSolver::gaussSeidelStep(DiscVectorPtr u)
 
   Real delta_u_relative_norm_second = gaussSeidelStepOtherRows(u);
 
+  std::cout << "delta_u_relative_norm_first = " << delta_u_relative_norm_first << std::endl;
+  std::cout << "delta_u_relative_norm_second = " << delta_u_relative_norm_second << std::endl;
+  computeLinearResidual(u);
   return std::max(delta_u_relative_norm_first, delta_u_relative_norm_second);
 
   //TODO: no need to allocate a temporary vector each iteration
@@ -238,15 +358,18 @@ void NewtonSolver::gaussSeidelComputeRhs(int iblock, DiscVectorPtr u, ArrayType<
 Real NewtonSolver::updateLinearSolution(const ArrayType<Real, 1>& delta_u_tmp, ArrayType<Real, 1>& delta_u)
 {
   Real delta_u_relative_norm = 0;
+  Real max_delta_delta_u = 0;
   for (int i=0; i < delta_u.shape()[0]; ++i)
   {
     Real delta_delta_u = std::abs(delta_u_tmp[i] - delta_u[i]);
+    max_delta_delta_u = std::max(max_delta_delta_u, std::abs(delta_delta_u));
     if (std::abs(delta_u[i]) > 1e-13)
       delta_u_relative_norm = std::max(delta_u_relative_norm, std::abs(delta_delta_u/delta_u[i]));
 
     delta_u[i] = delta_u_tmp[i];
   }
 
+  std::cout << "max_delta_delta_u = " << max_delta_delta_u << std::endl;
   return delta_u_relative_norm;
 }
 
@@ -329,8 +452,8 @@ void NewtonSolver::computeLinearResidual(DiscVectorPtr u_vec)
     residuals[iblock] = std::sqrt(residuals[iblock]);
   }
 
-  //for (int i=0; i < aux_eqns->getNumBlocks(); ++i)
-  //  std::cout << "block " << i << " linear residual norm = " << residuals[i] << std::endl;
+  for (int i=0; i < aux_eqns->getNumBlocks(); ++i)
+    std::cout << "block " << i << " linear residual norm = " << residuals[i] << std::endl;
 
   computeJacobians(u_vec); // basically to factor the matrix again
 }

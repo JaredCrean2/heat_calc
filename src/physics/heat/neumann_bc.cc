@@ -7,12 +7,12 @@ namespace Heat {
 void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs)
 {
   const auto& neumann_bcs = physics.getNeumannBCs();
-  //int i=0;
+  int i=0;
   for (auto& bc : neumann_bcs)
   {
     //std::cout << "doing BC " << i << std::endl;
     computeNeumannBC(bc, u, t, rhs);
-    //i++;
+    i++;
   }
 
   rhs->markArrayModified();
@@ -59,6 +59,9 @@ void computeNeumannBC(NeumannBCPtr bc, DiscVectorPtr u, const Real t, DiscVector
         Real flux_normal = 0;
         for (int d=0; d < 3; ++d)
           flux_normal += surf->normals[face][k][d] * flux_vals[k + surf->getNumQuadPtsPerFace() * d];
+
+        //std::cout << "k = " << k << ", flux_normal = " << flux_normal << std::endl;
+
 
         Real val = weight * flux_normal;
         for (int i=0; i < surf->getNumSolPtsPerFace(); ++i)

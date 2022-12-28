@@ -18,7 +18,10 @@ Real InteriorAirTemperatureUpdator::computeNetFluxJacobian(DiscVectorPtr sol_vec
 {
   Real load_flux_dot;
   Real load_flux = computeLoadFluxDotTair(sol_vec, interior_temp, t, load_flux_dot);
-  Real hvac_flux_dot = m_hvac_model->enforceTemperatureLimitDotTair(interior_temp, load_flux, load_flux_dot); 
+  Real hvac_flux_dot = m_hvac_model->enforceTemperatureLimit_dot(interior_temp, 1, load_flux, load_flux_dot); 
+
+  std::cout << "load_flux_dot = " << load_flux_dot << ", hvac_flux_dot = " << hvac_flux_dot << std::endl;
+  std::cout << "net flux dot = " << load_flux_dot + hvac_flux_dot << std::endl;
 
   return load_flux_dot + hvac_flux_dot;
 }
@@ -187,20 +190,26 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
 {
   m_heat_eqn->setTimeParameters(t);
 
-  Real flux = 0;
+  Real bc_flux = 0;
   for (auto& bc : m_bcs )
   {
     // BCs are defined such that flux into the wall is positive, so
     // the flux into the air is the negative
-    flux -= computeBCFlux(bc, sol_vec, t);
+    bc_flux -= computeBCFlux(bc, sol_vec, t);
   }
 
-  flux -= m_air_leakage->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
-  flux -= m_ventilation->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
-  flux += m_interior_loads->computeLoadPower();
-  flux += m_window_model->computeConductionPower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+  Real air_leakage_flux   = -m_air_leakage->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+  Real ventilation_flux   = -m_ventilation->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+  Real interior_load_flux = m_interior_loads->computeLoadPower();
+  Real window_flux        = m_window_model->computeConductionPower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
 
-  return flux;
+  std::cout << "bc_flux            = " << bc_flux << std::endl;
+  std::cout << "air_leakage_flux   = " << air_leakage_flux << std::endl;
+  std::cout << "ventilation_flux   = " << ventilation_flux << std::endl;
+  std::cout << "interior_load_flux = " << interior_load_flux << std::endl;
+  std::cout << "window_flux        = " << window_flux << std::endl;
+
+  return bc_flux + air_leakage_flux + ventilation_flux + interior_load_flux + window_flux;
 }
 
 Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec, Real interior_temp, Real t, Real& flux_dot)

@@ -6,7 +6,7 @@
 #BUILDTYPE="Debug"
 
 # non-ASAN debug build
-#CXXFLAGS="-O0 -Wall -g -fno-omit-frame-pointer -fdebug-default-version=4"
+#CXXFLAGS="-O0 -Wall -g -fno-omit-frame-pointer"
 #BUILDTYPE="Debug"
 
 # partially optimized build

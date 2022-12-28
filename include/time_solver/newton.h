@@ -92,6 +92,8 @@ class NewtonSolver
 
     void computeJacobians(DiscVectorPtr u);
 
+    void checkJacobianFiniteDifference(DiscVectorPtr u);
+
     // returns some kind of relative norm of delta_u
     Real gaussSeidelStep(DiscVectorPtr u);
 

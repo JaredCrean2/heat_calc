@@ -12,8 +12,8 @@ template <typename Tfunc>
 class PostProcessorSurfaceIntegralAverage : public PostProcessorBase
 {
   public: 
-    PostProcessorSurfaceIntegralAverage(SurfDiscPtr surf, const std::string& name, Tfunc func) :
-      m_surf(surf),
+    PostProcessorSurfaceIntegralAverage(const std::vector<SurfDiscPtr>& surfs, const std::string& name, Tfunc func) :
+      m_surfs(surfs),
       m_name(name),
       m_func(func)
     {}
@@ -26,26 +26,30 @@ class PostProcessorSurfaceIntegralAverage : public PostProcessorBase
     {
       if (!u->isArrayCurrent())
         u->syncArrayToVector();
-
-      ArrayType<Real, 1> vals(boost::extents[m_surf->getNumQuadPtsPerFace()]);
-
+       
       Real total_val = 0, total_area = 0;
-      for (int i=0; i < m_surf->getNumFaces(); ++i)
+      for (auto& surf : m_surfs)
       {
-        const Mesh::FaceSpec& spec = m_surf->face_group.faces[i];
-        auto& u_arr = u->getArray(spec.vol_group);
-        auto u_i = u_arr[boost::indices[spec.el_group][range()]];
-        m_surf->interp_vsq_flat[spec.face].interpolateVals(u_i, vals);
 
-        for (int j=0; j < m_surf->getNumQuadPtsPerFace(); ++j)
-          vals[j] = m_func(vals[j]);
+        ArrayType<Real, 1> vals(boost::extents[surf->getNumQuadPtsPerFace()]);
 
-        total_val += integrateFaceScalar(m_surf, i, vals);
+        for (int i=0; i < surf->getNumFaces(); ++i)
+        {
+          const Mesh::FaceSpec& spec = surf->face_group.faces[i];
+          auto& u_arr = u->getArray(spec.vol_group);
+          auto u_i = u_arr[boost::indices[spec.el_group][range()]];
+          surf->interp_vsq_flat[spec.face].interpolateVals(u_i, vals);
 
-        for (int j=0; j < m_surf->getNumQuadPtsPerFace(); ++j)
-          vals[j] = 1;
+          for (int j=0; j < surf->getNumQuadPtsPerFace(); ++j)
+            vals[j] = m_func(vals[j]);
 
-        total_area += integrateFaceScalar(m_surf, i, vals);
+          total_val += integrateFaceScalar(surf, i, vals);
+
+          for (int j=0; j < surf->getNumQuadPtsPerFace(); ++j)
+            vals[j] = 1;
+
+          total_area += integrateFaceScalar(surf, i, vals);
+        }
       }
 
       return {total_val / total_area};
@@ -53,7 +57,7 @@ class PostProcessorSurfaceIntegralAverage : public PostProcessorBase
 
 
   protected:
-    SurfDiscPtr m_surf;
+    std::vector<SurfDiscPtr> m_surfs;
     std::string m_name;
     Tfunc m_func;
 };
@@ -61,7 +65,13 @@ class PostProcessorSurfaceIntegralAverage : public PostProcessorBase
 template <typename T>
 PostProcessorPtr makePostProcessorSurfaceIntegralAverage(SurfDiscPtr surf, const std::string& name, T func)
 {
-  return std::make_shared<PostProcessorSurfaceIntegralAverage<T>>(surf, name, func);
+  return std::make_shared<PostProcessorSurfaceIntegralAverage<T>>(std::vector<SurfDiscPtr>{surf}, name, func);
+}
+
+template <typename T>
+PostProcessorPtr makePostProcessorSurfaceIntegralAverage(const std::vector<SurfDiscPtr>& surfs, const std::string& name, T func)
+{
+  return std::make_shared<PostProcessorSurfaceIntegralAverage<T>>(surfs, name, func);
 }
 
 

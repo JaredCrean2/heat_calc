@@ -1,4 +1,5 @@
 #include "discretization/DirichletBC_defs.h"
+#include "discretization/NeumannBC.h"
 #include "discretization/disc_vector.h"
 #include "discretization/discretization.h"
 #include "discretization/surface_discretization.h"
@@ -286,23 +287,23 @@ class GeometryGenerator
 
     Mesh::MultiBlockMeshSpec m_spec;
     // 3.5 inches of insulation
-    std::vector<double> m_horizontal_thicknesses = {0.0897};
+    std::vector<double> m_horizontal_thicknesses = {0.01}; // {0.0897};
     std::vector<int>    m_horizontal_numels      = {5};
     std::vector<Heat::VolumeGroupParams> horizontal_params = { {0.039, 45, 2020} };
 
     // 6 inches of insulation
-    std::vector<double> m_ceiling_thicknesses = {0.1538};
+    std::vector<double> m_ceiling_thicknesses = {0.01}; //{0.1538};
     std::vector<int>    m_ceiling_numels      = {5};
     std::vector<Heat::VolumeGroupParams> ceiling_params = { {0.039, 45, 2020} };
 
 
     // 6 inches of concrete
-    std::vector<double> m_foundation_thicknesses = {0.1538};
+    std::vector<double> m_foundation_thicknesses = {0.01}; // {0.1538};
     std::vector<int>    m_foundation_numels      = {5};
     std::vector<Heat::VolumeGroupParams> foundation_params { {2.25, 2400, 880} };
 };
 
-std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
+std::shared_ptr<NeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
                                                                     Real emittance, Real absorptivity)
 {
   std::array<Real, 3> vertical_vector = {0, 0, 1};
@@ -312,11 +313,16 @@ std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr 
   int local_terrain_index = 2;  // rough, wooded country
   auto tarp_bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
                   point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
-  auto sky_bc = std::make_shared<Heat::SkyRadiationBC>(surf, emittance, vertical_vector);
-  auto solar_bc = std::make_shared<Heat::SolarRadiationBC>(surf, absorptivity);
+  //TODO: re-enable other BCs
+  //auto sky_bc = std::make_shared<Heat::SkyRadiationBC>(surf, emittance, vertical_vector);
+  //auto solar_bc = std::make_shared<Heat::SolarRadiationBC>(surf, absorptivity);
 
-  std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> bcs = {tarp_bc, sky_bc, solar_bc};
-  return std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
+  //std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> bcs = {tarp_bc, sky_bc, solar_bc};
+  //return std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
+
+  return std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
+                  point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
+
 }
 
 std::shared_ptr<DirichletBC> makeBottomBC(SurfDiscPtr surf, Real temp)
@@ -357,12 +363,18 @@ void setExteriorWallTempPostProcessors(GeometryGenerator& generator, std::shared
 
   std::vector<std::string> names = {"east_exterior_wall_temp", "north_exterior_wall_temp", 
                                     "west_exterior_wall_temp", "south_exterior_wall_temp", "roof_temp"};
+  auto f = [](double val) { return val; };
   for (int i=1; i <= 5; ++i)
   {
     auto surf = disc->getSurfDisc(i);
-    auto f = [](double val) { return val; };
     postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-1], f));
-  }  
+  }
+
+  std::vector<SurfDiscPtr> wall_surfaces;
+  for (int i=1; i <= 4; ++i)
+    wall_surfaces.push_back(disc->getSurfDisc(i));
+
+  postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "exterior_wall_temp", f));
 }
 
 
@@ -391,24 +403,30 @@ void setInteriorWallTempPostProcessors(GeometryGenerator& generator,  std::share
 {
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
-  std::vector<std::string> names = {"floor_average_temp", "east_interior_wall_temp", "north_interior_wall_temp", 
+  std::vector<std::string> names = {"floor_temp", "east_interior_wall_temp", "north_interior_wall_temp", 
                                     "west_interior_wall_temp", "south_interior_wall_temp", "ceiling_temp"};
+  auto f = [](double val) { return val; };
   for (int i=6; i <= 11; ++i)
   {
     auto surf = disc->getSurfDisc(i);
-    auto f = [](double val) { return val; };
     postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-6], f));
   }
+
+  std::vector<SurfDiscPtr> wall_surfaces;
+  for (int i=7; i <= 10; ++i)
+    wall_surfaces.push_back(disc->getSurfDisc(i));
+
+  postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "interior_wall_temp", f));
 }
 
 timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 4*60*60; // 24*60*60;  // 1 day
-  opts.delta_t = 60;  // 1 minute
+  opts.t_end   = 24*60*60; // 24*60*60;  // 1 day
+  opts.delta_t = 300; // 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
-  opts.nonlinear_abs_tol = 1e-6;
+  opts.nonlinear_abs_tol = 1e-9;
   opts.nonlinear_rel_tol = 1e-8;
   opts.nonlinear_itermax = 30;
 
@@ -416,7 +434,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
   matrix_opts->is_structurally_symmetric = true;
   // I'm not sure if the Jacobian is value symmetric because of the
   // nonlinear neumann BCs
-  matrix_opts->petsc_opts["ksp_atol"] = "1e-12";
+  matrix_opts->petsc_opts["ksp_atol"] = "1e-14";
   matrix_opts->petsc_opts["ksp_rtol"] = "1e-50";
   matrix_opts->petsc_opts["ksp_monitor"] = "";
   opts.matrix_opts = matrix_opts;
@@ -446,7 +464,7 @@ int main(int argc, char* argv[])
 
     Real air_rho = 1.007;
     Real air_cp = 1006;
-    Real hvac_restore_time = 60 * 5;
+    Real hvac_restore_time = 60 * 20;
     Real air_leakage_ach50 = 7;
     auto air_leakage = std::make_shared<Heat::AirLeakageModelPressure>(air_leakage_ach50, 4, generator.computeInteriorVolume(), air_cp, air_rho);
     auto air_ventilation = std::make_shared<Heat::AirLeakageModelPressure>(0, 4, generator.computeInteriorVolume(), air_cp, air_rho);
@@ -454,11 +472,11 @@ int main(int argc, char* argv[])
     auto window_model   = std::make_shared<Heat::WindowConductionModel>(1, 0);  //TODO: zero window area
 
     // air properties from 6000 ft altitude
-    Real interior_air_min_temp = 293.15;
-    Real interior_air_max_temp = 297.039;
+    Real interior_air_min_temp = 295; //293.15;
+    Real interior_air_max_temp = 295; //297.039;
     Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
-    //auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
-    auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+    auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+    //auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
 
 
     auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(air_rho * air_cp, generator.computeInteriorVolume(),  
