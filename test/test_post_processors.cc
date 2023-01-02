@@ -25,6 +25,7 @@ class PostProcessorTester : public ::testing::Test,
 TEST_F(PostProcessorTester, SurfaceAverage)
 {
   auto u = makeDiscVector(disc);
+  AuxiliaryEquationsStoragePtr u_aux = nullptr;
   u->set(2);
 
   auto surf = disc->getSurfDisc(0);
@@ -35,12 +36,13 @@ TEST_F(PostProcessorTester, SurfaceAverage)
 
   EXPECT_EQ(postproc->numValues(), 1);
   EXPECT_EQ(postproc->getNames()[0], "postprocessor");
-  EXPECT_NEAR(postproc->getValues(u, 0)[0], 4, 1e-13);
+  EXPECT_NEAR(postproc->getValues(u, u_aux, 0)[0], 4, 1e-13);
 }
 
 TEST_F(PostProcessorTester, BCFlux)
 {
   auto u = makeDiscVector(disc);
+  AuxiliaryEquationsStoragePtr u_aux = nullptr;
   u->set(2);
 
   auto surf = disc->getSurfDisc(0);
@@ -53,5 +55,5 @@ TEST_F(PostProcessorTester, BCFlux)
 
   EXPECT_EQ(postproc->numValues(), 1);
   EXPECT_EQ(postproc->getNames()[0], "postprocessor");
-  EXPECT_NEAR(postproc->getValues(u, 0)[0], 6, 1e-13);
+  EXPECT_NEAR(postproc->getValues(u, u_aux, 0)[0], 6, 1e-13);
 }

@@ -32,9 +32,9 @@ class PhysicsModel
     // overwrites rhs with the right hand side
     // on entry, u has the solution in vector form
     // on exit, rhs has the residual in array form
-    virtual void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs) = 0;
+    virtual void computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs) = 0;
 
-    virtual void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) = 0;
+    virtual void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler) = 0;
 
     virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) = 0;
 
@@ -64,10 +64,10 @@ class PhysicsModel
 
     physics::PostProcessorManagerPtr getPostProcessors() { return m_postprocessors; }
 
-    void runPostProcessors(int timestep, DiscVectorPtr u, double t)
+    void runPostProcessors(int timestep, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
     {
       if (m_postprocessors)
-        m_postprocessors->runPostProcessors(timestep, u, t);
+        m_postprocessors->runPostProcessors(timestep, u, u_aux, t);
     }
 
   protected:

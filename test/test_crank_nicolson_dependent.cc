@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "ProjectDefs.h"
 #include "mesh_helper.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/interior_loads.h"
@@ -67,6 +68,7 @@ class CNDependentTester : public StandardDiscSetup,
       heat_model = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, environment_interface, air_temp_updator);
       u_vec   = makeDiscVector(disc);
       //res_vec = makeDiscVector(disc);
+      u_aux_vec = makeAuxiliaryEquationsStorage(heat_model->getAuxEquations());
 
       for (int i=0; i < disc->getNumVolDiscs(); ++i)
       {
@@ -96,6 +98,7 @@ class CNDependentTester : public StandardDiscSetup,
     std::shared_ptr<Heat::HeatEquationSolar> heat_model;
     Heat::SolarPositionCalculator solar_position_calc{0, 0, 0, 0};
     DiscVectorPtr u_vec;
+    AuxiliaryEquationsStoragePtr u_aux_vec;
 };
 
 }
@@ -137,7 +140,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   std::cout << "temperature change per timestep = " << temperature_change_rate * delta_t << std::endl;
 
   setSolution(ex_sol, ex_sol_deriv, src_func,  env_interface, air_updator);
-  heat_model->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
+  u_aux_vec->getVector(1)[0] = initial_air_temp;
 
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
@@ -149,7 +152,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   opts.nonlinear_rel_tol = 1e-12;
   opts.nonlinear_itermax = 5;  //TODO: test 1
 
-  timesolvers::CrankNicolson crank(heat_model, u_vec, opts);
+  timesolvers::CrankNicolson crank(heat_model, u_vec, u_aux_vec, opts);
   crank.solve();
 
   // the -0.5 is because the previous flux is zero at the initial condition, and the trapizoid
@@ -157,5 +160,5 @@ TEST_F(CNDependentTester, InteriorLoad)
   //eal timesteps = opts.t_end/delta_t;
   Real total_temperature_change = temperature_change_rate * opts.t_end;
   std::cout << "total temperature change = " << total_temperature_change << std::endl;
-  EXPECT_NEAR(heat_model->getAuxEquations()->getBlockSolution(1)[0], initial_air_temp + total_temperature_change, 1e-10);
+  EXPECT_NEAR(u_aux_vec->getVector(1)[0], initial_air_temp + total_temperature_change, 1e-10);
 }

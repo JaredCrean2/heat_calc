@@ -6,6 +6,7 @@
 #include "discretization/source_term.h"
 #include "linear_system/assembler.h"
 #include "linear_system/large_matrix.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/basis_vals.h"
 #include "linear_system/large_matrix_petsc.h"
@@ -90,6 +91,7 @@ namespace {
         heat        = std::make_shared<Heat::HeatEquation>(disc);
         u_vec       = makeDiscVector(disc);
         u_solve_vec = makeDiscVector(disc);
+        u_aux_vec   = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         res_vec     = makeDiscVector(disc);
 
         auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
@@ -162,6 +164,7 @@ namespace {
       HeatPtr heat;
       DiscVectorPtr u_vec;
       DiscVectorPtr u_solve_vec;
+      AuxiliaryEquationsStoragePtr u_aux_vec;
       DiscVectorPtr res_vec;
       linear_system::LargeMatrixOptsPetsc matrix_opts;
       linear_system::LargeMatrixPtr mat;
@@ -190,6 +193,7 @@ namespace {
 
         heat        = std::make_shared<Heat::HeatEquation>(disc);
         u_vec       = makeDiscVector(disc);
+        u_aux_vec   = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
       }
 
       template <typename Tex, typename Tderiv, typename Tsrc>
@@ -253,6 +257,7 @@ namespace {
 
       HeatPtr heat;
       DiscVectorPtr u_vec;
+      AuxiliaryEquationsStoragePtr u_aux_vec;
   };  
 
 
@@ -279,6 +284,7 @@ namespace {
         heat        = std::make_shared<Heat::HeatEquation>(disc);
         u_vec       = makeDiscVector(disc);
         u_solve_vec = makeDiscVector(disc);
+        u_aux_vec   = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         res_vec     = makeDiscVector(disc);
 
         auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
@@ -352,6 +358,7 @@ namespace {
       HeatPtr heat;
       DiscVectorPtr u_vec;
       DiscVectorPtr u_solve_vec;
+      AuxiliaryEquationsStoragePtr u_aux_vec;
       DiscVectorPtr res_vec;
       linear_system::LargeMatrixOptsPetsc matrix_opts;
       linear_system::LargeMatrixPtr mat;
@@ -407,10 +414,10 @@ TEST_F(HeatMMSConvergenceTester, Exponential)
       mesh->getFieldDataManager().attachVector(u_vec, "solution");
       mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
-      heat->computeRhs(u_vec, 0.0, res_vec);
+      heat->computeRhs(u_vec, u_aux_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
-      heat->computeJacobian(u_vec, 0.0, assembler);
+      heat->computeJacobian(u_vec, u_aux_vec, 0.0, assembler);
 
       mat->finishMatrixAssembly();
       mat->factor();
@@ -500,7 +507,7 @@ TEST_F(UnsteadyHeatMMSConvergenceTester, CrankNicolsonExponential)
       mesh->getFieldDataManager().attachVector(u_vec, "solution");
       mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
-      timesolvers::CrankNicolson crank(heat, u_vec, opts);
+      timesolvers::CrankNicolson crank(heat, u_vec, u_aux_vec, opts);
       crank.solve();
 
       auto u_ex_vec = makeDiscVector(disc);
@@ -561,10 +568,10 @@ TEST_F(HeatMMSMultiConvergenceTester, Exponential)
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
       int num_dofs = u_vec->getNumDofs();
 
-      heat->computeRhs(u_vec, 0.0, res_vec);
+      heat->computeRhs(u_vec, u_aux_vec, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
-      heat->computeJacobian(u_vec, 0.0, assembler);
+      heat->computeJacobian(u_vec, u_aux_vec, 0.0, assembler);
 
       mat->finishMatrixAssembly();
       mat->factor();

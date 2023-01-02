@@ -35,11 +35,10 @@ void HeatEquationSolar::addNeumannBC(NeumannBCPtr bc, bool is_exterior)
 }
 
 
-void HeatEquationSolar::setTimeParameters(Real t)
+void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
 {
   DirectionCosines solar_dir = m_solar_position.computePositionFromSeconds(t);
   EnvironmentData env_data   = m_environment->getEnvironmentData(t);
-  Real interior_air_temp     = m_aux_equations->getBlockSolution(1)[0];
   const auto& neumann_bcs    = getNeumannBCs();
   for (size_t i=0; i < neumann_bcs.size(); ++i)
   {
@@ -83,15 +82,15 @@ AuxiliaryEquationsSolarPtr HeatEquationSolar::getAuxEquationsSolar()
 }
 
 
-void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real t, Real x, ArrayType<Real, 1>& b)
+void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real interior_temp, Real t, Real x, ArrayType<Real, 1>& b)
 {
   //std::cout << "computing dRdTinterior_air product" << std::endl;
   //std::cout << "x = " << x << std::endl;
   //TODO: cache these
-  setTimeParameters(t);
+  setTimeParameters(t, interior_temp);
   auto rhs = makeDiscVector(getDiscretization());
   auto rhs_dot = makeDiscVector(getDiscretization());
-  computeNeumannBC_dotTair(*this, t, u, x, rhs, rhs_dot);
+  computeNeumannBC_dotTair(*this, t, u, interior_temp, x, rhs, rhs_dot);
 
   rhs_dot->syncArrayToVector();
   auto& rhs_dot_vec = rhs_dot->getVector();
@@ -105,7 +104,7 @@ void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real t, 
 
 
 
-void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, DiscVectorPtr u, Real t_interior_dot, 
+void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, DiscVectorPtr u, Real t_interior, Real t_interior_dot, 
                               DiscVectorPtr rhs, DiscVectorPtr rhs_dot)
 {
   rhs_dot->set(0);  //TODO: is this right?  Maybe should accumulate
@@ -115,14 +114,15 @@ void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, Di
     if (!physics.isNeumannBCExterior(i))
     {
       auto bc = neumann_bcs[i];
-      computeNeumannBC_dotTair(bc, u, t_interior_dot, t, rhs, rhs_dot);
+      computeNeumannBC_dotTair(bc, u, t_interior, t_interior_dot, t, rhs, rhs_dot);
     }
 
   rhs->markArrayModified();
   rhs_dot->markArrayModified();
 }
 
-void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior_dot, const Real t, DiscVectorPtr rhs, DiscVectorPtr rhs_dot)
+void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior, Real t_interior_dot, const Real t, 
+                              DiscVectorPtr rhs, DiscVectorPtr rhs_dot)
 {
   // Note: we currently don't require that a given surface has a single volume as
   //       as its upward adjacency, so we have to look up a different volume disc
@@ -131,6 +131,8 @@ void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior_
   auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(bc);
   if (!bc_air_wind_sky)
     return;
+
+  bc_air_wind_sky->setAirTemperature(t_interior);
 
 
   auto surf = bc->getSurfDisc();

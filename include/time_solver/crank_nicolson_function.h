@@ -1,6 +1,7 @@
 #ifndef TIME_SOLVER_CRANK_NICOLSON_FUNCTION
 #define TIME_SOLVER_CRANK_NICOLSON_FUNCTION
 
+#include "physics/AuxiliaryEquations.h"
 #include "time_solver/crank_nicolson_aux_equations.h"
 #include "time_solver/newton.h"
 #include "physics/PhysicsModel.h"
@@ -16,10 +17,10 @@ class CrankNicolsonFunction : public NewtonFunction
 
     void resetForNewSolve() override ;
   
-    Real computeFunc(const DiscVectorPtr u_np1, bool compute_norm, DiscVectorPtr f_np1) override;
+    Real computeFunc(const DiscVectorPtr u_np1, AuxiliaryEquationsStoragePtr u_aux_np1, bool compute_norm, DiscVectorPtr f_np1) override;
 
     // compute jac = df/du, overwriting jac
-    void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) override;
+    void computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) override;
 
     //void updateDependentQuantities(DiscVectorPtr u) override;
 
@@ -28,7 +29,7 @@ class CrankNicolsonFunction : public NewtonFunction
     // create an empty vector
     DiscVectorPtr createVector() override;
 
-    void setTnp1(DiscVectorPtr u_n, Real t_np1);
+    void setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1);
 
   private:
     std::shared_ptr<PhysicsModel> m_physics_model;
@@ -38,6 +39,7 @@ class CrankNicolsonFunction : public NewtonFunction
     //TODO: how many of these need to be true DiscVectors? Some of them may only
     //      require the vector part
     DiscVectorPtr m_un;
+    AuxiliaryEquationsStoragePtr m_u_aux_n;
     DiscVectorPtr m_fn;
 
     Real m_tnp1;

@@ -3,6 +3,7 @@
 #include "discretization/disc_vector.h"
 #include "discretization/dof_numbering.h"
 #include "discretization/volume_discretization.h"
+#include "error_handling.h"
 #include "physics/heat/basis_vals.h"
 #include "physics/heat/helper_funcs.h"
 #include "physics/heat/interior_temperature_update.h"
@@ -22,7 +23,7 @@ namespace Heat {
 //-----------------------------------------------------------------------------
 // HeatEquation
 
-void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
+void HeatEquation::computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs)
 {
   std::cout << "\ncomputing heat equation rhs" << std::endl;
   rhs->set(0);
@@ -67,7 +68,7 @@ void HeatEquation::computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
 }
 
 
-void HeatEquation::computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler)
+void HeatEquation::computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler)
 {
   if (!u->isArrayCurrent())
     u->syncArrayToVector();

@@ -2,6 +2,7 @@
 #include "discretization/NeumannBC.h"
 #include "discretization/surface_discretization.h"
 #include "mesh_helper.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/solar_position.h"
 #include "test_helper.h"
 #include "physics/heat/bc_defs.h"
@@ -342,6 +343,7 @@ namespace {
       {
         heat = std::make_shared<Heat::HeatEquation>(disc);
         u_vec = makeDiscVector(disc);
+        u_aux_vec = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         res_vec = makeDiscVector(disc);
 
 
@@ -366,6 +368,7 @@ namespace {
 
       HeatPtr heat;
       DiscVectorPtr u_vec;
+      AuxiliaryEquationsStoragePtr u_aux_vec;
       DiscVectorPtr res_vec;
   };
 }
@@ -408,7 +411,7 @@ TEST_F(HeatNeumannTester, JacobianFiniteDifferenceDirichlet)
   
   setSolution(ex_sol_l);
 
-  heat->computeJacobian(u_vec, 0.0, assembler);
+  heat->computeJacobian(u_vec, u_aux_vec, 0.0, assembler);
 
 
   for (int i=0; i < nvectors; ++i)
@@ -422,7 +425,7 @@ TEST_F(HeatNeumannTester, JacobianFiniteDifferenceDirichlet)
     }
 
     // compute at original state
-    heat->computeRhs(u_vec, 0.0, res_vec);
+    heat->computeRhs(u_vec, u_aux_vec, 0.0, res_vec);
     res_vec->syncArrayToVector();
 
     // apply perturbation
@@ -434,7 +437,7 @@ TEST_F(HeatNeumannTester, JacobianFiniteDifferenceDirichlet)
       u_vec->getVector()[j] += eps * pert_vec[j];
     u_vec->markVectorModified();
 
-    heat->computeRhs(u_vec, 0.0, res_vec2);
+    heat->computeRhs(u_vec, u_aux_vec, 0.0, res_vec2);
     res_vec2->syncArrayToVector();
 
     for (int j=0; j < num_dofs; ++j)

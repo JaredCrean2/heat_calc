@@ -2,9 +2,9 @@
 
 namespace Heat {
 
-void AuxiliaryEquationsSolar::computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs)
+void AuxiliaryEquationsSolar::computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs)
 {
-  Real interior_temp = getAuxiliaryBlockSolution(block)[0];
+  Real interior_temp = u_aux_vec->getVector(1)[0];
   rhs[0] = m_air_temp->computeNetFlux(u_vec, interior_temp, t);
 }
 
@@ -13,6 +13,7 @@ void AuxiliaryEquationsSolar::computeAuxiliaryMassMatrix(int block, Real t, line
   std::vector<DofInt> dofs = {0};
   ArrayType<Real, 2> mat(boost::extents[1][1]);
   mat[0][0] = m_air_temp->getThermalMass();
+  std::cout << "AuxiliaryEquationsSolar Mass matrix value = " << mat[0][0] << std::endl;
   assembler->assembleEntry(dofs, mat);
 }
 
@@ -23,10 +24,10 @@ void AuxiliaryEquationsSolar::multiplyAuxiliaryMassMatrix(int block, Real t,
   b[0] = x[0] * val;
 }
 
-void AuxiliaryEquationsSolar::computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, 
+void AuxiliaryEquationsSolar::computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, 
                                                        linear_system::SimpleAssemblerPtr mat)
 {
-  Real interior_temp = getAuxiliaryBlockSolution(0)[0];
+  Real interior_temp = u_aux_vec->getVector(1)[0];
   Real val = m_air_temp->computeNetFluxJacobian(u_vec, interior_temp, t);
 
   std::cout << "AuxliaryEquationsSolar Jacobian val = " << val << std::endl;
@@ -37,9 +38,9 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobian(int block, DiscVectorPtr 
 }
 
 void AuxiliaryEquationsSolar::computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, 
-      DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+      DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
 {
-  Real t_interior = getAuxiliaryBlockSolution(0)[0];
+  Real t_interior = u_aux_vec->getVector(1)[0];
   auto u_bar = makeDiscVector(m_heat_eqn.getDiscretization());  //TODO: cache this
   u_bar->set(0);
   m_air_temp->computeNetFlux_rev(u_vec, t_interior, t, u_bar, 1);
@@ -51,19 +52,6 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianVectorProduct(int iblock, 
   b[0] = 0;
   for (size_t i=0; i < u_bar_vec.shape()[0]; ++i)
     b[0] += u_bar_vec[i] * x[i];
-}
-
-
-void AuxiliaryEquationsSolar::setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals)
-{
-  auto& solution = m_solutions->getVector(block+1);
-  for (int i=0; i < vals.shape()[0]; ++i)
-    solution[i] = vals[i];
-}
-
-ArrayType<Real, 1>& AuxiliaryEquationsSolar::getAuxiliaryBlockSolution(int block)
-{
-  return m_solutions->getVector(block+1);
 }
 
 }

@@ -23,7 +23,7 @@ class PostProcessorInterior : public physics::PostProcessorBase
 
     std::vector<std::string> getNames() const override { return {"interior_air_temp", "hvac_flux"}; }
 
-    std::vector<Real> getValues(DiscVectorPtr u, double t) override;
+    std::vector<Real> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override;
 
   private:
     AuxiliaryEquationsSolarPtr m_aux_eqns;

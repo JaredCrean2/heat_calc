@@ -17,7 +17,7 @@ class PostProcessorManager
 
     void addPostProcessor(PostProcessorPtr postproc);
 
-    void runPostProcessors(int timestep, DiscVectorPtr u, double t);
+    void runPostProcessors(int timestep, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t);
 
     // Note: the destructor will close the file, this function is only required
     //       to close the file earlier

@@ -15,7 +15,7 @@ class PostProcessorConstant : public physics::PostProcessorBase
 
     std::vector<std::string> getNames() const override { return {std::string("PostProcessorConstant") + std::to_string(m_id)}; }
 
-    std::vector<double> getValues(DiscVectorPtr u, double t) override { return {double(m_id)}; }
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override { return {double(m_id)}; }
 
   private:
     int m_id;
@@ -50,7 +50,8 @@ std::vector<std::string> split(const std::string& str, char delim)
 TEST_F(PostProcessorManagerTester, Header)
 {
   DiscVectorPtr u = nullptr;
-  manager.runPostProcessors(0, u, 0.0);
+  AuxiliaryEquationsStoragePtr u_aux = nullptr;
+  manager.runPostProcessors(0, u, u_aux, 0.0);
 
   std::ifstream file;
   file.open("post_processor_test.txt");
@@ -72,9 +73,10 @@ TEST_F(PostProcessorManagerTester, Header)
 TEST_F(PostProcessorManagerTester, Values)
 {
   DiscVectorPtr u = nullptr;
+  AuxiliaryEquationsStoragePtr u_aux = nullptr;
   double delta_t = 0.1;
   for (int i=0; i < 7; ++i)
-    manager.runPostProcessors(i, u, i*delta_t);
+    manager.runPostProcessors(i, u, u_aux, i*delta_t);
   manager.close();
 
   std::ifstream file;

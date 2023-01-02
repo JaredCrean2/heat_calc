@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "discretization/disc_vector.h"
 #include "mesh_helper.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/air_leakage.h"
@@ -343,7 +344,8 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   auto wall_bc = std::make_shared<Heat::TarpBC>(disc->getSurfDisc(0), surface_area, perimeter, roughness_index, vertical_vector,
                                                 point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
   heat_eqn.addNeumannBC(wall_bc, false);
-  heat_eqn.getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
+  auto u_aux_vec = makeAuxiliaryEquationsStorage(heat_eqn.getAuxEquations());
+  u_aux_vec->getVector(1)[0] = initial_air_temp;
 
   Heat::TarpModel model(surface_area, perimeter, roughness_index, vertical_vector,
                         point_at_zero_altitude,

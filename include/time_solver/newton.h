@@ -26,15 +26,15 @@ class NewtonAuxiliaryEquations
     // returns the number of variables in the given block
     virtual int getBlockSize(int block) const = 0;
 
-    virtual Real computeRhs(int block, DiscVectorPtr u_vec, bool compute_norm, ArrayType<Real, 1>& rhs) = 0;
+    virtual Real computeRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, 
+                            bool compute_norm, ArrayType<Real, 1>& rhs) = 0;
 
-    virtual void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) =0;
+    virtual void computeJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                 linear_system::LargeMatrixPtr mat) =0;
 
-    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
-
-    virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals) = 0;
-
-    virtual ArrayType<Real, 1>& getBlockSolution(int block) = 0;
+    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, 
+                                     AuxiliaryEquationsStoragePtr u_aux_vec, 
+                                     const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
     virtual AuxiliaryEquationsJacobiansPtr getJacobians() = 0;
 
@@ -60,10 +60,10 @@ class NewtonFunction
 
 
     // compute f(u), overwriting f.  Computes norm of f if required
-    virtual Real computeFunc(const DiscVectorPtr u, bool compute_norm, DiscVectorPtr f) = 0;
+    virtual Real computeFunc(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, DiscVectorPtr f) = 0;
 
     // compute jac = df/du, overwriting jac
-    virtual void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) = 0;
+    virtual void computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) = 0;
 
     virtual NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() = 0;
 
@@ -79,33 +79,33 @@ class NewtonSolver
   public:
     explicit NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr jac);
 
-    NewtonResult solve(DiscVectorPtr u, NewtonOpts opts);
+    NewtonResult solve(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, NewtonOpts opts);
 
   private:
-    void setupForSolve(DiscVectorPtr u, NewtonOpts opts);
+    void setupForSolve(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, NewtonOpts opts);
 
-    void solveStep(DiscVectorPtr u);
+    void solveStep(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    void updateNonlinearSolution(DiscVectorPtr u);
+    void updateNonlinearSolution(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    Real computeRhsAndNorm(DiscVectorPtr u);
+    Real computeRhsAndNorm(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    void computeJacobians(DiscVectorPtr u);
+    void computeJacobians(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    void checkJacobianFiniteDifference(DiscVectorPtr u);
+    void checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
     // returns some kind of relative norm of delta_u
-    Real gaussSeidelStep(DiscVectorPtr u);
+    Real gaussSeidelStep(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    Real gaussSeidelStepFirstRow(DiscVectorPtr u);
+    Real gaussSeidelStepFirstRow(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    Real gaussSeidelStepOtherRows(DiscVectorPtr u);
+    Real gaussSeidelStepOtherRows(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    void gaussSeidelComputeRhs(int iblock, DiscVectorPtr u, ArrayType<Real, 1>& rhs);
+    void gaussSeidelComputeRhs(int iblock, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, ArrayType<Real, 1>& rhs);
 
     Real updateLinearSolution(const ArrayType<Real, 1>& delta_u_tmp, ArrayType<Real, 1>& delta_u);
 
-    void computeLinearResidual(DiscVectorPtr u_vec);
+    void computeLinearResidual(DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec);
 
 
     NewtonFunctionPtr m_func;

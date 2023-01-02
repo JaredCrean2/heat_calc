@@ -15,7 +15,7 @@ std::vector<std::string> PostProcessorEnvironmentData::getNames() const
           "ir_horizontal_radiation", "direct_normal_radiation", "diffuse_radiation", "total_radiation"}; 
 }
 
-std::vector<Real> PostProcessorEnvironmentData::getValues(DiscVectorPtr u, double t)
+std::vector<Real> PostProcessorEnvironmentData::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
 {
   std::vector<Real> vals(numValues());
   auto& edata = m_heat_eqn->getEnvironmentData();

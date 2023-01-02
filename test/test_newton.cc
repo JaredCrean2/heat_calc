@@ -61,9 +61,9 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
     // returns the number of variables in the given block
     int getBlockSize(int block) const override { return m_aux_eqns->getBlockSize(block); }
 
-    Real computeRhs(int block, DiscVectorPtr u_vec, bool compute_norm, ArrayType<Real, 1>& rhs) override 
+    Real computeRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, ArrayType<Real, 1>& rhs) override 
     { 
-      m_aux_eqns->computeRhs(block, u_vec, 0.0, rhs);
+      m_aux_eqns->computeRhs(block, u_vec, u_aux_vec, 0.0, rhs);
 
       if (compute_norm)
         return std::abs(rhs[0]);
@@ -71,25 +71,15 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
         return 0;
     }
 
-    void computeJacobian(int block, DiscVectorPtr u_vec, linear_system::LargeMatrixPtr mat) override
+    void computeJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr mat) override
     {
       auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
-      return m_aux_eqns->computeJacobian(block, u_vec, 0.0, assembler);
+      return m_aux_eqns->computeJacobian(block, u_vec, u_aux_vec, 0.0, assembler);
     }
 
-    void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
-      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, 0.0, x, b);
-    }
-
-    void setBlockSolution(int block, const ArrayType<Real, 1>& vals) override
-    {
-      m_aux_eqns->setBlockSolution(block, vals);
-    }
-
-    ArrayType<Real, 1>& getBlockSolution(int block) override
-    {
-      return m_aux_eqns->getBlockSolution(block);
+      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, u_aux_vec, 0.0, x, b);
     }
 
     AuxiliaryEquationsJacobiansPtr getJacobians() override
@@ -99,7 +89,7 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
 
     AuxiliaryEquationsStoragePtr createStorage() override
     {
-      return std::make_shared<AuxiliaryEquationStorage>(*m_aux_eqns);
+      return makeAuxiliaryEquationsStorage(m_aux_eqns);
     }
 
   private:
@@ -116,7 +106,7 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
       AuxiliaryEquations(disc)
     {
       m_jacs = std::make_shared<AuxiliaryEquationsJacobiansDense>(*this);
-      m_solutions = std::make_shared<AuxiliaryEquationStorage>(*this);
+      //m_solutions = std::make_shared<AuxiliaryEquationStorage>(*this);
     }
 
     AuxiliaryEquationsJacobiansPtr getJacobians() override { return m_jacs; }
@@ -129,10 +119,10 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
     int getAuxiliaryBlockSize(int block) const override { return 1; }
 
     // each auxiliary block must be of the form du/dt = rhs(u, t).  This function computes the rhs
-    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs) override
+    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs) override
     {
-      Real x = getAuxiliaryBlockSolution(0)[0];
-      Real y = getAuxiliaryBlockSolution(1)[0];
+      Real x = u_aux_vec->getVector(1)[0];
+      Real y = u_aux_vec->getVector(2)[0];
 
       if (block == 0)
         rhs[0] = m_a * x + m_c * y - 3;
@@ -154,7 +144,8 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
     }
 
     // compute the diagonal Jacobian block for the given block
-    void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat) override
+    void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, 
+                                  Real t, linear_system::SimpleAssemblerPtr mat) override
     {
       std::vector<DofInt> dofs = {0};
       ArrayType<Real, 2> jac(boost::extents[1][1]);
@@ -169,14 +160,16 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
     }
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
-    void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                   Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       for (int i=0; i < getBlockSize(0); ++i)
         b[i] = 0;
     }
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
-    void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                               Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       // the system we are solving is:
       // [a c  [x  = [b1
@@ -190,20 +183,10 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
         b[0] = m_c * x[0];
     }
 
-    void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) override
-    {
-      getAuxiliaryBlockSolution(block)[0] = vals[0];
-    }
-
-    ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) override
-    {
-      return m_solutions->getVector(block+1);
-    }
-
   private:
     DiscPtr m_disc;
     AuxiliaryEquationsJacobiansPtr m_jacs;
-    AuxiliaryEquationsStoragePtr m_solutions;
+    //AuxiliaryEquationsStoragePtr m_solutions;
     Real m_a = 1;
     Real m_b = 2;
     Real m_c = 0.1;
@@ -229,7 +212,7 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
 
     void resetForNewSolve() override {}
   
-    Real computeFunc(const DiscVectorPtr u, bool compute_norm, DiscVectorPtr f) override
+    Real computeFunc(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, DiscVectorPtr f) override
     {
       if (!u->isVectorCurrent())
         u->syncArrayToVector();
@@ -254,7 +237,7 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
       return norm;
     }
 
-    void computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac) override
+    void computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) override
     {    
       if (!u->isVectorCurrent())
         u->syncArrayToVector();
@@ -299,12 +282,13 @@ TEST_F(NewtonTester, Quadratic)
 
   timesolvers::NewtonSolver newton(func, mat);
   u->set(2);
+  auto u_aux = func->getAuxiliaryEquations()->createStorage();
   timesolvers::NewtonOpts opts;
   opts.nonlinear_abs_tol = abstol;
   opts.nonlinear_itermax = itermax;
   opts.nonlinear_rel_tol = -1;
   opts.linear_itermax = 5;
-  auto result = newton.solve(u, opts);
+  auto result = newton.solve(u, u_aux, opts);
 
   if (!u->isVectorCurrent())
     u->syncArrayToVector();
@@ -329,6 +313,7 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
   auto func            = std::make_shared<NewtonTestFunc>(disc);
   auto aux_eqns        = std::make_shared<AuxiliaryEquationsCoupledBlock>(disc);
   auto newton_aux_eqns = std::make_shared<NewtonTestAuxiliaryEquations>(disc, aux_eqns);
+  auto u_aux           = makeAuxiliaryEquationsStorage(aux_eqns);
   func->setAuxiliaryEquations(newton_aux_eqns);
 
   const Real abstol = 1e-13;
@@ -336,14 +321,14 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
 
   timesolvers::NewtonSolver newton(func, mat);
   u->set(2);
-  aux_eqns->getBlockSolution(1)[0] = 1;
-  aux_eqns->getBlockSolution(2)[0] = 2;
+  u_aux->getVector(1)[0] = 1;
+  u_aux->getVector(2)[0] = 2;
 
   timesolvers::NewtonOpts opts;
   opts.nonlinear_abs_tol = abstol;
   opts.nonlinear_itermax = itermax;
   opts.nonlinear_rel_tol = -1;
-  auto result = newton.solve(u, opts);
+  auto result = newton.solve(u, u_aux, opts);
 
   if (!u->isVectorCurrent())
     u->syncArrayToVector();
@@ -362,8 +347,8 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
   EXPECT_EQ(result.getAbsTol(), abstol);
   EXPECT_EQ(result.getRelTol(), -1);
 
-  Real x = aux_eqns->getBlockSolution(1)[0];
-  Real y = aux_eqns->getBlockSolution(2)[0];
+  Real x = u_aux->getVector(1)[0];
+  Real y = u_aux->getVector(2)[0];
 
   EXPECT_NEAR(x, 2.81407035175875, abstol);
   EXPECT_NEAR(y, 1.859296482412063, abstol);

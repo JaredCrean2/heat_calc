@@ -7,6 +7,7 @@
 #include "linear_system/large_matrix_petsc.h"
 #include "mesh/mesh_generator_multi_block.h"
 #include "mesh/mesh_input.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "mesh/mesh.h"
 #include "physics/heat/HeatEquationSolar.h"
@@ -303,7 +304,7 @@ class GeometryGenerator
     std::vector<Heat::VolumeGroupParams> foundation_params { {2.25, 2400, 880} };
 };
 
-std::shared_ptr<NeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
+std::shared_ptr<Heat::AirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
                                                                     Real emittance, Real absorptivity)
 {
   std::array<Real, 3> vertical_vector = {0, 0, 1};
@@ -352,7 +353,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     Real absorptivity = i < 5 ? 0.75 : 0.78;
     auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity);
     heat_eqn->addNeumannBC(bc, true);
-    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorBCFlux>(names[i-1], bc));
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i-1], bc, heat_eqn.get()));
   }  
 }
 
@@ -395,7 +396,7 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     //TODO: need to account for solar heating of floor via windows
     auto bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, 0, vertical_vector);
     heat_eqn->addNeumannBC(bc, false);
-    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorBCFlux>(names[i-6], bc));
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i-6], bc, heat_eqn.get()));
   }  
 }
 
@@ -484,7 +485,8 @@ int main(int argc, char* argv[])
 
     auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator);
     std::cout << "initial air temp = " << initial_air_temp << std::endl;
-    heat_eqn->getAuxEquations()->getBlockSolution(1)[0] = 295.0945; //initial_air_temp;
+    auto u_aux = makeAuxiliaryEquationsStorage(heat_eqn->getAuxEquations());
+    u_aux->getVector(1)[0] = 295.0945; //initial_air_temp;
 
     auto postprocessor_scheduler = std::make_shared<physics::PostProcessorScheduleFixedInterval>(1);
     auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt");
@@ -509,7 +511,7 @@ int main(int argc, char* argv[])
     timesolvers::TimeStepperOpts opts = getTimeStepperOpts();
     DiscVectorPtr u = makeDiscVector(disc);
     u->set(initial_air_temp);  //TODO: maybe set to steady state solution?
-    timesolvers::CrankNicolson timesolver(heat_eqn, u, opts);
+    timesolvers::CrankNicolson timesolver(heat_eqn, u, u_aux, opts);
 
     // run solver
     mesh->getFieldDataManager().attachVector(u, "solution");

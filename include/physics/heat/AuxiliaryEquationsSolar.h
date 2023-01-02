@@ -15,9 +15,7 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
       m_heat_eqn(heat_eqn),
       m_air_temp(air_temp),
       m_jacs(std::make_shared<AuxiliaryEquationsJacobiansDense>(*this))
-    {
-      m_solutions = std::make_shared<AuxiliaryEquationStorage>(*this);
-    }
+    {}
 
   protected:
 
@@ -28,41 +26,36 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
     int getAuxiliaryBlockSize(int block) const override { return 1; }
 
     // each auxiliary block must be of the form M du/dt = rhs(u, t).  This function computes the rhs
-    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs) override;
+    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs) override;
 
     void computeAuxiliaryMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr assembler) override;
 
     void multiplyAuxiliaryMassMatrix(int block, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
 
     // compute the diagonal Jacobian block for the given block
-    void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat) override;
+    void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, linear_system::SimpleAssemblerPtr mat) override;
 
     // compute the diagonal Jacobian block for the given block
     //virtual void computeAuxiliaryJacobian(int block, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
-    void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, Real t, 
+    void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, 
                                                    const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
-      m_heat_eqn.computedRdTinterior_airProduct(u_vec, t, x[0], b);
+      Real interior_temp = u_aux_vec->getVector(1)[0];
+      m_heat_eqn.computedRdTinterior_airProduct(u_vec, interior_temp, t, x[0], b);
     }
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
-    void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, 
+    void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, 
                                                 const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
 
     AuxiliaryEquationsJacobiansPtr getJacobians() override { return m_jacs; }
-
-    void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) override;
-
-    ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) override;
-
 
   private:
     HeatEquationSolar& m_heat_eqn;
     std::shared_ptr<InteriorAirTemperatureUpdator> m_air_temp;
     AuxiliaryEquationsJacobiansPtr m_jacs;
-    AuxiliaryEquationsStoragePtr m_solutions;
 };
 
 }

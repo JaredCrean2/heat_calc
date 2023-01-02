@@ -1,8 +1,9 @@
 #include "physics/post_processors.h"
+#include "physics/heat/bc_defs.h"
 
 namespace physics {
 
-std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, double t)
+std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
 {
   if (!u->isArrayCurrent())
     u->syncArrayToVector();

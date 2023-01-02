@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "discretization/disc_vector.h"
 #include "mesh_helper.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/air_leakage.h"
@@ -50,6 +51,8 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
       heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, env_interface, air_updator);
       heat_eqn->initialize();
       aux_eqn = heat_eqn->getAuxEquations();
+      sol_aux_vec = makeAuxiliaryEquationsStorage(aux_eqn);
+      sol_aux_vec->getVector(1)[0] = interior_air_temp;
     }
 
     void makeHeatEquationSolarBC()
@@ -90,6 +93,8 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
 
       heat_eqn->initialize();
       aux_eqn = heat_eqn->getAuxEquations();
+      sol_aux_vec = makeAuxiliaryEquationsStorage(aux_eqn);
+      sol_aux_vec->getVector(1)[0] = interior_air_temp;      
     }
 
   protected:
@@ -97,6 +102,7 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
     std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_updator;
     std::shared_ptr<AuxiliaryEquations> aux_eqn;
     DiscVectorPtr sol_vec;
+    AuxiliaryEquationsStoragePtr sol_aux_vec;
 
     Real rho = 2;
     Real cp = 3;
@@ -123,23 +129,24 @@ TEST_F(AuxiliaryEquationsSolarTester, Sizes)
 TEST_F(AuxiliaryEquationsSolarTester, Jacobian)
 {
   int block_size = aux_eqn->getBlockSize(1);
+  AuxiliaryEquationsStoragePtr u_aux = makeAuxiliaryEquationsStorage(aux_eqn);
   ArrayType<Real, 1> rhs0(boost::extents[block_size]), rhs1(boost::extents[block_size]);
   ArrayType<Real, 1> ones(boost::extents[block_size]), jac_product(boost::extents[block_size]);
   ones[0] = 1;
   sol_vec->set(500);
 
   Real eps=1e-7;
-  aux_eqn->getBlockSolution(1)[0] = interior_air_temp;
-  aux_eqn->computeRhs(1, sol_vec, 0.0, rhs0);
-  aux_eqn->getBlockSolution(1)[0] = interior_air_temp + eps;
-  aux_eqn->computeRhs(1, sol_vec, 0.0, rhs1);
-  aux_eqn->getBlockSolution(1)[0] = interior_air_temp;
+  u_aux->getVector(1)[0] = interior_air_temp;
+  aux_eqn->computeRhs(1, sol_vec, u_aux, 0.0, rhs0);
+  u_aux->getVector(1)[0] = interior_air_temp + eps;
+  aux_eqn->computeRhs(1, sol_vec, u_aux, 0.0, rhs1);
+  u_aux->getVector(1)[0] = interior_air_temp;
 
   Real deriv_fd = (rhs1[0] - rhs0[0])/eps;
 
   auto jac = aux_eqn->getJacobians()->getMatrix(1);
   auto assembler = std::make_shared<linear_system::SimpleAssembler>(jac);
-  aux_eqn->computeJacobian(1, sol_vec, 0, assembler);
+  aux_eqn->computeJacobian(1, sol_vec, u_aux, 0, assembler);
   jac->finishMatrixAssembly();
   jac->matVec(ones, jac_product);
 
@@ -175,8 +182,8 @@ TEST_F(AuxiliaryEquationsSolarTester, dRdTair)
   ones[0] = 1;
 
 
-  aux_eqn->multiplyOffDiagonal(0, 1, sol_vec, 0.0, ones, rhs_aux);
-  heat_eqn->computedRdTinterior_airProduct(sol_vec, 0.0, 1, rhs_direct);
+  aux_eqn->multiplyOffDiagonal(0, 1, sol_vec, sol_aux_vec, 0.0, ones, rhs_aux);
+  heat_eqn->computedRdTinterior_airProduct(sol_vec, sol_aux_vec->getVector(1)[0], 0.0, 1, rhs_direct);
 
   for (int i=0; i < aux_eqn->getBlockSize(0); ++i)
     EXPECT_NEAR(rhs_aux[i], rhs_direct[i], 1e-13);
@@ -193,7 +200,7 @@ TEST_F(AuxiliaryEquationsSolarTester, dTairdU)
   for (int i=0; i < aux_eqn->getBlockSize(0); ++i)
     ones[i] = 1;
 
-  aux_eqn->multiplyOffDiagonal(1, 0, sol_vec, 0.0, ones, rhs_aux);
+  aux_eqn->multiplyOffDiagonal(1, 0, sol_vec, sol_aux_vec, 0.0, ones, rhs_aux);
 
   auto sol_vec_bar = makeDiscVector(disc);
   sol_vec_bar->set(0);

@@ -1,5 +1,6 @@
 
 #include "gtest/gtest.h"
+#include "physics/AuxiliaryEquations.h"
 #include "test_helper.h"
 #include <random>
 
@@ -31,8 +32,8 @@ namespace {
       {
         heat = std::make_shared<Heat::HeatEquation>(disc);
         u_vec = makeDiscVector(disc);
+        u_aux = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         res_vec = makeDiscVector(disc);
-
 
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
@@ -58,7 +59,8 @@ namespace {
 
       HeatPtr heat;
       DiscVectorPtr u_vec;
-      DiscVectorPtr res_vec;
+      AuxiliaryEquationsStoragePtr u_aux;
+      DiscVectorPtr res_vec;  
   };
 
 
@@ -79,7 +81,7 @@ namespace {
         heat = std::make_shared<Heat::HeatEquation>(disc);
         u_vec = makeDiscVector(disc);
         res_vec = makeDiscVector(disc);
-
+        u_aux = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
 
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
@@ -106,6 +108,7 @@ namespace {
       HeatPtr heat;
       DiscVectorPtr u_vec;
       DiscVectorPtr res_vec;
+      AuxiliaryEquationsStoragePtr u_aux;
   };
 
 Real ex_sol(Real x, Real y, Real z, Real t, int degree)
@@ -179,7 +182,7 @@ TEST_F(HeatMMSTester, Constant)
   //setup();
   setSolution(ex_sol, deriv, src_func);
 
-  heat->computeRhs(u_vec, 0.0, res_vec);
+  heat->computeRhs(u_vec, u_aux, 0.0, res_vec);
   res_vec->syncArrayToVector();
 
   auto& vec = res_vec->getVector();
@@ -221,7 +224,7 @@ TEST_F(HeatMMSTester, PolynomialExactnessDirichlet)
       std::vector<DofInt> owned_to_local_dofs;
       mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
 
-      heat->computeRhs(u_vec, 0.0, res_vec);
+      heat->computeRhs(u_vec, u_aux, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       auto& vec = res_vec->getVector();
@@ -264,7 +267,7 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessDirichlet)
       std::vector<DofInt> owned_to_local_dofs;
       mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
 
-      heat->computeRhs(u_vec, 0.0, res_vec);
+      heat->computeRhs(u_vec, u_aux, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       auto& vec = res_vec->getVector();
@@ -310,7 +313,7 @@ TEST_F(HeatMMSTester, PolynomialExactnessNeumann)
       std::vector<DofInt> owned_to_local_dofs;
       mesh->getOwnedLocalDofInfo(owned_to_local_dofs);
 
-      heat->computeRhs(u_vec, 0.0, res_vec);
+      heat->computeRhs(u_vec, u_aux, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       auto& vec = res_vec->getVector();
@@ -355,7 +358,7 @@ TEST_F(HeatMMSTesterMulti, PolynomialExactnessNeumann)
       setup(2*sol_degree, sol_degree, getStandardMeshSpecs(), dirichlet_surfs);
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
-      heat->computeRhs(u_vec, 0.0, res_vec);
+      heat->computeRhs(u_vec, u_aux, 0.0, res_vec);
       res_vec->syncArrayToVector();
 
       std::vector<DofInt> owned_to_local_dofs;
@@ -480,7 +483,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
       
       setSolution(ex_sol_l, deriv_l, src_func_l, params);
 
-      heat->computeJacobian(u_vec, 0.0, assembler);
+      heat->computeJacobian(u_vec, u_aux, 0.0, assembler);
 
       //std::cout << "jacobian = \n" << *mat << std::endl;
 
@@ -502,7 +505,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
 
         // compute at original state
         //std::cout << "about to compute first residual" << std::endl;
-        heat->computeRhs(u_vec, 0.0, res_vec);
+        heat->computeRhs(u_vec, u_aux, 0.0, res_vec);
         res_vec->syncArrayToVector();
 
         // apply perturbation
@@ -519,7 +522,7 @@ TEST_F(HeatMMSTester, JacobianFiniteDifferenceDirichlet)
         //  std::cout << "  dof " << j << ", u = " << u_vec->getVector()[j] << std::endl;
 
         //std::cout << "about to compute second residual" << std::endl;
-        heat->computeRhs(u_vec, 0.0, res_vec2);
+        heat->computeRhs(u_vec, u_aux, 0.0, res_vec2);
         res_vec2->syncArrayToVector();
 
         for (int j=0; j < num_dofs; ++j)

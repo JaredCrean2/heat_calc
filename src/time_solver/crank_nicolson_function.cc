@@ -9,6 +9,7 @@ CrankNicolsonFunction::CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physi
   m_assembler(std::make_shared<linear_system::Assembler>(physics_model->getDiscretization(), mat)),
   m_tn(t0),
   m_un(makeDiscVector(physics_model->getDiscretization())),
+  m_u_aux_n(makeAuxiliaryEquationsStorage(physics_model->getAuxEquations())),
   m_fn(makeDiscVector(physics_model->getDiscretization())),
   m_tnp1(t0),
   m_delta_u(makeDiscVector(physics_model->getDiscretization())),
@@ -21,13 +22,13 @@ CrankNicolsonFunction::CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physi
 void CrankNicolsonFunction::resetForNewSolve()
 {
   m_fn->set(0);
-  m_physics_model->computeRhs(m_un, m_tn, m_fn);
+  m_physics_model->computeRhs(m_un, m_u_aux_n, m_tn, m_fn);
   if (!m_fn->isVectorCurrent())
     m_fn->syncArrayToVector();
 }
 
 
-Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_norm, DiscVectorPtr f_np1)
+Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEquationsStoragePtr u_aux_np1, bool compute_norm, DiscVectorPtr f_np1)
 {
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
   assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
@@ -35,7 +36,7 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
   //std::cout << "evaluating CN function" << std::endl;
 
   f_np1->set(0);
-  m_physics_model->computeRhs(u_np1, m_tnp1, f_np1);
+  m_physics_model->computeRhs(u_np1, u_aux_np1, m_tnp1, f_np1);
   if (!f_np1->isVectorCurrent())
     f_np1->syncArrayToVector();
 
@@ -86,10 +87,10 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, bool compute_
 }
 
 // compute jac = df/du, overwriting jac
-void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, linear_system::LargeMatrixPtr jac)
+void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac)
 {
   m_assembler->setAlpha(-0.5);
-  m_physics_model->computeJacobian(u, m_tnp1, m_assembler);
+  m_physics_model->computeJacobian(u, u_aux_vec, m_tnp1, m_assembler);
 
   m_assembler->setAlpha(1.0/(m_tnp1 - m_tn));
   m_physics_model->computeMassMatrix(m_assembler);
@@ -104,13 +105,14 @@ DiscVectorPtr CrankNicolsonFunction::createVector()
   return makeDiscVector(m_physics_model->getDiscretization()); 
 }
 
-void CrankNicolsonFunction::setTnp1(DiscVectorPtr u_n, Real t_np1)
+void CrankNicolsonFunction::setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1)
 {
   m_tn = m_tnp1;
   m_tnp1 = t_np1;
   *m_un = *u_n;
+  *m_u_aux_n = *u_aux_n;
 
-  m_aux_eqns->setTnp1(u_n, t_np1);
+  m_aux_eqns->setTnp1(u_n, u_aux_n, t_np1);
 }
 
 }

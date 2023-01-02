@@ -18,7 +18,7 @@ class PostProcessorEnvironmentData : public physics::PostProcessorBase
 
     std::vector<std::string> getNames() const override;
 
-    std::vector<Real> getValues(DiscVectorPtr u, double t) override;
+    std::vector<Real> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override;
 
   private:
     HeatEquationSolar* m_heat_eqn;

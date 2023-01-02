@@ -5,10 +5,10 @@
 
 namespace Heat {
 
-std::vector<Real> PostProcessorInterior::getValues(DiscVectorPtr u, double t)
+std::vector<Real> PostProcessorInterior::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
 {
   Real hvac_flux = m_air_temp->getHVACFlux();
-  Real t_air = m_aux_eqns->getBlockSolution(1)[0];
+  Real t_air = u_aux->getVector(1)[0];
 
   return {t_air, hvac_flux};
 }

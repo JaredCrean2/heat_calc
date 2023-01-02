@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "discretization/disc_vector.h"
+#include "AuxiliaryEquations.h"
 
 namespace physics {
 
@@ -17,7 +18,7 @@ class PostProcessorBase
 
     virtual std::vector<std::string> getNames() const = 0;
 
-    virtual std::vector<double> getValues(DiscVectorPtr u, double t) = 0;
+    virtual std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) = 0;
 };
 
 using PostProcessorPtr = std::shared_ptr<PostProcessorBase>;

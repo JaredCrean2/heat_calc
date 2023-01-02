@@ -50,21 +50,21 @@ class AuxiliaryEquations
         return getAuxiliaryBlockSize(block - 1);
     }
 
-    virtual void computeRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs)
+    virtual void computeRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs)
     {
       assertAlways(block != 0, "Cannot compute finite element rhs via AuxiliaryEquations");
       assertAlways(rhs.shape()[0] == getBlockSize(block), "rhs vector size is incorrect");
 
-      computeAuxiliaryRhs(block-1, u_vec, t, rhs);
+      computeAuxiliaryRhs(block-1, u_vec, u_aux_vec, t, rhs);
     }
 
-    virtual void computeJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat)
+    virtual void computeJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, linear_system::SimpleAssemblerPtr mat)
     {
       assertAlways(block != 0, "Cannot compute finite element Jacobian via AuxiliaryEquations");
       assertAlways(mat->getNumDofs() == getBlockSize(block), "matrix size is incorrect");
       assertAlways(mat->getNumDofs() == getBlockSize(block), "matrix size is incorrect");
 
-      computeAuxiliaryJacobian(block-1, u_vec, t,  mat);
+      computeAuxiliaryJacobian(block-1, u_vec, u_aux_vec, t,  mat);
     }
 
     virtual void computeMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr mat)
@@ -85,28 +85,15 @@ class AuxiliaryEquations
       multiplyAuxiliaryMassMatrix(block-1, t, x, b);
     }
 
-    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+    virtual void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
     {
       assertAlways(x.shape()[0] == getBlockSize(jblock), "x size is incorrect");
       assertAlways(b.shape()[0] == getBlockSize(iblock), "b size is incorrect");
 
       if (iblock == 0)
-        computeFiniteElementJacobianVectorProduct(jblock, u_vec, t, x, b);
+        computeFiniteElementJacobianVectorProduct(jblock, u_vec, u_aux_vec, t, x, b);
       else
-        computeAuxiliaryJacobianVectorProduct(iblock, jblock, u_vec, t, x, b);
-    }
-
-    // sets an updated solution for the given auxiliary block
-    virtual void setBlockSolution(int block, const ArrayType<Real, 1>& vals)
-    {
-      assertAlways(block != 0, "Cannot set finite element solution via AuxiliaryEquations");
-      setAuxiliaryBlockSolution(block-1, vals);
-    }
-
-    ArrayType<Real, 1>& getBlockSolution(int block)
-    {
-      assertAlways(block != 0, "Cannot get finite element solution via AuxiliaryEquations");
-      return getAuxiliaryBlockSolution(block-1);
+        computeAuxiliaryJacobianVectorProduct(iblock, jblock, u_vec, u_aux_vec, t, x, b);
     }
 
     virtual AuxiliaryEquationsJacobiansPtr getJacobians() = 0;
@@ -119,27 +106,23 @@ class AuxiliaryEquations
     virtual int getAuxiliaryBlockSize(int block) const = 0;
 
     // each auxiliary block must be of the form du/dt = rhs(u, t).  This function computes the rhs
-    virtual void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs) = 0;
+    virtual void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs) = 0;
 
     virtual void computeAuxiliaryMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     virtual void multiplyAuxiliaryMassMatrix(int block, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
     // compute the diagonal Jacobian block for the given block
-    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
+    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     // compute the diagonal Jacobian block for the given block
     //virtual void computeAuxiliaryJacobian(int block, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
-    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
+    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
-    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
-
-    virtual void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) = 0;
-
-    virtual ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) = 0;  //TODO: should return const ref?
+    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
   private:
     DiscPtr m_disc;
@@ -151,33 +134,38 @@ using AuxiliaryEquationsPtr = std::shared_ptr<AuxiliaryEquations>;
 class AuxiliaryEquationStorage
 {
   public:
-    explicit AuxiliaryEquationStorage(AuxiliaryEquations& aux_eqns) :
+    explicit AuxiliaryEquationStorage(AuxiliaryEquationsPtr aux_eqns) :
     m_aux_eqns(aux_eqns),
     m_vectors(0)
     {
-      for (int i=0; i < aux_eqns.getNumBlocks()-1; ++i)
+      for (int i=0; i < aux_eqns->getNumBlocks()-1; ++i)
       {
-        int size = aux_eqns.getBlockSize(i+1);
+        int size = aux_eqns->getBlockSize(i+1);
         m_vectors.emplace_back(boost::extents[size]);
       }
     }
 
     ArrayType<Real, 1>& getVector(int block)
     {
-      assertAlways(block > 0 && block < m_aux_eqns.getNumBlocks(), "block is out of range");
+      assertAlways(block > 0 && block < m_aux_eqns->getNumBlocks(), "block is out of range");
       return m_vectors[block-1];
     }
 
     const ArrayType<Real, 1>& getVector(int block) const
     {
-      assertAlways(block > 0 && block < m_aux_eqns.getNumBlocks(), "block is out of range");
+      assertAlways(block > 0 && block < m_aux_eqns->getNumBlocks(), "block is out of range");
       return m_vectors[block-1];
     }
     
   private:
-    AuxiliaryEquations& m_aux_eqns;
+    AuxiliaryEquationsPtr m_aux_eqns;
     std::vector<ArrayType<Real, 1>> m_vectors;
 };
+
+inline AuxiliaryEquationsStoragePtr makeAuxiliaryEquationsStorage(AuxiliaryEquationsPtr aux_eqns)
+{
+  return std::make_shared<AuxiliaryEquationStorage>(aux_eqns);
+}
 
 
 class AuxiliaryEquationsJacobians
@@ -265,7 +253,7 @@ class AuxiliaryEquationsNone : public AuxiliaryEquations
     }
 
     // each auxiliary block must be of the form du/dt = rhs(u, t).  This function computes the rhs
-    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, Real t, ArrayType<Real, 1>& rhs) override
+    void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs) override
     {
       assertAlways(false, "cannot compute auxiliary rhs for AuxiliaryEquationsNone"); 
     }
@@ -281,33 +269,21 @@ class AuxiliaryEquationsNone : public AuxiliaryEquations
     }
 
     // compute the diagonal Jacobian block for the given block
-    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, Real t, linear_system::SimpleAssemblerPtr mat) override
+    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, linear_system::SimpleAssemblerPtr mat) override
     {
       assertAlways(false, "cannot compute auxiliary Jacobian for AuxiliaryEquationsNone"); 
     }
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
-    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       assertAlways(false, "cannot compute finite element Jacobian vector product for AuxiliaryEquationsNone"); 
     }
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
-    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
       assertAlways(false, "cannot compute auxiliary Jacobian vector product for AuxiliaryEquationsNone"); 
-    }
-
-    void setAuxiliaryBlockSolution(int block, const ArrayType<Real, 1>& vals) override
-    {
-      assertAlways(false, "cannot set solution for AuxiliaryEquationsNone"); 
-    }
-
-    virtual ArrayType<Real, 1>& getAuxiliaryBlockSolution(int block) override
-    {
-      assertAlways(false, "cannot get solution for AuxiliaryEquationsNone");
-      static ArrayType<Real, 1> tmp(boost::extents[0]);
-      return tmp;
     }
 
   private:

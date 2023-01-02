@@ -49,9 +49,9 @@ class HeatEquation : public PhysicsModel
     : PhysicsModel(disc)
     {}
 
-    void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs) override;
+    void computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs) override;
         
-    void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) override;
+    void computeJacobian(DiscVectorPtr u,  AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler) override;
 
     void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) override;
 

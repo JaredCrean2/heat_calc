@@ -6,6 +6,7 @@
 #include "discretization/source_term.h"
 #include "linear_system/assembler.h"
 #include "linear_system/large_matrix.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/basis_vals.h"
@@ -49,6 +50,7 @@ namespace {
         Heat::VolumeGroupParams params = Heat::VolumeGroupParams{0.04, 45, 2020};
         heat        = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, environment_interface, air_temp_updator);
         u_vec       = makeDiscVector(disc);
+        u_aux_vec = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         Real surface_temp = 320;
         Real initial_wall_temp = 320;  // 310
 
@@ -88,6 +90,7 @@ namespace {
 
       std::shared_ptr<Heat::HeatEquationSolar> heat;
       DiscVectorPtr u_vec;
+      AuxiliaryEquationsStoragePtr u_aux_vec;
   };  
 
   linear_system::LargeMatrixOptsPetsc get_options()
@@ -158,15 +161,15 @@ TEST_F(HotWallTester, CaseOne)
 
   HotWallTester::setup_final(2*sol_degree, sol_degree, meshspec);
   setSolution(env_interface, air_updator);
-  heat->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
+  u_aux_vec->getVector(1)[0] = initial_air_temp;
 
   mesh->getFieldDataManager().attachVector(u_vec, "solution");
   //mesh->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
-  timesolvers::CrankNicolson crank(heat, u_vec, opts);
+  timesolvers::CrankNicolson crank(heat, u_vec, u_aux_vec, opts);
   crank.solve();
 
-  Real air_temp = heat->getAuxEquations()->getBlockSolution(1)[0];
+  Real air_temp = u_aux_vec->getVector(1)[0];
   std::cout << "final air temperature = " << air_temp << std::endl;
 
   EXPECT_GE(air_temp, 319);

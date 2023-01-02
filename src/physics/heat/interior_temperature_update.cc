@@ -20,6 +20,7 @@ Real InteriorAirTemperatureUpdator::computeNetFluxJacobian(DiscVectorPtr sol_vec
   Real load_flux = computeLoadFluxDotTair(sol_vec, interior_temp, t, load_flux_dot);
   Real hvac_flux_dot = m_hvac_model->enforceTemperatureLimit_dot(interior_temp, 1, load_flux, load_flux_dot); 
 
+  std::cout << "load_flux = " << load_flux << std::endl;
   std::cout << "load_flux_dot = " << load_flux_dot << ", hvac_flux_dot = " << hvac_flux_dot << std::endl;
   std::cout << "net flux dot = " << load_flux_dot + hvac_flux_dot << std::endl;
 
@@ -188,28 +189,15 @@ void InteriorAirTemperatureUpdator::enforceTemperatureLimit_rev(Real interior_te
 
 Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real interior_temp, Real t)
 {
-  m_heat_eqn->setTimeParameters(t);
+  m_heat_eqn->setTimeParameters(t, interior_temp);
 
   Real bc_flux = 0;
   std::cout << "number of bcs = " << m_bcs.size() << std::endl;
   for (auto& bc : m_bcs )
   {
-    auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(bc);
-    Real t_air_orig = 0;
-    if (bc_air_wind_sky)
-    {
-      t_air_orig = bc_air_wind_sky->getAirTemperature();
-      bc_air_wind_sky->setAirTemperature(interior_temp);
-    }
-
     // BCs are defined such that flux into the wall is positive, so
     // the flux into the air is the negative
-    bc_flux -= computeBCFlux(bc, sol_vec, t);
-
-    if (bc_air_wind_sky)
-    {
-      bc_air_wind_sky->setAirTemperature(t_air_orig);
-    }    
+    bc_flux -= computeBCFlux(bc, sol_vec, t);  
   }
 
   Real air_leakage_flux   = -m_air_leakage->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
@@ -230,7 +218,7 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
 Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec, Real interior_temp, Real t, Real& flux_dot)
 {
   flux_dot = 0;
-  m_heat_eqn->setTimeParameters(t);
+  m_heat_eqn->setTimeParameters(t, interior_temp);
 
   Real flux = 0;
   for (auto& bc : m_bcs )
@@ -276,7 +264,7 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
 
 void InteriorAirTemperatureUpdator::computeLoadFlux_rev(DiscVectorPtr sol_vec, DiscVectorPtr sol_vec_bar, Real interior_temp, Real& interior_temp_bar, Real t, Real flux_bar)
 {
-  m_heat_eqn->setTimeParameters(t);
+  m_heat_eqn->setTimeParameters(t, interior_temp);
 /*
   Real flux = 0;
   for (auto& bc : m_bcs )

@@ -3,6 +3,7 @@
 #include "linear_system/large_matrix_factory.h"
 #include "linear_system/large_matrix_petsc.h"
 #include "mesh_helper.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/PhysicsModel.h"
 #include "test_helper.h"
 #include "time_solver/crank_nicolson.h"
@@ -82,11 +83,11 @@ class CNPhysicsModel : public PhysicsModel
     // overwrites rhs with the right hand side
     // on entry, u has the solution in vector form
     // on exit, rhs has the residual in array form
-    virtual void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs)
+    virtual void computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs)
     {
       if (m_solve_type == SPACETIME)
       {
-        m_heat->computeRhs(u, t, rhs);
+        m_heat->computeRhs(u, u_aux, t, rhs);
       } else
       {
         rhs->set(0);
@@ -96,10 +97,10 @@ class CNPhysicsModel : public PhysicsModel
       }
     }
 
-    virtual void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler)
+    virtual void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler)
     {
       if (m_solve_type == SPACETIME)
-        m_heat->computeJacobian(u, t, assembler);
+        m_heat->computeJacobian(u, u_aux, t, assembler);
     }
 
     virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)
@@ -194,6 +195,8 @@ class CNTester : public StandardDiscSetup,
       auto heat    = std::make_shared<Heat::HeatEquation>(disc);
       cn_model = std::make_shared<CNPhysicsModel>(heat);
       u_vec   = makeDiscVector(disc);
+      u_aux_vec = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
+
       //res_vec = makeDiscVector(disc);
 
       for (int i=0; i < disc->getNumVolDiscs(); ++i)
@@ -220,6 +223,7 @@ class CNTester : public StandardDiscSetup,
 
     std::shared_ptr<CNPhysicsModel> cn_model;
     DiscVectorPtr u_vec;
+    AuxiliaryEquationsStoragePtr u_aux_vec;
     //DiscVectorPtr res_vec;
 };
 
@@ -269,7 +273,8 @@ TEST_F(CNTester, Linear)
 
   setSolution(ex_sol_l, deriv_l, src_func_l);
 
-  timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
+  std::cout << "u_aux_vec = " << u_aux_vec << std::endl;
+  timesolvers::CrankNicolson crank(cn_model, u_vec, u_aux_vec, opts);
   crank.solve();
 
   if (!u_vec->isVectorCurrent())
@@ -324,7 +329,7 @@ TEST_F(CNTester, PolynomialExactness)
     setSolution(ex_sol_l, deriv_l, src_func_l, ex_sol_dt_l);
     cn_model->setSolveType(SPACETIME);
 
-    timesolvers::CrankNicolson crank(cn_model, u_vec, opts);
+    timesolvers::CrankNicolson crank(cn_model, u_vec, u_aux_vec, opts);
     crank.solve();
 
     if (!u_vec->isArrayCurrent())
@@ -401,13 +406,13 @@ TEST_F(CNTester, JacobianFD)
                       { return ex_sol_l(x, y, z, t); };
 
   u_vec->setFunc(ex_sol_t);
-  cn_func.setTnp1(u_vec, tn);
+  cn_func.setTnp1(u_vec, u_aux_vec, tn);
 
   // get current timestep residual and jacobian
   t = tn;
   u_vec->setFunc(ex_sol_t);
-  cn_func.computeFunc(u_vec, t, res_vec1);
-  cn_func.computeJacobian(u_vec, mat);
+  cn_func.computeFunc(u_vec, u_aux_vec, t,res_vec1);
+  cn_func.computeJacobian(u_vec, u_aux_vec, mat);
 
   for (int i=0; i < nvectors; ++i)
   {
@@ -423,7 +428,7 @@ TEST_F(CNTester, JacobianFD)
       u_vec->getVector()[j] += eps * pert_vec[j];
     u_vec->markVectorModified();
 
-    cn_func.computeFunc(u_vec, false, res_vec2);
+    cn_func.computeFunc(u_vec, u_aux_vec, false, res_vec2);
 
     for (int j=0; j < num_dofs; ++j)
       product_fd[j] = (res_vec2->getVector()[j] - res_vec1->getVector()[j])/eps;
@@ -432,6 +437,5 @@ TEST_F(CNTester, JacobianFD)
 
     for (int j=0; j < num_dofs; ++j)
       EXPECT_NEAR(product_fd[j], product_jac[j], 1e-5);
-
   }
 }

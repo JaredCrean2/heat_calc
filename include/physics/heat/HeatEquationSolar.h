@@ -26,24 +26,24 @@ class HeatEquationSolar : public HeatEquation
     //              thermal radiation
     void addNeumannBC(NeumannBCPtr bc, bool is_exterior);
 
-    void setTimeParameters(Real t);
+    void setTimeParameters(Real t, Real interior_air_temp);
 
     const EnvironmentData& getEnvironmentData() const { return m_env_data; }
 
-    void computeRhs(DiscVectorPtr u, const Real t, DiscVectorPtr rhs) override
+    void computeRhs(DiscVectorPtr u,  AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs) override
     {
-      setTimeParameters(t);
-      HeatEquation::computeRhs(u, t, rhs);
+      setTimeParameters(t, u_aux->getVector(1)[0]);
+      HeatEquation::computeRhs(u, u_aux, t, rhs);
     }
         
-    void computeJacobian(DiscVectorPtr u, const Real t, linear_system::AssemblerPtr assembler) override
+    void computeJacobian(DiscVectorPtr u,  AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler) override
     {
-      setTimeParameters(t);
-      HeatEquation::computeJacobian(u, t, assembler);
+      setTimeParameters(t, u_aux->getVector(1)[0]);
+      HeatEquation::computeJacobian(u, u_aux, t, assembler);
     }
 
     // compute Jacobian-vector product dR/dT, where T is the air temperature
-    void computedRdTinterior_airProduct(DiscVectorPtr u, Real t, Real x, ArrayType<Real, 1>& b);
+    void computedRdTinterior_airProduct(DiscVectorPtr u, Real interior_temp, Real t, Real x, ArrayType<Real, 1>& b);
 
     AuxiliaryEquationsPtr getAuxEquations() override;
 
@@ -60,11 +60,13 @@ class HeatEquationSolar : public HeatEquation
     AuxiliaryEquationsSolarPtr m_aux_equations;
 };
 
-void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, DiscVectorPtr u, Real t_interior_dot, 
+void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, DiscVectorPtr u,
+                              Real t_interior, Real t_interior_dot, 
                               DiscVectorPtr rhs, DiscVectorPtr rhs_dot);
 
-void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior_dot, const Real t, DiscVectorPtr rhs, DiscVectorPtr rhs_dot);
-
+void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u,
+                              Real t_interior, Real t_interior_dot,
+                              const Real t, DiscVectorPtr rhs, DiscVectorPtr rhs_dot);
 }
 
 #endif

@@ -28,7 +28,7 @@ void PostProcessorManager::addPostProcessor(PostProcessorPtr postproc)
 }
 
 
-void PostProcessorManager::runPostProcessors(int timestep, DiscVectorPtr u, double t)
+void PostProcessorManager::runPostProcessors(int timestep, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
 {
   assertAlways(m_state == State::Initializing || m_state == State::Writing, "cannot write post processors after file has been closed");
   
@@ -39,7 +39,7 @@ void PostProcessorManager::runPostProcessors(int timestep, DiscVectorPtr u, doub
     m_file << "\n" << timestep << " " << t;
     for (auto& postproc : m_postprocessors)
     {
-      auto vals = postproc->getValues(u, t);
+      auto vals = postproc->getValues(u, u_aux, t);
       for (int i=0; i < postproc->numValues(); ++i)
         m_file << " " <<  vals[i];
     }

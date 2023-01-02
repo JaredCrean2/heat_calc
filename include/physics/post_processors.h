@@ -1,6 +1,8 @@
 #ifndef PHYSICS_POST_PROCESSOR
 #define PHYSICS_POST_PROCESSOR
 
+#include "physics/heat/HeatEquationSolar.h"
+#include "physics/heat/bc_defs.h"
 #include "post_processor_base.h"
 #include "discretization/surface_discretization.h"
 #include "discretization/NeumannBC.h"
@@ -22,7 +24,7 @@ class PostProcessorSurfaceIntegralAverage : public PostProcessorBase
 
     std::vector<std::string> getNames() const override { return {m_name}; }
 
-    std::vector<double> getValues(DiscVectorPtr u, double t) override
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override
     {
       if (!u->isArrayCurrent())
         u->syncArrayToVector();
@@ -88,11 +90,33 @@ class PostProcessorBCFlux : public PostProcessorBase
 
     std::vector<std::string> getNames() const override { return {m_name}; }
 
-    std::vector<double> getValues(DiscVectorPtr u, double t) override;
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override;
 
   private:
     std::string m_name;
     NeumannBCPtr m_bc;
+};
+
+
+class PostProcessorAirWindSkyBCFlux : public PostProcessorBCFlux
+{
+  public:
+
+    PostProcessorAirWindSkyBCFlux(const std::string& name, std::shared_ptr<Heat::AirWindSkyNeumannBC> bc,
+                                  Heat::HeatEquationSolar* heat_eqn_solar) :
+      PostProcessorBCFlux(name, bc),
+      m_heat_eqn_solar(heat_eqn_solar)
+    {}
+
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override
+    {
+      Real interior_air_temp = u_aux->getVector(1)[0];
+      m_heat_eqn_solar->setTimeParameters(t, interior_air_temp);
+      return PostProcessorBCFlux::getValues(u, u_aux, t);
+    }
+
+  private:
+    Heat::HeatEquationSolar* m_heat_eqn_solar;
 };
 
 }  // namespace

@@ -17,9 +17,12 @@ void checkTimeStepperOpts(const TimeStepperOpts& opts, bool check_implicit)
 }
 
 
-CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u, TimeStepperOpts opts) :
+CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u,
+                             AuxiliaryEquationsStoragePtr u_aux_vec, 
+                             TimeStepperOpts opts) :
   m_physics_model(physics_model),
   m_u(u),
+  m_u_aux(u_aux_vec),
   m_opts(opts)
 {
   checkTimeStepperOpts(opts);
@@ -36,15 +39,16 @@ void CrankNicolson::solve()
   int nsteps = numWholeSteps();
   Real t = m_opts.t_start;
 
+  //TODO: reevaluate this: now that we pass in u_aux, everything should be initialized
   // this is unfortunate: it would be useful to have the initial state in the log
   // file, but some of the BCs haven't been initialized yet
-  //m_physics_model->runPostProcessors(0, m_u, t);
+  //m_physics_model->runPostProcessors(0, m_u, m_aux_aux, t);
   for (int i=0; i < nsteps; ++i)
   {
     advanceTimestep(t + m_opts.delta_t, m_opts.delta_t);
     t += m_opts.delta_t;
 
-    m_physics_model->runPostProcessors(i, m_u, t);
+    m_physics_model->runPostProcessors(i, m_u, m_u_aux, t);
     m_physics_model->getDiscretization()->getMesh()->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
   }
@@ -56,7 +60,7 @@ void CrankNicolson::solve()
   {
     advanceTimestep(t + delta_t_final, delta_t_final);
     t += delta_t_final;
-    m_physics_model->runPostProcessors(nsteps, m_u, t);
+    m_physics_model->runPostProcessors(nsteps, m_u, m_u_aux, t);
   }
 }
 
@@ -64,14 +68,14 @@ void CrankNicolson::solve()
 void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
 {
   std::cout << "CN advancing to time " << t_new << std::endl;
-  m_func->setTnp1(m_u, t_new);
+  m_func->setTnp1(m_u, m_u_aux, t_new);
 
   NewtonOpts opts;
   opts.nonlinear_abs_tol = m_opts.nonlinear_abs_tol;
   opts.nonlinear_rel_tol = m_opts.nonlinear_rel_tol;
   opts.nonlinear_itermax = m_opts.nonlinear_itermax;
 
-  NewtonResult result = m_newton->solve(m_u, opts);
+  NewtonResult result = m_newton->solve(m_u, m_u_aux, opts);
   //m_func->completeTimestep(m_u);
 
   if (!result.isConverged())

@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "discretization/disc_vector.h"
 #include "mesh_helper.h"
+#include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/air_leakage.h"
@@ -67,14 +68,17 @@ class HeatEquationSolarTester : public StandardDiscSetup, public ::testing::Test
       auto wall_bc = std::make_shared<Heat::TarpBC>(disc->getSurfDisc(0), surface_area, perimeter, roughness_index, vertical_vector,
                                                     point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
       heat_eqn->addNeumannBC(wall_bc, false);
-      heat_eqn->getAuxEquations()->getBlockSolution(1)[0] = initial_air_temp;
 
-      heat_eqn->addVolumeGroupParams({1, 1,1 });
+      sol_aux_vec = makeAuxiliaryEquationsStorage(heat_eqn->getAuxEquations());
+      sol_aux_vec->getVector(1)[0] = initial_air_temp;
+
+      heat_eqn->addVolumeGroupParams({1, 1, 1});
     }
 
   protected:
     std::shared_ptr<Heat::HeatEquationSolar> heat_eqn;
     DiscVectorPtr sol_vec;
+    AuxiliaryEquationsStoragePtr sol_aux_vec;
 };
 }
 
@@ -90,13 +94,13 @@ TEST_F(HeatEquationSolarTester, dRdTair)
   Real eps = 1e-7;
   Real t_air = 298;
   sol_vec->set(320);
-  heat_eqn->getAuxEquations()->getBlockSolution(1)[0] = t_air;
+  sol_aux_vec->getVector(1)[0] = t_air;
 
-  heat_eqn->computedRdTinterior_airProduct(sol_vec, 0, 1, dRdTair);
+  heat_eqn->computedRdTinterior_airProduct(sol_vec, t_air, 0, 1, dRdTair);
 
-  heat_eqn->computeRhs(sol_vec, 0.0, rhs0);
-  heat_eqn->getAuxEquations()->getBlockSolution(1)[0] = t_air + eps;
-  heat_eqn->computeRhs(sol_vec, 0.0, rhs1);
+  heat_eqn->computeRhs(sol_vec, sol_aux_vec, 0.0, rhs0);
+  sol_aux_vec->getVector(1)[0] = t_air + eps;
+  heat_eqn->computeRhs(sol_vec, sol_aux_vec, 0.0, rhs1);
 
   if (!rhs0->isVectorCurrent())
     rhs0->syncArrayToVector();

@@ -34,7 +34,7 @@ void checkTimeStepperOpts(const TimeStepperOpts& opts, bool check_implicit=true)
 class CrankNicolson
 {
   public:
-    CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u, TimeStepperOpts opts);
+    CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, TimeStepperOpts opts);
 
     void solve();
 
@@ -48,6 +48,7 @@ class CrankNicolson
     std::shared_ptr<PhysicsModel> m_physics_model;
     linear_system::LargeMatrixPtr m_matrix;
     DiscVectorPtr m_u;
+    AuxiliaryEquationsStoragePtr m_u_aux;
     TimeStepperOpts m_opts;
     std::shared_ptr<CrankNicolsonFunction> m_func;
     std::shared_ptr<NewtonSolver> m_newton;
