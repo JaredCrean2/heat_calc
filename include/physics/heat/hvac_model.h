@@ -132,7 +132,7 @@ class HVACModelSwitch : public HVACModel
     Real m_hvac_restore_time;  // (approximate) time for the HVAC system to restore the
                                // interior air temperature to within bands
 };
-
+/*
 
 // use a spline to compute HVAC flux when within the temperature range.
 // This solves a problem with Newton's method convergence, but leads to
@@ -183,7 +183,7 @@ class HVACModelSpline : public HVACModel
     {
       std::array<Real, 6> params = getSplineParams(interior_temp, load_flux);
 
-      if (interior_temp > params[1])
+      if (interior_temp > params[1] || interior_temp < params[0])
         m_switch_model.enforceTemperatureLimit_rev(interior_temp, interior_temp_bar, load_flux, load_flux_bar, hvac_flux_bar);
       else
       {
@@ -434,6 +434,7 @@ class HVACModelDoubleSpline : public HVACModel
     Real m_max_temp;
     Real m_expansion_factor;  // used to determine the points used to construct the spline
 };
+*/
 
 }  // namespace
 

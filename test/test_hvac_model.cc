@@ -103,5 +103,27 @@ TEST(HVACModelSwitch, All)
 
   test_derivative(model, 293, load_flux);
   test_derivative(model, 307, load_flux);
-
 }
+
+/*
+TEST(HVACModelSpline, OutsideSplineRange)
+{
+
+  Real min_temp = 295;
+  Real max_temp = 305;
+  Real rho_cp = 2;
+  Real air_volume = 3;
+  Real hvac_restore_time = 4;
+  Real load_flux = 5;
+
+  Heat::HVACModelSpline model(min_temp, max_temp, rho_cp, air_volume, hvac_restore_time);
+
+  EXPECT_NEAR(model.enforceTemperatureLimit(400, load_flux), -rho_cp*air_volume*95/hvac_restore_time - load_flux, 1e-13);
+  EXPECT_NEAR(model.enforceTemperatureLimit(200, load_flux),  rho_cp*air_volume*95/hvac_restore_time - load_flux, 1e-13);
+
+  test_derivative(model, 400, load_flux);
+  test_derivative(model, 200, load_flux);
+
+  test_derivative(model, 303, load_flux);
+}
+*/

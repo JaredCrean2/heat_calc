@@ -323,7 +323,7 @@ class CombinedAirWindSkyNeumannBC : public AirWindSkyNeumannBC
 
     virtual void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
     {
-      int npts = getSurfDisc()->getNumQuadPtsPerFace()*3;
+      int npts = getSurfDisc()->getNumQuadPtsPerFace();
       std::vector<Real> sol_vals_bar_tmp(npts, 0);
 
       for (int i=0; i < npts; ++i)
