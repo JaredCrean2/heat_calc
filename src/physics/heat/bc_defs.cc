@@ -279,6 +279,162 @@ void SimpleConvectionBC::getValue_rev(const Index face, const Real t, const Real
   }
 }
 
+//-----------------------------------------------------------------------------
+// CombinedAirWindSkyBCs
+
+namespace
+{
+
+bool anyBcsNonlinear(const std::vector<std::shared_ptr<AirWindSkyNeumannBC>>& bcs)
+{
+  bool is_nonlinear = false;
+  for (auto& bc : bcs)
+    is_nonlinear = is_nonlinear || bc->isNonlinear();
+
+  return is_nonlinear;
+}
+
+}
+
+CombinedAirWindSkyNeumannBC::CombinedAirWindSkyNeumannBC(std::vector<std::shared_ptr<AirWindSkyNeumannBC>> bcs) :
+  AirWindSkyNeumannBC(bcs[0]->getSurfDisc(), anyBcsNonlinear(bcs)),
+  m_bcs(bcs)
+{
+  auto surf0 = bcs[0]->getSurfDisc();
+  for (size_t i=1; i < bcs.size(); ++i)
+    if (surf0 != bcs[i]->getSurfDisc())
+      throw std::runtime_error("BCs have different surfaces");
+}
+
+
+
+void CombinedAirWindSkyNeumannBC::setAirTemperature(Real temp)
+{
+  for (auto& bc : m_bcs)
+    bc->setAirTemperature(temp);
+}
+
+Real CombinedAirWindSkyNeumannBC::getAirTemperature() const
+{ 
+  return m_bcs[0]->getAirTemperature();
+}
+
+void CombinedAirWindSkyNeumannBC::setAirSpeed(Real velocity)
+{
+  for (auto& bc : m_bcs)
+    bc->setAirSpeed(velocity);
+}
+
+void CombinedAirWindSkyNeumannBC::setAirDirection(std::array<Real, 3> direction)
+{
+  for (auto& bc : m_bcs)
+    bc->setAirDirection(direction);
+}
+
+void CombinedAirWindSkyNeumannBC::setIRHorizontalRadiation(Real flux)
+{
+  for (auto& bc : m_bcs)
+    bc->setIRHorizontalRadiation(flux);
+}
+
+void CombinedAirWindSkyNeumannBC::setDirectNormalRadiation(Real flux)
+{
+  for (auto& bc : m_bcs)
+    bc->setDirectNormalRadiation(flux);
+}
+
+void CombinedAirWindSkyNeumannBC::setDiffuseRadiation(Real flux)
+{
+  for (auto& bc : m_bcs)
+    bc->setDiffuseRadiation(flux);
+}    
+
+void CombinedAirWindSkyNeumannBC::setSolarDirection(const DirectionCosines& cosines)
+{
+  for (auto& bc : m_bcs)
+    bc->setSolarDirection(cosines);
+}
+
+void CombinedAirWindSkyNeumannBC::getValue(const Index face, const Real t, const Real* sol_vals, Real* flux_vals)
+{
+  int npts = getSurfDisc()->getNumQuadPtsPerFace()*3;
+  std::vector<Real> flux_vals_tmp(npts, 0);
+
+  for (int i=0; i < npts; ++i)
+    flux_vals[i] = 0;
+
+  //int i=0;
+  for (auto& bc : m_bcs)
+  {
+    //std::cout << "doing inner bc " << i << std::endl;
+    bc->getValue(face, t, sol_vals, flux_vals_tmp.data());
+    updateAndZero(flux_vals, flux_vals_tmp.data(), npts);
+    //++i;
+  }
+}
+
+void CombinedAirWindSkyNeumannBC::getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv)
+{
+  int npts = getSurfDisc()->getNumQuadPtsPerFace()*3;
+  std::vector<Real> flux_vals_deriv_tmp(npts, 0);
+
+  for (int i=0; i < npts; ++i)
+    flux_vals_deriv[i] = 0;
+
+  for (auto& bc : m_bcs)
+  {
+    bc->getValueDeriv(face, t, sol_vals, flux_vals_deriv_tmp.data());
+    updateAndZero(flux_vals_deriv, flux_vals_deriv_tmp.data(), npts);
+  }
+}
+
+// compute derivative of flux_vals wrt air temperature
+void CombinedAirWindSkyNeumannBC::getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv)
+{
+  int npts = getSurfDisc()->getNumQuadPtsPerFace()*3;
+  std::vector<Real> flux_vals_tmp(npts, 0), flux_vals_deriv_tmp(npts, 0);
+
+  for (int i=0; i < npts; ++i)
+  {
+    flux_vals[i] = 0;
+    flux_vals_deriv[i] = 0;
+  }
+
+  for (auto& bc : m_bcs)
+  {
+    bc->getValuedTair(face, t, sol_vals, flux_vals_tmp.data(), flux_vals_deriv_tmp.data());
+
+    updateAndZero(flux_vals, flux_vals_tmp.data(), npts);
+    updateAndZero(flux_vals_deriv, flux_vals_deriv_tmp.data(), npts);
+  }
+}
+
+void CombinedAirWindSkyNeumannBC::getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar)
+{
+  int npts = getSurfDisc()->getNumQuadPtsPerFace();
+  std::vector<Real> sol_vals_bar_tmp(npts, 0);
+
+  for (int i=0; i < npts; ++i)
+    sol_vals_bar[i] = 0;
+
+  for (auto& bc : m_bcs)
+  {
+    bc->getValue_rev(face, t, sol_vals, sol_vals_bar_tmp.data(), flux_vals_bar);
+    updateAndZero(sol_vals_bar, sol_vals_bar_tmp.data(), npts);
+  }
+}
+
+void CombinedAirWindSkyNeumannBC::updateAndZero(Real* arr, Real* arr_tmp, int npts)
+{
+  for (int i=0; i < npts; ++i)
+  {
+    if (std::isnan(arr_tmp[i]))
+      throw std::runtime_error("found nan");
+
+    arr[i] += arr_tmp[i];
+    arr_tmp[i] = 0;
+  }
+}
 
 
 }  // namespace
