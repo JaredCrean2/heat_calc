@@ -14,6 +14,7 @@
 #include "physics/heat/air_leakage.h"
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/environment_interface.h"
+#include "physics/heat/interior_loads.h"
 #include "physics/heat/post_processor_environment_data.h"
 #include "physics/heat/post_processor_interior.h"
 #include "physics/heat/solar_position.h"
@@ -531,6 +532,13 @@ int main(int argc, char* argv[])
     // make interior BCS
     setInteriorBCs(generator, heat_eqn);
     setInteriorWallTempPostProcessors(generator, heat_eqn);
+
+    // make postprocessors for air sub model
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_leakage, "air_leakage"));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_ventilation, "air_ventilation"));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorWindowConduction>(window_model));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorInteriorLoads>(interior_loads));
+
 
     heat_eqn->initialize();
 
