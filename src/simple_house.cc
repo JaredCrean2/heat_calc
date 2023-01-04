@@ -449,7 +449,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 15*24*60*60; // 24*60*60;  // 1 day
+  opts.t_end   = 5*24*60*60; // 24*60*60;  // 1 day
   opts.delta_t = 300; // 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;
@@ -498,8 +498,8 @@ int main(int argc, char* argv[])
     auto window_model   = std::make_shared<Heat::WindowConductionModel>(1, 0);  //TODO: zero window area
 
     // air properties from 6000 ft altitude
-    Real interior_air_min_temp = 295; //293.15;
-    Real interior_air_max_temp = 295; //297.039;
+    Real interior_air_min_temp = 293.15;
+    Real interior_air_max_temp = 297.039;
     Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
     auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
     //auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
