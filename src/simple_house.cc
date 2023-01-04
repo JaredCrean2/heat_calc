@@ -14,6 +14,7 @@
 #include "physics/heat/air_leakage.h"
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/environment_interface.h"
+#include "physics/heat/interior_loads.h"
 #include "physics/heat/post_processor_environment_data.h"
 #include "physics/heat/post_processor_interior.h"
 #include "physics/heat/solar_position.h"
@@ -496,8 +497,8 @@ int main(int argc, char* argv[])
     auto air_ventilation = std::make_shared<Heat::AirLeakageModelPressure>(0, 4, generator.computeInteriorVolume(), air_cp, air_rho);
     auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(0);
 
-    Real window_area    = 0.557418 * 8; // 6 sq ft each
-    Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units
+    Real window_area    = 0; //0.557418 * 8; // 6 sq ft each
+    Real window_r_value = 1; //3 * 0.1761101838;  // r value converted to SI units
     auto window_model   = std::make_shared<Heat::WindowConductionModel>(window_r_value, window_area);  //TODO: zero window area
 
     // air properties from 6000 ft altitude
@@ -531,6 +532,13 @@ int main(int argc, char* argv[])
     // make interior BCS
     setInteriorBCs(generator, heat_eqn);
     setInteriorWallTempPostProcessors(generator, heat_eqn);
+
+    // make postprocessors for air sub model
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_leakage, "air_leakage"));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_ventilation, "air_ventilation"));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorWindowConduction>(window_model));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorInteriorLoads>(interior_loads));
+
 
     heat_eqn->initialize();
 

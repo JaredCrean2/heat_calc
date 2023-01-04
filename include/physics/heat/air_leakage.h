@@ -2,6 +2,7 @@
 #define PHYSICS_HEAT_AIR_LEAKAGE_H
 
 #include "ProjectDefs.h"
+#include "physics/post_processor_base.h"
 
 namespace Heat {
 
@@ -71,6 +72,31 @@ class HRVModel : public AirLeakageModel
     Real m_efficiency; 
     Real m_cp;
     Real m_rho;
+};
+
+
+class PostProcessorAirLeakage : public physics::PostProcessorBase
+{
+  public:
+    PostProcessorAirLeakage(std::shared_ptr<AirLeakageModel> model, const std::string& name) :
+      m_model(model),
+      m_name(name)
+    {}
+
+    // returns number of values this postprocessor returns
+    virtual int numValues() const { return 1; }
+
+    virtual std::vector<std::string> getNames() const { return {m_name}; }
+
+    virtual std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
+    {
+      Real t_interior = u_aux->getVector(1)[0];
+      return {m_model->computeAirLeakagePower(t_interior)};
+    }
+
+  private:
+    std::shared_ptr<AirLeakageModel> m_model;
+    std::string m_name;
 };
 
 

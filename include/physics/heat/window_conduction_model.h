@@ -2,6 +2,7 @@
 #define PHYSICS_HEAT_WINDOW_CONDUCTION_MODEL_H
 
 #include "ProjectDefs.h"
+#include "physics/post_processor_base.h"
 
 namespace Heat {
 
@@ -35,6 +36,29 @@ class WindowConductionModel
     Real m_r_val;  // (m^2 * K)/W
     Real m_area;
     Real m_t_exterior;
+};
+
+
+class PostProcessorWindowConduction : public physics::PostProcessorBase
+{
+  public:
+    PostProcessorWindowConduction(std::shared_ptr<WindowConductionModel> model) :
+      m_model(model)
+    {}
+
+    // returns number of values this postprocessor returns
+    virtual int numValues() const { return 1; }
+
+    virtual std::vector<std::string> getNames() const { return {"window_conduction"}; }
+
+    virtual std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
+    {
+      Real t_interior = u_aux->getVector(1)[0];
+      return {m_model->computeConductionPower(t_interior)};
+    }
+
+  private:
+    std::shared_ptr<WindowConductionModel> m_model;
 };
 
 }  // namespace
