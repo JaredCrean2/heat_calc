@@ -68,6 +68,7 @@ void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
   }
 
   m_env_data = env_data;
+  m_air_temp->setExteriorTemperature(env_data.air_temp);
 }
 
 

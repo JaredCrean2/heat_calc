@@ -44,6 +44,8 @@ class InteriorAirTemperatureUpdator
       m_bcs = interior_bcs;
     }
 
+    void setExteriorTemperature(Real t_exterior);
+
     Real computeNetFlux(DiscVectorPtr sol_vec, Real interior_temp, Real t);
 
     // compute d (computeNetFlux)/d (interior_temp)

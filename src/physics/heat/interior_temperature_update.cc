@@ -4,6 +4,14 @@
 
 namespace Heat {
 
+void InteriorAirTemperatureUpdator::setExteriorTemperature(Real t_exterior)
+{
+  m_window_model->setExteriorTemperature(t_exterior);
+  m_air_leakage->setExteriorTemperature(t_exterior);
+  m_ventilation->setExteriorTemperature(t_exterior);
+}
+
+
 Real InteriorAirTemperatureUpdator::computeNetFlux(DiscVectorPtr sol_vec, Real interior_temp, Real t)
 {
   Real load_flux = computeLoadFlux(sol_vec, interior_temp, t);
@@ -200,10 +208,10 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
     bc_flux -= computeBCFlux(bc, sol_vec, t);  
   }
 
-  Real air_leakage_flux   = -m_air_leakage->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
-  Real ventilation_flux   = -m_ventilation->computeAirLeakagePower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+  Real air_leakage_flux   = -m_air_leakage->computeAirLeakagePower(interior_temp);
+  Real ventilation_flux   = -m_ventilation->computeAirLeakagePower(interior_temp);
   Real interior_load_flux = m_interior_loads->computeLoadPower();
-  Real window_flux        = m_window_model->computeConductionPower(interior_temp, m_heat_eqn->getEnvironmentData().air_temp);
+  Real window_flux        = m_window_model->computeConductionPower(interior_temp);
 
 
   std::cout << "bc_flux            = " << bc_flux << std::endl;
@@ -245,18 +253,18 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
   }
 
   Real flux_dot_tmp = 0;
-  flux     -= m_air_leakage->computeAirLeakagePowerDot(interior_temp, m_heat_eqn->getEnvironmentData().air_temp, flux_dot_tmp);
+  flux     -= m_air_leakage->computeAirLeakagePowerDot(interior_temp, flux_dot_tmp);
   std::cout << "flux_dot_tmp for air leakage = " << flux_dot_tmp << std::endl;
   flux_dot -= flux_dot_tmp;
 
   flux_dot_tmp = 0;
-  flux     -= m_ventilation->computeAirLeakagePowerDot(interior_temp, m_heat_eqn->getEnvironmentData().air_temp, flux_dot_tmp);
+  flux     -= m_ventilation->computeAirLeakagePowerDot(interior_temp, flux_dot_tmp);
   flux_dot -= flux_dot_tmp;
 
   flux += m_interior_loads->computeLoadPower();
 
   flux_dot_tmp = 0;
-  flux     += m_window_model->computeConductionPowerDot(interior_temp, m_heat_eqn->getEnvironmentData().air_temp, flux_dot_tmp);
+  flux     += m_window_model->computeConductionPowerDot(interior_temp, flux_dot_tmp);
   flux_dot += flux_dot_tmp;
 
   return flux;

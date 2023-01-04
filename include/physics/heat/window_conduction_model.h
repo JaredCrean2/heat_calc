@@ -15,20 +15,26 @@ class WindowConductionModel
 
     // computes rate of energy loss (W) via conduction through windows.
     // Positive values mean energy is adding to the interior air
-    Real computeConductionPower(Real t_interior, Real t_exterior)
+    Real computeConductionPower(Real t_interior)
     {
-      return (t_exterior - t_interior) * m_area/m_r_val;
+      return (m_t_exterior - t_interior) * m_area/m_r_val;
     }
 
-    Real computeConductionPowerDot(Real t_interior, Real t_exterior, Real& flux_dot)
+    Real computeConductionPowerDot(Real t_interior, Real& flux_dot)
     {
       flux_dot = -m_area/m_r_val;
-      return (t_exterior - t_interior) * m_area/m_r_val;
+      return (m_t_exterior - t_interior) * m_area/m_r_val;
+    }
+
+    void setExteriorTemperature(Real t_exterior)
+    {
+      m_t_exterior = t_exterior;
     }
 
   private:
     Real m_r_val;  // (m^2 * K)/W
     Real m_area;
+    Real m_t_exterior;
 };
 
 }  // namespace

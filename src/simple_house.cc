@@ -488,14 +488,17 @@ int main(int argc, char* argv[])
     Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 0, 0, 0};
     auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
 
-    Real air_rho = 1.007;
-    Real air_cp = 1006;
+    Real air_rho           = 1.007;
+    Real air_cp            = 1006;
     Real hvac_restore_time = 60 * 20;
     Real air_leakage_ach50 = 7;
     auto air_leakage = std::make_shared<Heat::AirLeakageModelPressure>(air_leakage_ach50, 4, generator.computeInteriorVolume(), air_cp, air_rho);
     auto air_ventilation = std::make_shared<Heat::AirLeakageModelPressure>(0, 4, generator.computeInteriorVolume(), air_cp, air_rho);
     auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(0);
-    auto window_model   = std::make_shared<Heat::WindowConductionModel>(1, 0);  //TODO: zero window area
+
+    Real window_area    = 0.557418 * 8; // 6 sq ft each
+    Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units
+    auto window_model   = std::make_shared<Heat::WindowConductionModel>(window_r_value, window_area);  //TODO: zero window area
 
     // air properties from 6000 ft altitude
     Real interior_air_min_temp = 293.15;

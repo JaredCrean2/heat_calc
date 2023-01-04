@@ -11,11 +11,19 @@ class AirLeakageModel
 
     virtual ~AirLeakageModel() {}
 
+    void setExteriorTemperature(Real t_exterior)
+    {
+      m_t_exterior = t_exterior;
+    }
+
     // compute the power of the air leakage (W).  Positive values mean
     // energy is removed from the interior air
-    virtual Real computeAirLeakagePower(Real t_interior, Real t_exterior) = 0;
+    virtual Real computeAirLeakagePower(Real t_interior) = 0;
 
-    virtual Real computeAirLeakagePowerDot(Real t_interior, Real t_exterior, Real& flux_dot) = 0;
+    virtual Real computeAirLeakagePowerDot(Real t_interior, Real& flux_dot) = 0;
+
+  protected:
+    Real m_t_exterior;
 };
 
 // implements a simple model: given ach50, compute ach natural as natural pressure / 50;
@@ -30,9 +38,9 @@ class AirLeakageModelPressure : public AirLeakageModel
       m_rho(rho)
     {}
 
-    Real computeAirLeakagePower(Real t_interior, Real t_exterior) override;
+    Real computeAirLeakagePower(Real t_interior) override;
 
-    Real computeAirLeakagePowerDot(Real t_interior, Real t_exterior, Real& flux_dot) override;
+    Real computeAirLeakagePowerDot(Real t_interior, Real& flux_dot) override;
 
   private:
     Real m_ach50;
@@ -54,9 +62,9 @@ class HRVModel : public AirLeakageModel
       m_rho(rho)
     {}
 
-    Real computeAirLeakagePower(Real t_interior, Real t_exterior) override;
+    Real computeAirLeakagePower(Real t_interior) override;
 
-    Real computeAirLeakagePowerDot(Real t_interior, Real t_exterior, Real& flux_dot) override;
+    Real computeAirLeakagePowerDot(Real t_interior, Real& flux_dot) override;
 
   private:
     Real m_flow_rate;
