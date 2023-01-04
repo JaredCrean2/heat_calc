@@ -252,7 +252,7 @@ class GeometryGenerator
                                       Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(m_xrange[1], j, k)));
         }   
 
-      bc_groups[0].setIsDirichlet(true);
+      //bc_groups[0].setIsDirichlet(true);
 
       bc_groups[0+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0,  0, -1, 5)), 
                                     Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0,  0, -1)));
@@ -288,20 +288,20 @@ class GeometryGenerator
 
     Mesh::MultiBlockMeshSpec m_spec;
     // 3.5 inches of insulation
-    std::vector<double> m_horizontal_thicknesses = {0.01}; // {0.0897};
+    std::vector<double> m_horizontal_thicknesses = {0.0897};
     std::vector<int>    m_horizontal_numels      = {5};
     std::vector<Heat::VolumeGroupParams> horizontal_params = { {0.039, 45, 2020} };
 
     // 6 inches of insulation
-    std::vector<double> m_ceiling_thicknesses = {0.01}; //{0.1538};
+    std::vector<double> m_ceiling_thicknesses = {0.1538};
     std::vector<int>    m_ceiling_numels      = {5};
     std::vector<Heat::VolumeGroupParams> ceiling_params = { {0.039, 45, 2020} };
 
 
     // 6 inches of concrete
-    std::vector<double> m_foundation_thicknesses = {0.01}; // {0.1538};
+    std::vector<double> m_foundation_thicknesses = {0.1538};
     std::vector<int>    m_foundation_numels      = {5};
-    std::vector<Heat::VolumeGroupParams> foundation_params { {2.25, 2400, 880} };
+    std::vector<Heat::VolumeGroupParams> foundation_params = { {2.25, 2400, 880} };
 };
 
 std::shared_ptr<Heat::AirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
@@ -336,8 +336,23 @@ std::shared_ptr<DirichletBC> makeBottomBC(SurfDiscPtr surf, Real temp)
 void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, Real bottom_temp)
 {
   auto disc = heat_eqn->getDiscretization();
-  heat_eqn->addDirichletBC(makeBottomBC(disc->getSurfDisc((0)), bottom_temp)); // TODO: currently using air temperature
   auto postprocessors = heat_eqn->getPostProcessors();
+
+  //heat_eqn->addDirichletBC(makeBottomBC(disc->getSurfDisc((0)), bottom_temp)); // TODO: currently using air temperature
+  {
+    auto surf = disc->getSurfDisc(0);
+    int direction = 3;
+    Real surface_area = generator.computeExteriorSurfaceArea(direction);
+    Real perimeter    = generator.computeExteriorPerimeter(direction);
+    // absorptivity and emissivity values for stucco from: https://remdb.nrel.gov/measures.php?gId=12&ctId=216&scId=2374
+    // absorptivity and emissivity values for asphalt singles from Medina "Effects of Single Absorptivity, 
+    // radient barrier emissivity", International Journal of Energy Research, 2000, 24:665
+    Real emittance    = 0.78;
+    Real absorptivity = 0.78;
+    auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity);
+    heat_eqn->addNeumannBC(bc, true);
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>("foundation_flux", bc, heat_eqn.get()));    
+  }
   std::vector<std::string> names = {"east_exterior_wall_flux", "north_exterior_wall_flux", 
                                     "west_exterior_wall_flux", "south_exterior_wall_flux", "roof_flux"};
   for (int i=1; i <= 5; ++i)
@@ -362,13 +377,13 @@ void setExteriorWallTempPostProcessors(GeometryGenerator& generator, std::shared
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
 
-  std::vector<std::string> names = {"east_exterior_wall_temp", "north_exterior_wall_temp", 
+  std::vector<std::string> names = {"foundation_temp", "east_exterior_wall_temp", "north_exterior_wall_temp", 
                                     "west_exterior_wall_temp", "south_exterior_wall_temp", "roof_temp"};
   auto f = [](double val) { return val; };
-  for (int i=1; i <= 5; ++i)
+  for (int i=0; i <= 5; ++i)
   {
     auto surf = disc->getSurfDisc(i);
-    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-1], f));
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
   }
 
   std::vector<SurfDiscPtr> wall_surfaces;
@@ -424,7 +439,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 24*60*60; // 24*60*60;  // 1 day
+  opts.t_end   = 15*24*60*60; // 24*60*60;  // 1 day
   opts.delta_t = 300; // 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;

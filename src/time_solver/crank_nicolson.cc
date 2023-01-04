@@ -49,7 +49,8 @@ void CrankNicolson::solve()
     t += m_opts.delta_t;
 
     m_physics_model->runPostProcessors(i, m_u, m_u_aux, t);
-    m_physics_model->getDiscretization()->getMesh()->writeVtkFiles(std::string("mesh") + std::to_string(i));
+    if (i % 10 == 0)
+      m_physics_model->getDiscretization()->getMesh()->writeVtkFiles(std::string("mesh") + std::to_string(i));
 
   }
 
