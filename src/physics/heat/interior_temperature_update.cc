@@ -254,7 +254,6 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
 
   Real flux_dot_tmp = 0;
   flux     -= m_air_leakage->computeAirLeakagePowerDot(interior_temp, flux_dot_tmp);
-  std::cout << "flux_dot_tmp for air leakage = " << flux_dot_tmp << std::endl;
   flux_dot -= flux_dot_tmp;
 
   flux_dot_tmp = 0;
