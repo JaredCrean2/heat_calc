@@ -114,7 +114,6 @@ class GeometryGenerator
   private:
     void createMeshSpec()
     {
-      m_spec.create_middle_block = false;
       m_spec.middle_block = Mesh::getMeshSpec(0, 9.23, 0, 15.38, 0, 2.46, 5, 8, 4);
       //m_spec.middle_block = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 5, 8, 4);
 
@@ -147,6 +146,17 @@ class GeometryGenerator
       m_xrange = {-int(m_spec.numel_minusx.size()), int(m_spec.numel_plusx.size())};
       m_yrange = {-int(m_spec.numel_minusy.size()), int(m_spec.numel_plusy.size())};
       m_zrange = {-int(m_spec.numel_minusz.size()), int(m_spec.numel_plusz.size())};
+
+      int nx = m_xrange[1] - m_xrange[0] + 1;
+      int ny = m_yrange[1] - m_yrange[0] + 1;
+      int nz = m_zrange[1] - m_zrange[0] + 1;
+      m_spec.create_blocks.resize(boost::extents[nx][ny][nz]);
+      for (int i=0; i < nx; ++i)
+        for (int j=0; j < ny; ++j)
+          for (int k=0; k < nz; ++k)
+            m_spec.create_blocks[i][j][k] = true;
+
+      m_spec.create_blocks[-m_xrange[0]][-m_yrange[0]][-m_zrange[0]] = false;
     }
 
     std::array<Real, 3> computeExteriorLengths()

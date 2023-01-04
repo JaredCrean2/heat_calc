@@ -78,7 +78,6 @@ TEST(MeshGeneratorGeneral, MiddleBlock)
 {
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
-  spec.create_middle_block = true;
 
   Mesh::MeshGeneratorMultiBlock generator(spec);
   apf::Mesh2* m = generator.generate();
@@ -90,7 +89,6 @@ TEST(MeshGeneratorGeneral, MiddleBlockPlusOneLayerY)
 {
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
-  spec.create_middle_block = true;
   spec.numel_plusy.push_back(6);
   spec.thickness_plusy.push_back(2);
 
@@ -109,7 +107,6 @@ TEST(MeshGeneratorGeneral, MiddleBlockPlusTwoLayerY)
 {
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
-  spec.create_middle_block = true;
   spec.numel_plusy.push_back(6);     spec.numel_plusy.push_back(7);
   spec.thickness_plusy.push_back(2); spec.thickness_plusy.push_back(3);
 
@@ -132,7 +129,6 @@ TEST(MeshGeneratorGeneral, MiddleBlockPlusTwoLayers)
 {
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
-  spec.create_middle_block = true;
 
   spec.numel_plusx.push_back(3);     spec.numel_plusx.push_back(3);
   spec.thickness_plusx.push_back(2); spec.thickness_plusx.push_back(3);
@@ -156,7 +152,13 @@ TEST(MeshGeneratorGeneral, OneLayerYNoMiddleBlock)
 {
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
-  spec.create_middle_block = false;
+  spec.create_blocks.resize(boost::extents[1][2][1]);
+  std::cout << "create_blocks shape = " << spec.create_blocks.shape()[0] << ", " << spec.create_blocks.shape()[1] << ", " << spec.create_blocks.shape()[2] << std::endl;
+
+  spec.create_blocks[0][0][0] = false;
+  spec.create_blocks[0][1][0] = true;
+  std::cout << "create_blocks shape = " << spec.create_blocks.shape()[0] << ", " << spec.create_blocks.shape()[1] << ", " << spec.create_blocks.shape()[2] << std::endl;
+
   spec.numel_plusy.push_back(6);
   spec.thickness_plusy.push_back(2);
 

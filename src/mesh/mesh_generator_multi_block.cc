@@ -2,8 +2,9 @@
 
 namespace Mesh {
 
-void validateMultiBlockMeshSpec(const MultiBlockMeshSpec& spec)
+void validateMultiBlockMeshSpec(MultiBlockMeshSpec& spec)
 {
+  std::cout << "\nValidating mesh spec" << std::endl;
   if (spec.numel_plusx.size() != spec.thickness_plusx.size())
     throw std::runtime_error("plusx number of layers is inconsistent");
 
@@ -20,7 +21,31 @@ void validateMultiBlockMeshSpec(const MultiBlockMeshSpec& spec)
       throw std::runtime_error("minusy number of layers is inconsistent");    
 
   if (spec.numel_minusz.size() != spec.thickness_minusz.size())
-      throw std::runtime_error("minusz number of layers is inconsistent");    
+      throw std::runtime_error("minusz number of layers is inconsistent");
+
+  int nx = 1 + spec.numel_plusx.size() + spec.numel_minusx.size();
+  int ny = 1 + spec.numel_plusy.size() + spec.numel_minusy.size();
+  int nz = 1 + spec.numel_plusz.size() + spec.numel_minusz.size();
+  std::cout << "create_blocks shape = " << spec.create_blocks.shape()[0] << ", " << spec.create_blocks.shape()[1] << ", " << spec.create_blocks.shape()[2] << std::endl;
+  if (spec.create_blocks.shape()[0] == 0 && spec.create_blocks.shape()[1] == 0 &&
+      spec.create_blocks.shape()[2] == 0)
+  {
+    spec.create_blocks.resize(boost::extents[nx][ny][nz]);
+    for (int i=0; i < nx; ++i)
+      for (int j=0; j < ny; ++j)
+        for (int k=0; k < nz; ++k)
+          spec.create_blocks[i][j][k] = true;
+  } else
+  {
+    if (spec.create_blocks.shape()[0] != nx)
+      throw std::runtime_error("create_blocks x dimension is incorrect");
+
+    if (spec.create_blocks.shape()[1] != ny)
+      throw std::runtime_error("create_blocks y dimension is incorrect");
+
+    if (spec.create_blocks.shape()[2] != nz)
+      throw std::runtime_error("create_blocks z dimension is incorrect");
+  }
 }
 
 //TODO: this can go in source file
@@ -44,7 +69,8 @@ MeshGeneratorMultiBlock::MeshGeneratorMultiBlock(MultiBlockMeshSpec meshspec) :
   m_meshspec(meshspec),
   m_geometric_id_gen(std::make_shared<GeometricEntityIDGenerator>())
 {
-  validateMultiBlockMeshSpec(meshspec);
+  std::cout << "create_blocks shape = " << meshspec.create_blocks.shape()[0] << ", " << meshspec.create_blocks.shape()[1] << ", " << meshspec.create_blocks.shape()[2] << std::endl;
+  validateMultiBlockMeshSpec(m_meshspec);
   reformatBlockData();
   computeBlockMeshSpecs();
 }
@@ -120,6 +146,8 @@ void MeshGeneratorMultiBlock::computeBlockMeshSpecs()
   int nblocks_x = m_numels[0].size();
   int nblocks_y = m_numels[1].size();
   int nblocks_z = m_numels[2].size();
+  
+  std::cout << "create_blocks shape = " << m_meshspec.create_blocks.shape()[0] << ", " << m_meshspec.create_blocks.shape()[1] << ", " << m_meshspec.create_blocks.shape()[2] << std::endl;
 
   m_lower_corner_coords = getLowerCornerCoords();
   m_meshspecs.resize(boost::extents[nblocks_x][nblocks_y][nblocks_z]);
@@ -147,6 +175,7 @@ void MeshGeneratorMultiBlock::computeBlockMeshSpecs()
 
         m_meshspecs[i][j][k] = spec_ijk;
         std::cout << "block " << i << ", " << j << ", " << k << " meshspec = " << spec_ijk << std::endl;
+        std::cout << std::boolalpha << "create_block = " << m_meshspec.create_blocks[i][j][k] << std::endl;
 
         current_lower_corner_coords[2] += m_thicknesses[2][k];
       }
@@ -190,8 +219,7 @@ void MeshGeneratorMultiBlock::createGeometryBlocks()
     for (int j=0; j < m_numels[1].size(); ++j)
       for (int k=0; k < m_numels[2].size(); ++k)
       {
-        if (i == m_middle_block_indices[0] && j == m_middle_block_indices[1] && k == m_middle_block_indices[2] && 
-            !m_meshspec.create_middle_block)
+        if (!m_meshspec.create_blocks[i][j][k])
           continue;
 
         //std::cout << "\ncreating geometric block " << i << ", " << j << ", " << k << std::endl;
@@ -208,8 +236,7 @@ void MeshGeneratorMultiBlock::createMeshBlocks()
     for (int j=0; j < m_numels[1].size(); ++j)
       for (int k=0; k < m_numels[2].size(); ++k)
       {
-        if (i == m_middle_block_indices[0] && j == m_middle_block_indices[1] && k == m_middle_block_indices[2] && 
-            !m_meshspec.create_middle_block)
+        if (!m_meshspec.create_blocks[i][j][k])
           continue;
 
         //std::cout << "\ncreating mesh block " << i << ", " << j << ", " << k << std::endl;
@@ -277,15 +304,10 @@ std::vector<std::shared_ptr<MeshBlock>> MeshGeneratorMultiBlock::getSurroundingM
 
 bool MeshGeneratorMultiBlock::isBlockValid(int i, int j, int k)
 {
-  int imiddle = m_meshspec.numel_minusx.size();
-  int jmiddle = m_meshspec.numel_minusy.size();
-  int kmiddle = m_meshspec.numel_minusz.size();
-  if (i == imiddle && j == jmiddle && k == kmiddle)
-    return m_meshspec.create_middle_block;
-  else
     return i >= 0 && i < m_numels[0].size() &&
             j >= 0 && j < m_numels[1].size() &&
-            k >= 0 && k < m_numels[2].size();
+            k >= 0 && k < m_numels[2].size() &&
+            m_meshspec.create_blocks[i][j][k];
 }
 
 

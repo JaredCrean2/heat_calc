@@ -86,7 +86,7 @@ inline std::ostream& operator<<(std::ostream& os, const MeshSpec spec)
   os << "  x = [" << spec.xmin << ", " << spec.xmax << "]" << std::endl;
   os << "  y = [" << spec.ymin << ", " << spec.ymax << "]" << std::endl;
   os << "  z = [" << spec.zmin << ", " << spec.zmax << "]" << std::endl;
-  os << "  coord order = " << spec.coord_order << std::endl;
+  os << "  coord order = " << spec.coord_order;
 
   return os;
 }

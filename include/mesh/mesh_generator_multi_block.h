@@ -10,7 +10,6 @@ struct MultiBlockMeshSpec
   MeshSpec middle_block;  // Note: this is required, even if the block is not actually
                           //       created, because some dimensions of the other blocks
                           //       are inferred from it
-  bool create_middle_block;
 
   // Note: the element counts and thicknesses are defined outward
   //       from the middle block
@@ -30,9 +29,11 @@ struct MultiBlockMeshSpec
 
   std::vector<int> numel_minusz;
   std::vector<Real> thickness_minusz;
+
+  ArrayType<bool, 3> create_blocks;
 };
 
-void validateMultiBlockMeshSpec(const MultiBlockMeshSpec& spec);
+void validateMultiBlockMeshSpec(MultiBlockMeshSpec& spec);
 
 
 class MeshGeneratorMultiBlock
