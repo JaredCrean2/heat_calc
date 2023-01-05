@@ -2,6 +2,7 @@
 #include "discretization/disc_vector.h"
 #include "linear_system/large_matrix.h"
 #include "linear_system/large_matrix_factory.h"
+#include <iomanip>
 
 namespace timesolvers {
 
@@ -165,6 +166,7 @@ Real computeError(Real val1, Real val2, Real eps, Real tol)
 
 void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec)
 {
+  std::cout << std::setprecision(16);
   auto aux_eqns = m_func->getAuxiliaryEquations();
 
   ArrayType<Real, 1> x_u(boost::extents[u->getVector().shape()[0]]);
@@ -187,6 +189,7 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquat
 
 
   m_func->computeFunc(u, u_aux_vec, false, b1_u);
+  std::cout << "computing auxiliary equations rhs initially" << std::endl;
   aux_eqns->computeRhs(1, u, u_aux_vec, false, b1_T);
   const int nvectors = 10;
   const Real eps = 1e-7;
@@ -250,6 +253,7 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquat
     u_aux_vec->getVector(1)[0] += x_T[0]*eps;
 
     m_func->computeFunc(u, u_aux_vec, false, b2_u);
+    std::cout << "computing auxiliary equation rhs at perturbed state" << std::endl;
     aux_eqns->computeRhs(1, u, u_aux_vec, false, b2_T);
     
     u_aux_vec->getVector(1)[0] -= x_T[0]*eps;
