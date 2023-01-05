@@ -25,7 +25,8 @@ class TarpModel
       m_roughness_fac(getRoughnessFactor(roughness_index)),
       m_vertical_vector(vertical_vector / std::sqrt(dot(vertical_vector, vertical_vector))),
       m_point_at_zero_altitude(point_at_zero_altitude),
-      m_local_wind_velocity_calc(met_terrain_index, meterological_altitude, local_terrain_index)
+      m_local_wind_velocity_calc(met_terrain_index, meterological_altitude, local_terrain_index),
+      m_alpha(std::pow(m_quadratic_intercept, -5.0/3.0))
     {}
 
     void setAirTemperature(Real temp) { m_air_temp = temp; }
@@ -85,6 +86,10 @@ class TarpModel
                                                     // tilt angle
     std::array<Real, 3> m_point_at_zero_altitude;
     AshraeWindVelocity m_local_wind_velocity_calc;
+    const Real m_quadratic_intercept = 0.01;  // the derivative of delta_t^(1/3) does not exist
+                                              // at delta_t = 0.  Use this parameter to fit a quadratic
+                                              // at delta_t = 0 and delta_t = m_quadratic_intercept
+    const Real m_alpha;
 
 };
 

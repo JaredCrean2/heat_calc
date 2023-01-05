@@ -12,7 +12,13 @@ Real TarpModel::computeHeatTransferCoeff(Real wall_temp, const std::array<Real, 
 
   Real h_f = 2.537 * Wf * m_roughness_fac * std::sqrt(m_surface_perimeter * air_speed/m_surface_area);
   Real cos_eps = computeCosTiltAngle(unit_normal);
-  Real delta_t_one_third = std::pow(std::abs(delta_t), 1.0/3.0);
+
+  Real abs_delta_t = smoothAbs(delta_t, 1e-6);
+  Real delta_t_one_third = 0;
+  if (abs_delta_t < m_quadratic_intercept)
+    delta_t_one_third = m_alpha * abs_delta_t * abs_delta_t;
+  else
+    delta_t_one_third = std::pow(std::abs(delta_t), 1.0/3.0);
 
 
   Real h_n = 0.0;
@@ -57,11 +63,22 @@ Real TarpModel::computeHeatTransferCoeffDeriv_impl(Real delta_t, Real delta_t_do
 
   Real delta_t_one_third = std::pow(abs_delta_t, 1.0/3.0);
   Real delta_t_one_third_dot;
+  if (abs_delta_t < m_quadratic_intercept)
+  {
+    delta_t_one_third = m_alpha * abs_delta_t * abs_delta_t;
+    delta_t_one_third_dot = m_alpha * 2 * abs_delta_t * abs_delta_t_dot;
+  } else
+  {
+    delta_t_one_third = std::pow(std::abs(delta_t), 1.0/3.0);
+    delta_t_one_third_dot = (1.0/3.0) * std::pow(abs_delta_t, -2.0/3.0) * abs_delta_t_dot;
+  }
+
+/*
   if (abs_delta_t == 0)
     delta_t_one_third_dot = 0;
   else
     delta_t_one_third_dot = (1.0/3.0) * std::pow(abs_delta_t, -2.0/3.0) * abs_delta_t_dot;
-
+*/
 
   Real h_n = 0.0;
   h_n_dot = 0.0;

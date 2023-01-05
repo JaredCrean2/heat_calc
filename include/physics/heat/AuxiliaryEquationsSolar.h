@@ -40,11 +40,7 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
     void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, 
-                                                   const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
-    {
-      Real interior_temp = u_aux_vec->getVector(1)[0];
-      m_heat_eqn.computedRdTinterior_airProduct(u_vec, interior_temp, t, x[0], b);
-    }
+                                                   const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
     void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, 

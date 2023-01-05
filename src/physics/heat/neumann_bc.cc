@@ -7,12 +7,10 @@ namespace Heat {
 void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u, DiscVectorPtr rhs)
 {
   const auto& neumann_bcs = physics.getNeumannBCs();
-  int i=0;
   for (auto& bc : neumann_bcs)
   {
     //std::cout << "doing BC " << i << std::endl;
     computeNeumannBC(bc, u, t, rhs);
-    i++;
   }
 
   rhs->markArrayModified();

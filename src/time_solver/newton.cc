@@ -25,6 +25,7 @@ NewtonResult NewtonSolver::solve(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u
   Real norm0 = norm;
 
   std::cout << "at start of Newton iteration, norm0 = " << norm0 << ", norm = " << norm << ", ratio = " << norm/norm0 << std::endl;
+  //checkJacobianFiniteDifference(u, u_aux_vec);
 
   if (norm < opts.nonlinear_abs_tol)
     return NewtonResult(norm0, norm, 0, opts);
@@ -151,6 +152,16 @@ void NewtonSolver::computeJacobians(DiscVectorPtr u, AuxiliaryEquationsStoragePt
     jac->factor();
   }
 }
+namespace {
+Real computeError(Real val1, Real val2, Real eps, Real tol)
+{
+  Real error = std::abs((val1 - val2)/(std::max(std::abs(val1), std::abs(val2))));
+  if (std::abs(val1) < 5*eps && std::abs(val2) < 5*eps)
+    error = 0;
+
+  return error;
+}
+}
 
 void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec)
 {
@@ -209,7 +220,8 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquat
     for (int i=0; i < x_u.shape()[0]; ++i)
     {
       Real val_fd = (b2_u->getVector()[i] - b1_u->getVector()[i])/eps;
-      Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
+      //Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
+      Real error = computeError(val_fd, b3_u[i], eps, tol);
       std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
       if (error > tol)
         throw std::runtime_error("finite difference test failed");
@@ -217,7 +229,9 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquat
 
     {
       Real val_fd = (b2_T[0] - b1_T[0])/eps;
-      Real error = std::abs((val_fd - b3_T[0])/(std::max(std::abs(val_fd), std::abs(b3_T[0]))));
+      //Real error = std::abs((val_fd - b3_T[0])/(std::max(std::abs(val_fd), std::abs(b3_T[0]))));
+      Real error = computeError(val_fd, b3_T[0], eps, tol);
+
       std::cout << "for aux equations, val_fd = " << val_fd << ", val_matvec = " << b3_T[0] << ", diff = " << error << std::endl;
       if (error > tol)
         throw std::runtime_error("finite difference test failed");
@@ -237,6 +251,9 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquat
 
     m_func->computeFunc(u, u_aux_vec, false, b2_u);
     aux_eqns->computeRhs(1, u, u_aux_vec, false, b2_T);
+    
+    u_aux_vec->getVector(1)[0] -= x_T[0]*eps;
+
 
     if (!b1_u->isVectorCurrent())
       b1_u->syncArrayToVector();
@@ -250,21 +267,23 @@ void NewtonSolver::checkJacobianFiniteDifference(DiscVectorPtr u, AuxiliaryEquat
     for (int i=0; i < x_u.shape()[0]; ++i)
     {
       Real val_fd = (b2_u->getVector()[i] - b1_u->getVector()[i])/eps;
-      Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
-      //std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
+      //Real error = std::abs((val_fd - b3_u[i])/(std::max(std::abs(val_fd), std::abs(b3_u[i]))));
+      Real error = computeError(val_fd, b3_u[i], eps, tol);
+
+      std::cout << "dof " << i << ", val_fd = " << val_fd << ", val_matvec = " << b3_u[i] << ", diff = " << error << std::endl;
       if (error > tol)
         throw std::runtime_error("finite difference test failed");
     }    
 
     {
       Real val_fd = (b2_T[0] - b1_T[0])/eps;
-      Real error = std::abs((val_fd - b3_T[0])/(std::max(std::abs(val_fd), std::abs(b3_T[0]))));
+      //Real error = std::abs((val_fd - b3_T[0])/(std::max(std::abs(val_fd), std::abs(b3_T[0]))));
+      Real error = computeError(val_fd, b3_T[0], eps, tol);
+
       std::cout << "for aux equations, val_fd = " << val_fd << ", val_matvec = " << b3_T[0] << ", diff = " << error << std::endl;
       if (error > tol)
         throw std::runtime_error("finite difference test failed");
     }
-
-    u_aux_vec->getVector(1)[0] -= x_T[0]*eps;
 
   }
 }

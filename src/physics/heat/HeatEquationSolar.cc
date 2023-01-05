@@ -85,15 +85,16 @@ AuxiliaryEquationsSolarPtr HeatEquationSolar::getAuxEquationsSolar()
 
 void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real interior_temp, Real t, Real x, ArrayType<Real, 1>& b)
 {
-  //std::cout << "computing dRdTinterior_air product" << std::endl;
+  std::cout << "computing dRdTinterior_air product" << std::endl;
   //std::cout << "x = " << x << std::endl;
   //TODO: cache these
   setTimeParameters(t, interior_temp);
   auto rhs = makeDiscVector(getDiscretization());
   auto rhs_dot = makeDiscVector(getDiscretization());
   computeNeumannBC_dotTair(*this, t, u, interior_temp, x, rhs, rhs_dot);
-
   rhs_dot->syncArrayToVector();
+  std::cout << "rhs_dot entry 757 = " << rhs_dot->getVector()[757] << std::endl;
+
   auto& rhs_dot_vec = rhs_dot->getVector();
   assertAlways(b.shape()[0] == rhs_dot_vec.shape()[0], "vector sizes are incompatible");
   for (size_t i=0; i < rhs_dot_vec.shape()[0]; ++i)

@@ -37,6 +37,16 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobian(int block, DiscVectorPtr 
   mat->assembleEntry(dofs, vals);
 }
 
+void AuxiliaryEquationsSolar::computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec,
+                                                AuxiliaryEquationsStoragePtr u_aux_vec, Real t, 
+                                                const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
+{
+  std::cout << "\Engered computeFiniteElementJacobianVectorProduct" << std::endl;
+  std::cout << "jblock = " << jblock << jblock << ", x = " << x[0] << std::endl;
+  Real interior_temp = u_aux_vec->getVector(1)[0];
+  m_heat_eqn.computedRdTinterior_airProduct(u_vec, interior_temp, t, x[0], b);
+}
+
 void AuxiliaryEquationsSolar::computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, 
       DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
 {

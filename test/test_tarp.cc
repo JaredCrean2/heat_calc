@@ -1,6 +1,53 @@
 #include "gtest/gtest.h"
 #include "physics/heat/tarp.h"
 
+namespace {
+
+
+void test_derivative_dTwall(Heat::TarpModel& model, Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal)
+{
+  Real eps = 1e-7;
+  Real val1 = model.computeHeatTransferCoeff(wall_temp, pt, unit_normal);
+  Real val2 = model.computeHeatTransferCoeff(wall_temp + eps, pt, unit_normal);
+  Real val_fd = (val2 - val1)/eps;
+
+
+  Real val_ad;
+  Real val3 = model.computeHeatTransferCoeffdTwall(wall_temp, pt, unit_normal, val_ad);
+
+
+  EXPECT_NEAR(val1, val3, 1e-13);
+  EXPECT_NEAR(val_fd, val_ad, 1e-5);
+}
+
+void test_derivative_dTair(Heat::TarpModel& model, Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal)
+{
+  Real eps = 1e-7;
+  Real air_temp = model.getAirTemperature();
+  Real val1 = model.computeHeatTransferCoeff(wall_temp, pt, unit_normal);
+
+  model.setAirTemperature(air_temp + eps);
+  Real val2 = model.computeHeatTransferCoeff(wall_temp, pt, unit_normal);
+  model.setAirTemperature(air_temp);
+  Real val_fd = (val2 - val1)/eps;
+
+
+  Real val_ad;
+  Real val3 = model.computeHeatTransferCoeffdTair(wall_temp, pt, unit_normal, val_ad);
+
+  EXPECT_NEAR(val1, val3, 1e-13);
+  EXPECT_NEAR(val_fd, val_ad, 1e-5);
+}
+
+void test_derivative(Heat::TarpModel& model, Real wall_temp, const std::array<Real, 3>& pt, const std::array<Real, 3>& unit_normal)
+{
+  test_derivative_dTwall(model, wall_temp, pt,  unit_normal);
+  test_derivative_dTair(model, wall_temp, pt, unit_normal);
+}
+
+}
+
+
 TEST(Tarp, ForcedConvection)
 {
   Real temp = 20;    // the Tarp model has natural convection
@@ -36,6 +83,8 @@ TEST(Tarp, ForcedConvection)
     Real expected_val = 2.537 * Wf * roughness_factors[roughness_type] * std::sqrt(perimeter * local_air_speed / surface_area);
 
     EXPECT_NEAR(model.computeHeatTransferCoeff(temp, pt, normal), expected_val, 1e-13);
+
+    test_derivative(model, temp, pt, normal);
   }
 }
 
@@ -82,5 +131,13 @@ TEST(Tarp, NaturalConvection)
   EXPECT_NEAR(model.computeHeatTransferCoeff(air_temp + delta_t, pt, normal_horizontal), expected_val_horizontal, 1e-2);
   EXPECT_NEAR(model.computeHeatTransferCoeff(air_temp - delta_t, pt, normal_horizontal), expected_val_horizontal, 1e-2);
 
+  test_derivative(model, air_temp - delta_t, pt, normal_upward);
+  test_derivative(model, air_temp + delta_t, pt, normal_downward);
+
+  test_derivative(model, air_temp - delta_t, pt, normal_downward);
+  test_derivative(model, air_temp + delta_t, pt, normal_upward);
+
+  test_derivative(model, air_temp + delta_t, pt, normal_horizontal);
+  test_derivative(model, air_temp - delta_t, pt, normal_horizontal);
 }
 

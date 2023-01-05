@@ -200,6 +200,7 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
   m_heat_eqn->setTimeParameters(t, interior_temp);
 
   Real bc_flux = 0;
+  /*
   std::cout << "number of bcs = " << m_bcs.size() << std::endl;
   for (auto& bc : m_bcs )
   {
@@ -207,7 +208,8 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
     // the flux into the air is the negative
     bc_flux -= computeBCFlux(bc, sol_vec, t);  
   }
-
+  */
+/*
   Real air_leakage_flux   = -m_air_leakage->computeAirLeakagePower(interior_temp);
   Real ventilation_flux   = -m_ventilation->computeAirLeakagePower(interior_temp);
   Real interior_load_flux = m_interior_loads->computeLoadPower();
@@ -219,8 +221,8 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
   std::cout << "ventilation_flux   = " << ventilation_flux << std::endl;
   std::cout << "interior_load_flux = " << interior_load_flux << std::endl;
   std::cout << "window_flux        = " << window_flux << std::endl;
-
-  return bc_flux + air_leakage_flux + ventilation_flux + interior_load_flux + window_flux;
+*/
+  return bc_flux; // + air_leakage_flux + ventilation_flux + interior_load_flux + window_flux;
 }
 
 Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec, Real interior_temp, Real t, Real& flux_dot)
@@ -229,29 +231,18 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
   m_heat_eqn->setTimeParameters(t, interior_temp);
 
   Real flux = 0;
+  /*
   for (auto& bc : m_bcs )
   {
-
-    auto bc_air_wind_sky = std::dynamic_pointer_cast<AirWindSkyNeumannBC>(bc);
-    Real t_air_orig = 0;
-    if (bc_air_wind_sky)
-    {
-      t_air_orig = bc_air_wind_sky->getAirTemperature();
-      bc_air_wind_sky->setAirTemperature(interior_temp);
-    }
 
     // BCs are defined such that flux into the wall is positive, so
     // the flux into the air is the negative
     Real flux_dot_tmp = 0;
     flux     -= computeBCFluxDotTair(bc, sol_vec, t, flux_dot_tmp);
-    flux_dot -= flux_dot_tmp;
-
-    if (bc_air_wind_sky)
-    {
-      bc_air_wind_sky->setAirTemperature(t_air_orig);
-    }    
+    flux_dot -= flux_dot_tmp;  
   }
-
+  */
+/*
   Real flux_dot_tmp = 0;
   flux     -= m_air_leakage->computeAirLeakagePowerDot(interior_temp, flux_dot_tmp);
   flux_dot -= flux_dot_tmp;
@@ -265,11 +256,12 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
   flux_dot_tmp = 0;
   flux     += m_window_model->computeConductionPowerDot(interior_temp, flux_dot_tmp);
   flux_dot += flux_dot_tmp;
-
+*/
   return flux;
 }
 
-void InteriorAirTemperatureUpdator::computeLoadFlux_rev(DiscVectorPtr sol_vec, DiscVectorPtr sol_vec_bar, Real interior_temp, Real& interior_temp_bar, Real t, Real flux_bar)
+void InteriorAirTemperatureUpdator::computeLoadFlux_rev(DiscVectorPtr sol_vec, DiscVectorPtr sol_vec_bar, Real interior_temp,
+                                                        Real& interior_temp_bar, Real t, Real flux_bar)
 {
   m_heat_eqn->setTimeParameters(t, interior_temp);
 /*
@@ -289,15 +281,18 @@ void InteriorAirTemperatureUpdator::computeLoadFlux_rev(DiscVectorPtr sol_vec, D
   //-----------------------------------------------------------------------
   
   //TODO: interior_temp_bar is not used, don't compute it
+  /*
   for (auto& bc : m_bcs )
   {
     // BCs are defined such that flux into the wall is positive, so
     // the flux into the air is the negative
     computeBCFlux_rev(bc, sol_vec, sol_vec_bar, t, -flux_bar);
   }
+  */
 
   //TODO: what about other models? interior_temp_bar?
 }
+
 
 
 Real InteriorAirTemperatureUpdator::computeBCFlux(NeumannBCPtr bc, DiscVectorPtr sol_vec, Real t)
@@ -421,6 +416,8 @@ void InteriorAirTemperatureUpdator::computeBCFlux_rev(NeumannBCPtr bc, DiscVecto
 
     //---------------------------------------------------------------------
     zeroMatrix(flux_vals_bar);
+    for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
+      u_quad_bar[i] = 0;
 
     integrateFaceVector_rev(surf, face, flux_vals_bar, surf->getFaceWeight(face)*flux_bar);
 
