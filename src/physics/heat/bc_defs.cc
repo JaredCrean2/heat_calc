@@ -205,6 +205,8 @@ void SolarRadiationBC::getValue(const Index face, const Real t, const Real* sol_
   {
     auto unit_normal = getUnitNormal(face, i);
     Real flux = m_model.computeFlux(unit_normal);
+    if (flux < 0)
+      throw std::runtime_error("flux cannot be negative");
     for (int d=0; d < 3; ++d)
       flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
   }

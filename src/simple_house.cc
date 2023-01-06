@@ -316,25 +316,29 @@ class GeometryGenerator
 };
 
 std::shared_ptr<Heat::AirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
-                                                                    Real emittance, Real absorptivity)
+                                                                    Real emittance, Real absorptivity, bool include_solar)
 {
   std::array<Real, 3> vertical_vector = {0, 0, 1};
   std::array<Real, 3> point_at_zero_altitude = {0, 0, -1};
   int met_terrain_index = 2;  // rough, wooded country
   Real meterological_altitude = 1836;
   int local_terrain_index = 2;  // rough, wooded country
-  auto tarp_bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
-                  point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
-  //TODO: re-enable other BCs
-  //auto sky_bc = std::make_shared<Heat::SkyRadiationBC>(surf, emittance, vertical_vector);
-  //auto solar_bc = std::make_shared<Heat::SolarRadiationBC>(surf, absorptivity);
+  //auto tarp_bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
+  //                point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
+  auto tarp_bc = std::make_shared<Heat::AirWindSkyZeroBC>(surf);  
+  auto sky_bc = std::make_shared<Heat::SkyRadiationBC>(surf, emittance, vertical_vector);
+  auto solar_bc = std::make_shared<Heat::SolarRadiationBC>(surf, absorptivity);
 
-  //std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> bcs = {tarp_bc, sky_bc, solar_bc};
-  //return std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
+  std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> bcs = {tarp_bc};
+  if (include_solar)
+  {
+    //bcs.push_back(sky_bc);
+    bcs.push_back(solar_bc);
+  }
+  return std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
 
-  return std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
-                  point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
-
+  //return std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
+  //                point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
 }
 
 std::shared_ptr<DirichletBC> makeBottomBC(SurfDiscPtr surf, Real temp)
@@ -360,7 +364,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     // radient barrier emissivity", International Journal of Energy Research, 2000, 24:665
     Real emittance    = 0.78;
     Real absorptivity = 0.78;
-    auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity);
+    auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity, false);
     heat_eqn->addNeumannBC(bc, true);
     postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>("foundation_flux", bc, heat_eqn.get()));    
   }
@@ -377,7 +381,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     // radient barrier emissivity", International Journal of Energy Research, 2000, 24:665
     Real emittance    = i < 5 ? 0.9 : 0.78;
     Real absorptivity = i < 5 ? 0.75 : 0.78;
-    auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity);
+    auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity, true);
     heat_eqn->addNeumannBC(bc, true);
     postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i-1], bc, heat_eqn.get()));
   }  
@@ -450,7 +454,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 5*24*60*60; // 24*60*60;  // 1 day
+  opts.t_end   = 24*60*60; // 24*60*60;  // 1 day
   opts.delta_t = 300; // 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;
@@ -486,7 +490,7 @@ int main(int argc, char* argv[])
     Heat::SolarPositionCalculator solar_calc(computeJulianDate({1, 1, 2000}), 7,
                                             Heat::solar::DMSToRadians(35, 6, 24.3576), 
                                             Heat::solar::DMSToRadians(106, 37, 45.0516));
-    Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 0, 0, 0};
+    Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 0, 3000, 0};
     auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
 
     Real air_rho           = 1.007;
@@ -499,11 +503,11 @@ int main(int argc, char* argv[])
 
     Real window_area    = 0.557418 * 8; // 6 sq ft each
     Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units
-    auto window_model   = std::make_shared<Heat::WindowConductionModel>(window_r_value, window_area);  //TODO: zero window area
+    auto window_model   = std::make_shared<Heat::WindowConductionModel>(window_r_value, window_area);
 
     // air properties from 6000 ft altitude
-    Real interior_air_min_temp = 293.15;
-    Real interior_air_max_temp = 297.039;
+    Real interior_air_min_temp = 295; //293.15;
+    Real interior_air_max_temp = 295; // 297.039;
     Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
     auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
     //auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
@@ -515,7 +519,7 @@ int main(int argc, char* argv[])
     auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator);
     std::cout << "initial air temp = " << initial_air_temp << std::endl;
     auto u_aux = makeAuxiliaryEquationsStorage(heat_eqn->getAuxEquations());
-    u_aux->getVector(1)[0] = 295.0945; //initial_air_temp;
+    u_aux->getVector(1)[0] = initial_air_temp;
 
     auto postprocessor_scheduler = std::make_shared<physics::PostProcessorScheduleFixedInterval>(1);
     auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt");

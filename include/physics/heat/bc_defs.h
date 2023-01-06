@@ -233,7 +233,43 @@ class CombinedAirWindSkyNeumannBC : public AirWindSkyNeumannBC
     std::vector<std::shared_ptr<AirWindSkyNeumannBC>> m_bcs;
 };
 
+class AirWindSkyZeroBC : public AirWindSkyNeumannBC
+{
+  public:
+    AirWindSkyZeroBC(SurfDiscPtr surf) :
+      AirWindSkyNeumannBC(surf, false)
+    {}
 
+    void setAirTemperature(Real temp) override{ m_air_temp = temp;}
+
+    Real getAirTemperature() const override { return m_air_temp; }
+    
+    void getValue(const Index face, const Real t, const Real* sol_vals, Real* flux_vals) override
+    {
+      for (int i=0; i < 3*m_surf->getNumQuadPtsPerFace(); ++i)
+        flux_vals[i] = 0;
+    }
+
+
+    // compute derivative of flux_vals wrt air temperature
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override
+    {
+      for (int i=0; i < 3*m_surf->getNumQuadPtsPerFace(); ++i)
+      {
+        flux_vals[i] = 0;
+        flux_vals_deriv[i] = 0;
+      }
+    }
+
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override
+    {
+      for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+        sol_vals_bar[i] = 0;
+    }
+
+  private:
+    Real m_air_temp;
+};
 
 
 

@@ -4,6 +4,8 @@
 #include "ProjectDefs.h"
 #include "solar_position.h"
 
+#include <iostream>
+
 namespace Heat {
 
 class SolarRadiationModel
@@ -25,6 +27,7 @@ class SolarRadiationModel
 
     Real computeFlux(const std::array<Real, 3>& unit_normal)
     {
+      //std::cout << "solar flux direction factor = " << std::max(dot(unit_normal, m_solar_direction_unit), 0.0) << ", flux = " <<  m_absorptivity * m_direct_flux * std::max(dot(unit_normal, m_solar_direction_unit), 0.0) << std::endl;
       return m_absorptivity * (m_diffuse_flux + m_direct_flux * std::max(dot(unit_normal, m_solar_direction_unit), 0.0));
     }
 
