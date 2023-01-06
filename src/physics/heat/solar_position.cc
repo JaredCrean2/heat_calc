@@ -89,9 +89,7 @@ Real computeHourAngle(Real time_hours, const DecTimeDist& dec_time_dist, int tim
   assertAlways(longitude >= -PI && longitude <= PI, "longitude must be in range [-pi, pi] radians");
   Real longitude_degrees = radiansToDegrees(longitude);
   
-  std::cout << "time_hours = " << time_hours << ", time_zone = " << time_zone << ", longitude_degrees = " << longitude_degrees << std::endl;
   auto val =  15 * (12 - time_hours - dec_time_dist.equation_of_time  - time_zone) + longitude_degrees;
-  std::cout << "hour angle (hours) = " << val*24.0/360 << std::endl;
   auto val_radians = degreesToRadians(val);
 
   return val_radians;
