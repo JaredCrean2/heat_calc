@@ -126,24 +126,24 @@ AzimuthZenith computeAzimuthZenith(const DirectionCosines& cosines)
 }
 
 
-DirectionCosines computeDirectionCosines(int julian_day, int time_hours, int time_zone, Real latitude, Real longitude)
+DirectionCosines computeDirectionCosines(int julian_day, Real time_hours, int time_zone, Real latitude, Real longitude)
 {
   DecTimeDist dec_time_dist = computeDecTimeDist(julian_day);
   Real hour_angle = computeHourAngle(time_hours, dec_time_dist, time_zone, longitude);
   return computeDirectionCosines(dec_time_dist, hour_angle, latitude);
 }
 
-DirectionCosines computeDirectionCosines(const Date& date, int time_hours, int time_zone, Real latitude, Real longitude)
+DirectionCosines computeDirectionCosines(const Date& date, Real time_hours, int time_zone, Real latitude, Real longitude)
 {
   return computeDirectionCosines(computeJulianDate(date), time_hours, time_zone, latitude, longitude);
 }
 
-AzimuthZenith computeAzimuthZenith(int julian_day, int time_hours, int time_zone, Real latitude, Real longitude)
+AzimuthZenith computeAzimuthZenith(int julian_day, Real time_hours, int time_zone, Real latitude, Real longitude)
 {
   return computeAzimuthZenith(computeDirectionCosines(julian_day, time_hours, time_zone,  latitude, longitude));
 }
 
-AzimuthZenith computeAzimuthZenith(const Date& date, int time_hours, int time_zone, Real latitude, Real longitude)
+AzimuthZenith computeAzimuthZenith(const Date& date, Real time_hours, int time_zone, Real latitude, Real longitude)
 {
   return computeAzimuthZenith(computeJulianDate(date), time_hours, time_zone, latitude, longitude);
 }

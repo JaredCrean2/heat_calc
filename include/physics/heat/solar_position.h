@@ -49,15 +49,15 @@ Real computeHourAngle(Real time_hours, const DecTimeDist& dec_time_dist, int tim
 // latitude: west is positive
 DirectionCosines computeDirectionCosines(const DecTimeDist& dec_time_dist, Real hour_angle, Real latitude);
 
-DirectionCosines computeDirectionCosines(int julian_day, int time_hours, int time_zone, Real latitude, Real longitude);
+DirectionCosines computeDirectionCosines(int julian_day, Real time_hours, int time_zone, Real latitude, Real longitude);
 
-DirectionCosines computeDirectionCosines(const Date& date, int time_hours, int time_zone, Real latitude, Real longitude);
+DirectionCosines computeDirectionCosines(const Date& date, Real time_hours, int time_zone, Real latitude, Real longitude);
 
 AzimuthZenith computeAzimuthZenith(const DirectionCosines& cosines);
 
-AzimuthZenith computeAzimuthZenith(int julian_day, int time_hours, int time_zone, Real latitude, Real longitude);
+AzimuthZenith computeAzimuthZenith(int julian_day, Real time_hours, int time_zone, Real latitude, Real longitude);
 
-AzimuthZenith computeAzimuthZenith(const Date& date, int time_hours, int time_zone, Real latitude, Real longitude);
+AzimuthZenith computeAzimuthZenith(const Date& date, Real time_hours, int time_zone, Real latitude, Real longitude);
 
 
 // converts angles specified in Degrees, Minutes, Seconds to decimal (radians)
