@@ -37,3 +37,8 @@ target_link_libraries(verification_tests
 
 message("Linking to ALL_LIBS = ${ALL_LIBS}")
 #target_link_libraries(unit_tests PUBLIC SCOREC::core)
+
+file(COPY
+    "${CMAKE_CURRENT_SOURCE_DIR}/data/USA_AZ_Phoenix-Sky.Harbor.Intl.AP.722780_TMY3.epw"
+    DESTINATION
+    "${CMAKE_CURRENT_BINARY_DIR}/data/")
