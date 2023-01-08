@@ -1,6 +1,69 @@
 #include "EpwReader.h"
 #include <iostream>
 
+
+std::vector<std::string> splitLine(const std::string& line, const std::string& delim)
+{
+  std::vector<std::string> words;
+  if (line.size() == 0)
+    return words;
+
+  std::string::size_type prev_pos = 0, pos = 0;
+  while (pos < line.length())
+  {
+    prev_pos = pos;
+    pos = line.find(delim, prev_pos);
+    std::cout << "prev_pos = " << prev_pos << ", pos = " << pos << std::endl;
+
+
+    if (pos != std::string::npos)
+    {
+      std::cout << "extracting word starting at " << prev_pos << " with count " << pos - prev_pos << std::endl;
+      words.push_back(line.substr(prev_pos, pos - prev_pos));
+    } else
+      break;
+
+
+    pos = pos + 1;
+  }
+
+  if (pos == std::string::npos)
+  {
+    std::string::size_type start = prev_pos;
+    if (line.substr(prev_pos, delim.size()) == delim)
+      start++;
+
+    std::cout << "start = " << start << std::endl;
+        
+    words.push_back(line.substr(start));
+  } else if (line.substr(pos-1) == delim)
+  {
+    words.push_back("");
+  }
+
+  return words;
+}
+
+std::ostream& operator<<(std::ostream& os, const EPWLocation& location)
+{
+  constexpr int buf_size = 64;
+  std::array<char, buf_size> longitude, latitude;
+
+  char latitude_n_or_s = location.latitude >= 0 ? 'N' : 'S';
+  std::snprintf(latitude.data(), buf_size, "%3.2f degrees %c", location.latitude, latitude_n_or_s);
+
+  char longitude_e_or_w = location.longitude >= 0 ? 'E' : 'W';
+  std::snprintf(latitude.data(), buf_size, "%3.2f degrees %c", location.longitude, longitude_e_or_w);
+
+  char time_zone_sign = location.time_zone >= 0 ? '+' : '-';
+  os << location.local_name << ", " << location.state << ", " << location.country
+      << ", " << latitude.data() << ", " << longitude.data() 
+      << ", time zone GMT " << time_zone_sign << " " << std::abs(location.time_zone);
+
+  return os;
+}
+
+
 void EPWReader::readFile(const std::string& fname)
 {
   std::ifstream f(fname);
@@ -49,6 +112,7 @@ EPWReader::TData EPWReader::parseLine(std::string& line)
   std::cout << "temp = " << temp << std::endl;
   return EPWDataPoint{day, month, year, hour, temp};
 }
+
 
 
 std::string EPWReader::parseField(std::string& line, const std::string& delim)

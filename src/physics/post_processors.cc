@@ -3,12 +3,12 @@
 
 namespace physics {
 
-std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
+Real integrateBoundaryFlux(NeumannBCPtr bc, DiscVectorPtr u, double t)
 {
   if (!u->isArrayCurrent())
     u->syncArrayToVector();
 
-  SurfDiscPtr surf = m_bc->getSurfDisc();
+  SurfDiscPtr surf = bc->getSurfDisc();
   ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);
   std::vector<Real> flux_vals(3*surf->getNumQuadPtsPerFace());
   ArrayType<Real, 2> flux_vals_array(boost::extents[surf->getNumQuadPtsPerFace()][3]);
@@ -22,7 +22,7 @@ std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, AuxiliaryEqu
     surf->interp_vsq_flat[spec.face].interpolateVals(u_i, u_quad);
 
 
-    m_bc->getValue(i, t, u_quad.data(), flux_vals.data());
+    bc->getValue(i, t, u_quad.data(), flux_vals.data());
     for (int j=0; j < surf->getNumQuadPtsPerFace(); ++j)
       for (int d=0; d < 3; ++d)
         flux_vals_array[j][d] = flux_vals[j + surf->getNumQuadPtsPerFace() * d];
@@ -30,7 +30,59 @@ std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, AuxiliaryEqu
     total_flux += integrateFaceVector(surf, i, flux_vals_array);
   }
 
-  return {total_flux};
+  return total_flux;
+}
+
+//-----------------------------------------------------------------------------
+// PostProcessorBCFlux
+
+std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
+{
+  return {integrateBoundaryFlux(m_bc, u, t) };
+}
+
+//-----------------------------------------------------------------------------
+// PostProcessorAirWindSkyBCFlux
+
+std::vector<double> PostProcessorAirWindSkyBCFlux::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
+{
+  Real interior_air_temp = u_aux->getVector(1)[0];
+  m_heat_eqn_solar->setTimeParameters(t, interior_air_temp);
+  return PostProcessorBCFlux::getValues(u, u_aux, t);
+}
+
+//-----------------------------------------------------------------------------
+// PostProcessorCombinedAirWindSkyBCFlux
+
+int PostProcessorCombinedAirWindSkyBCFlux::numValues() const { return m_bc->getNumBCs() + 1; }
+
+std::vector<std::string> PostProcessorCombinedAirWindSkyBCFlux::getNames() const
+{
+  std::vector<std::string> names;
+  for (int i=0; i < m_bc->getNumBCs(); ++i)
+    names.push_back(m_name_prefix + "_" + m_bc->getBC(i)->getName());
+
+  names.push_back(m_name_prefix);
+
+  return names;
+}
+
+std::vector<double> PostProcessorCombinedAirWindSkyBCFlux::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
+{
+  Real interior_air_temp = u_aux->getVector(1)[0];
+  m_heat_eqn_solar->setTimeParameters(t, interior_air_temp);
+
+  std::vector<double> vals;
+  Real val_sum = 0.0;
+  for (int i=0; i < m_bc->getNumBCs(); ++i)
+  {
+    vals.push_back(integrateBoundaryFlux(m_bc->getBC(i), u, t));
+    val_sum += vals.back();
+  }
+
+  vals.push_back(val_sum);
+
+  return vals;
 }
 
 }

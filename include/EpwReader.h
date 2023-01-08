@@ -3,6 +3,11 @@
 #include <vector>
 #include <sstream>
 #include <cassert>
+#include <array>
+#include <ostream>
+
+std::vector<std::string> splitLine(const std::string& line, const std::string& delim);
+
 
 class Parser
 {
@@ -34,6 +39,18 @@ struct EPWDataPoint
   //int minute;
   double temperature;  // dry bulb tempeature
 };
+
+struct EPWLocation
+{
+  std::string local_name;
+  std::string state;
+  std::string country;
+  double latitude;
+  double longitude;
+  int time_zone;
+};
+
+std::ostream& operator<<(std::ostream& os, const EPWLocation& location);
 
 
 class EPWReader

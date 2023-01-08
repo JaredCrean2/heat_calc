@@ -299,7 +299,7 @@ bool anyBcsNonlinear(const std::vector<std::shared_ptr<AirWindSkyNeumannBC>>& bc
 }
 
 CombinedAirWindSkyNeumannBC::CombinedAirWindSkyNeumannBC(std::vector<std::shared_ptr<AirWindSkyNeumannBC>> bcs) :
-  AirWindSkyNeumannBC(bcs[0]->getSurfDisc(), anyBcsNonlinear(bcs)),
+  AirWindSkyNeumannBC(bcs[0]->getSurfDisc(), anyBcsNonlinear(bcs), "combined"),
   m_bcs(bcs)
 {
   auto surf0 = bcs[0]->getSurfDisc();

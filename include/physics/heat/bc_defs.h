@@ -36,9 +36,12 @@ class NewtonCooling : public NeumannBC
 class AirWindSkyNeumannBC : public NeumannBC
 {
   public:
-    AirWindSkyNeumannBC(SurfDiscPtr surf, bool is_nonlinear) :
-      NeumannBC(surf, is_nonlinear)
+    AirWindSkyNeumannBC(SurfDiscPtr surf, bool is_nonlinear, const std::string& name) :
+      NeumannBC(surf, is_nonlinear),
+      m_name(name)
     {}
+
+    std::string getName() const { return m_name; }
 
     virtual void setAirTemperature(Real temp) {}
 
@@ -60,6 +63,9 @@ class AirWindSkyNeumannBC : public NeumannBC
     virtual void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) = 0;
 
     virtual void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) = 0;
+
+  private:
+    std::string m_name;
 };
 
 
@@ -70,7 +76,7 @@ class TarpBC : public AirWindSkyNeumannBC
     TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector,
               const std::array<Real, 3>& point_at_zero_altitude,
               int met_terrain_index, Real meterological_altitude, int local_terrain_index ) : 
-      AirWindSkyNeumannBC(surf, true),
+      AirWindSkyNeumannBC(surf, true, "heat_conduction"),
       m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
              point_at_zero_altitude, met_terrain_index, meterological_altitude, 
              local_terrain_index),
@@ -79,7 +85,7 @@ class TarpBC : public AirWindSkyNeumannBC
 
     // this constructor is for a Tarp BC on the interior of the structure (so meterological data is unneeded)
     TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector) : 
-      AirWindSkyNeumannBC(surf, true),
+      AirWindSkyNeumannBC(surf, true, "heat_conduction"),
       m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
              {0, 0, 0}, 0, 1, 0),
       m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
@@ -113,7 +119,7 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     SkyRadiationBC(SurfDiscPtr surf, Real emittance, std::array<Real, 3> vertical_vector) :
-      AirWindSkyNeumannBC(surf, true),
+      AirWindSkyNeumannBC(surf, true, "sky_radiation"),
       m_model(emittance, vertical_vector)
     {}
 
@@ -142,7 +148,7 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     SolarRadiationBC(SurfDiscPtr surf, Real absorbtivity) :
-      AirWindSkyNeumannBC(surf, false),
+      AirWindSkyNeumannBC(surf, false, "solar_radiation"),
       m_model(absorbtivity)
     {}
 
@@ -173,7 +179,7 @@ class SimpleConvectionBC : public AirWindSkyNeumannBC
 {
   public:
     SimpleConvectionBC(SurfDiscPtr surf, Real h) : 
-      AirWindSkyNeumannBC(surf, true),
+      AirWindSkyNeumannBC(surf, true, "simple_convection"),
       m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3]),
       m_heat_transfer_coeff(h)
     {}
@@ -196,48 +202,11 @@ class SimpleConvectionBC : public AirWindSkyNeumannBC
     Real m_air_temp;
 };
 
-
-class CombinedAirWindSkyNeumannBC : public AirWindSkyNeumannBC
-{
-  public:
-    CombinedAirWindSkyNeumannBC(std::vector<std::shared_ptr<AirWindSkyNeumannBC>> bcs);
-
-    void setAirTemperature(Real temp) override;
-
-    Real getAirTemperature() const override;
-    
-    void setAirSpeed(Real velocity) override;
-    
-    void setAirDirection(std::array<Real, 3> direction) override;
-
-    void setIRHorizontalRadiation(Real flux) override;
-
-    void setDirectNormalRadiation(Real flux) override;
-
-    void setDiffuseRadiation(Real flux) override;  
-
-    void setSolarDirection(const DirectionCosines& cosines) override;
-
-    void getValue(const Index face, const Real t, const Real* sol_vals, Real* flux_vals) override;
-
-    void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
-
-    // compute derivative of flux_vals wrt air temperature
-    virtual void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
-
-    virtual void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
-
-  private:
-    void updateAndZero(Real* arr, Real* arr_tmp, int npts);
-
-    std::vector<std::shared_ptr<AirWindSkyNeumannBC>> m_bcs;
-};
-
 class AirWindSkyZeroBC : public AirWindSkyNeumannBC
 {
   public:
     AirWindSkyZeroBC(SurfDiscPtr surf) :
-      AirWindSkyNeumannBC(surf, false)
+      AirWindSkyNeumannBC(surf, false, "zero_bc")
     {}
 
     void setAirTemperature(Real temp) override{ m_air_temp = temp;}
@@ -269,6 +238,47 @@ class AirWindSkyZeroBC : public AirWindSkyNeumannBC
 
   private:
     Real m_air_temp;
+};
+
+
+class CombinedAirWindSkyNeumannBC : public AirWindSkyNeumannBC
+{
+  public:
+    CombinedAirWindSkyNeumannBC(std::vector<std::shared_ptr<AirWindSkyNeumannBC>> bcs);
+
+    int getNumBCs() const { return m_bcs.size(); }
+
+    std::shared_ptr<AirWindSkyNeumannBC> getBC(int i) { return m_bcs.at(i); }
+
+    void setAirTemperature(Real temp) override;
+
+    Real getAirTemperature() const override;
+    
+    void setAirSpeed(Real velocity) override;
+    
+    void setAirDirection(std::array<Real, 3> direction) override;
+
+    void setIRHorizontalRadiation(Real flux) override;
+
+    void setDirectNormalRadiation(Real flux) override;
+
+    void setDiffuseRadiation(Real flux) override;  
+
+    void setSolarDirection(const DirectionCosines& cosines) override;
+
+    void getValue(const Index face, const Real t, const Real* sol_vals, Real* flux_vals) override;
+
+    void getValueDeriv(const Index face, const Real t, const Real* sol_vals, Real* flux_vals_deriv) override;
+
+    // compute derivative of flux_vals wrt air temperature
+    virtual void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
+
+    virtual void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
+
+  private:
+    void updateAndZero(Real* arr, Real* arr_tmp, int npts);
+
+    std::vector<std::shared_ptr<AirWindSkyNeumannBC>> m_bcs;
 };
 
 

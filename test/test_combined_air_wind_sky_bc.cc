@@ -11,7 +11,7 @@ class AirWindSkyTestBC : public Heat::AirWindSkyNeumannBC
 {
   public:
     AirWindSkyTestBC(SurfDiscPtr surf, bool is_nonlinear, Real h1, Real h2, Real h3, Real h4, Real h5) :
-      AirWindSkyNeumannBC(surf, is_nonlinear),
+      AirWindSkyNeumannBC(surf, is_nonlinear, "test_bc"),
       m_h1(h1),
       m_h2(h2),
       m_h3(h3),

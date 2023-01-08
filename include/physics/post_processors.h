@@ -108,15 +108,35 @@ class PostProcessorAirWindSkyBCFlux : public PostProcessorBCFlux
       m_heat_eqn_solar(heat_eqn_solar)
     {}
 
-    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override
-    {
-      Real interior_air_temp = u_aux->getVector(1)[0];
-      m_heat_eqn_solar->setTimeParameters(t, interior_air_temp);
-      return PostProcessorBCFlux::getValues(u, u_aux, t);
-    }
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override;
 
   private:
     Heat::HeatEquationSolar* m_heat_eqn_solar;
+};
+
+
+class PostProcessorCombinedAirWindSkyBCFlux : public PostProcessorBase
+{
+  public:
+
+    PostProcessorCombinedAirWindSkyBCFlux(const std::string& name_prefix, std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> bc,
+                                  Heat::HeatEquationSolar* heat_eqn_solar) :
+      m_name_prefix(name_prefix),
+      m_bc(bc),
+      m_heat_eqn_solar(heat_eqn_solar)
+    {}
+
+    // returns number of values this postprocessor returns
+    int numValues() const override;
+
+    std::vector<std::string> getNames() const override;
+
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override;
+
+  private:
+    std::string m_name_prefix;
+    std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> m_bc;
+    Heat::HeatEquationSolar* m_heat_eqn_solar;    
 };
 
 }  // namespace

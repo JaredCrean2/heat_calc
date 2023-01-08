@@ -315,7 +315,7 @@ class GeometryGenerator
     std::vector<Heat::VolumeGroupParams> foundation_params = { {2.25, 2400, 880} };
 };
 
-std::shared_ptr<Heat::AirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
+std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
                                                                     Real emittance, Real absorptivity, bool include_solar)
 {
   std::array<Real, 3> vertical_vector = {0, 0, 1};
@@ -323,16 +323,16 @@ std::shared_ptr<Heat::AirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Re
   int met_terrain_index = 2;  // rough, wooded country
   Real meterological_altitude = 1836;
   int local_terrain_index = 2;  // rough, wooded country
-  //auto tarp_bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
-  //                point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
-  auto tarp_bc = std::make_shared<Heat::AirWindSkyZeroBC>(surf);  
+  auto tarp_bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, roughness_index, vertical_vector, 
+                  point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
+  //auto tarp_bc = std::make_shared<Heat::AirWindSkyZeroBC>(surf);  
   auto sky_bc = std::make_shared<Heat::SkyRadiationBC>(surf, emittance, vertical_vector);
   auto solar_bc = std::make_shared<Heat::SolarRadiationBC>(surf, absorptivity);
 
   std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> bcs = {tarp_bc};
   if (include_solar)
   {
-    //bcs.push_back(sky_bc);
+    bcs.push_back(sky_bc);
     bcs.push_back(solar_bc);
   }
   return std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
@@ -366,7 +366,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     Real absorptivity = 0.78;
     auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity, false);
     heat_eqn->addNeumannBC(bc, true);
-    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>("foundation_flux", bc, heat_eqn.get()));    
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>("foundation_flux", bc, heat_eqn.get()));    
   }
   std::vector<std::string> names = {"east_exterior_wall_flux", "north_exterior_wall_flux", 
                                     "west_exterior_wall_flux", "south_exterior_wall_flux", "roof_flux"};
@@ -383,7 +383,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     Real absorptivity = i < 5 ? 0.75 : 0.78;
     auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity, true);
     heat_eqn->addNeumannBC(bc, true);
-    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i-1], bc, heat_eqn.get()));
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i-1], bc, heat_eqn.get()));
   }  
 }
 
@@ -490,7 +490,7 @@ int main(int argc, char* argv[])
     Heat::SolarPositionCalculator solar_calc(computeJulianDate({1, 1, 2000}), 7,
                                             Heat::solar::DMSToRadians(35, 6, 24.3576), 
                                             Heat::solar::DMSToRadians(106, 37, 45.0516));
-    Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 0, 3000, 0};
+    Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 250, 750, 0};
     auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
 
     Real air_rho           = 1.007;
