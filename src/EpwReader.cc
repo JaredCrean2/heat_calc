@@ -1,7 +1,17 @@
 #include "EpwReader.h"
 #include <iostream>
 #include <stdexcept>
+#include "physics/heat/dates.h"
 
+
+Real getJulianDate(const EPWDataPoint& data)
+{
+  Date date{data.day, data.month, data.year};
+  Time time{data.hour, data.minute};
+
+  // for comparison purposes, the time zone doesn't matter
+  return computeJulianDate(date, time, 0);
+}
 
 std::vector<std::string> splitLine(const std::string& line, const std::string& delim)
 {

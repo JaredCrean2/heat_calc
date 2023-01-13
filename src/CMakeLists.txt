@@ -1,6 +1,7 @@
 message("Processing source directory")
 
-set(src_files EpwReader.cc 
+set(src_files EpwReader.cc
+              EpwSegmenter.cc
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
               utils/legendre.cc

@@ -62,5 +62,32 @@ TEST(Dates, computeJulianDateLeapYear)
   int day2 = computeJulianDate({1, 3, 1988});
   EXPECT_EQ(day0 + 1, day1);
   EXPECT_EQ(day1 + 1, day2);
+}
 
+TEST(Dates, FractionalDayUniversalTime)
+{
+  Date date{1, 5, 2000};
+
+  EXPECT_EQ(computeJulianDate(date, {12, 00}, 0), computeJulianDate(date));
+  EXPECT_EQ(computeJulianDate(date, {13, 00}, 0), computeJulianDate(date) + 1.0/24);
+  EXPECT_EQ(computeJulianDate(date, {11, 00}, 0), computeJulianDate(date) - 1.0/24);
+
+  EXPECT_EQ(computeJulianDate(date, {13, 30}, 0), computeJulianDate(date) + 1.5/24);
+  EXPECT_EQ(computeJulianDate(date, {10, 30}, 0), computeJulianDate(date) - 1.5/24);
+
+  EXPECT_EQ(computeJulianDate(date, {24, 30}, 0), computeJulianDate(date) + 12.5/24);
+}
+
+TEST(Dates, FractionalDayTimeZone)
+{
+  Date date{1, 5, 2000};
+
+  EXPECT_EQ(computeJulianDate(date, {12, 00}, 2), computeJulianDate(date) + 2);
+  EXPECT_EQ(computeJulianDate(date, {13, 00}, 2), computeJulianDate(date) + 1.0/24 + 2);
+  EXPECT_EQ(computeJulianDate(date, {11, 00}, 2), computeJulianDate(date) - 1.0/24 + 2);
+
+  EXPECT_EQ(computeJulianDate(date, {13, 30}, 2), computeJulianDate(date) + 1.5/24 + 2);
+  EXPECT_EQ(computeJulianDate(date, {10, 30}, 2), computeJulianDate(date) - 1.5/24 + 2);
+
+  EXPECT_EQ(computeJulianDate(date, {24, 30}, 2), computeJulianDate(date) + 12.5/24 + 2);
 }

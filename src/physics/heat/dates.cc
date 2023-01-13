@@ -28,6 +28,13 @@ int computeJulianDate(const Date& date)
   return date.day - 32075 + (1461 * (date.year + 4800 + L)) / 4
          + (367 * (date.month -2 - 12*L)) / 12
          - (3 * ( (date.year + 4900 + L) / 100 )) /4;
+}
 
-
+Real computeJulianDate(const Date& date, const Time& time, int time_zone)
+{
+  // time in universal time zone is time in local zone  + time_zone
+  Real hours = time.hour + time.minute / 60.0;
+  
+  int julian_day_whole = computeJulianDate(date);
+  return julian_day_whole + (hours - 12)/24.0 + time_zone;
 }

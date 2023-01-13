@@ -1,3 +1,4 @@
+#include "ProjectDefs.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -46,6 +47,9 @@ struct EPWDataPoint
   double wind_speed;               // m/s
 };
 
+Real getJulianDate(const EPWDataPoint& data);
+
+
 struct EPWLocation
 {
   std::string local_name;
@@ -72,7 +76,10 @@ class EPWReader
   public:
     EPWReader(const std::string& fname) :
       m_file(fname)
-    { 
+    {
+      if (!m_file)
+        throw std::runtime_error(std::string("could not open file ") + fname);
+
       readFile();
     }
 
