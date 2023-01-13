@@ -2,6 +2,10 @@ message("Processing source directory")
 
 set(src_files EpwReader.cc
               EpwSegmenter.cc
+              EpwExtractor.cc
+              WeatherFileReader.cc
+              WeatherFileWriter.cc
+              WeatherFileHelper.cc
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
               utils/legendre.cc
