@@ -178,6 +178,8 @@ EPWReader::TData EPWReader::parseLine(std::string& line)
 
   validateData(data);
 
+  data.temperature = data.temperature + 273.15;
+
   return data;
 }
 

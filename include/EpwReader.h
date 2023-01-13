@@ -1,3 +1,6 @@
+#ifndef EPW_READER_H
+#define EPW_READER_H
+
 #include "ProjectDefs.h"
 #include <fstream>
 #include <string>
@@ -39,7 +42,7 @@ struct EPWDataPoint
   int hour;  // hour ranges from 1 to 24
   int minute;
   //int minute;
-  double temperature;  // dry bulb tempeature (degrees C)
+  double temperature;  // dry bulb tempeature (Kelvin)
   double horizontal_ir_radiation; // W h /m^2
   double direct_normal_radiation;  // W h/m^2
   double diffuse_radiation;        // W h/m^2
@@ -108,13 +111,13 @@ class EPWReader
 
     std::string parseField(std::string& line, const std::string& delim);
 
-    EPWLocation m_location;
     EPWDataPeriods m_data_periods;
+    EPWLocation m_location;
     std::vector<TData> m_data;
     Parser m_parser;
     std::ifstream m_file;
     std::string m_delim = ",";
 };
 
-
+#endif
 
