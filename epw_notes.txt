@@ -1,0 +1,23 @@
+The EPW file from the EnergyPlus website (https://energyplus.net/weather) have lots of gaps in them.  To fill in those gaps,
+the DIYEPW python package (https://github.com/IMMM-SFA/diyepw) can be used.
+This package uses NOAA weather data to augment the EPW file.
+The package is capable of generating EPW files for years for
+which there is no EPW source data, which is unusual because
+solar radiation is not contained in the NOAA data.
+I think what happens is solar data for other years is used,
+which is OK because the EnergyPlus data is Typical Meterological Year (TMY) data, which attempts to average out the experimental data based on
+some kind of model.  So I think it is ok to use solar data from
+other years.
+
+How to use the package:
+  1. Install DIYEPW.  According to their (current) readme, this can be done with `pip install diyepw`
+  2. Figure out the WMO station code.  One way to do this is to
+     go to the EnergyPlus website (https://energyplus.net/weather) and
+     search for your location.  The results will show one or more
+     result, which are a location name followed by a 6 digit code.
+     The 6 digit code is the WMO code.
+  3. Use the script DIYEPW provides to generate EPW files as:
+ 
+create_amy_epw_files_for_years_and_wmos --years=2010-2015 --wmo-indices=723650 --output-path .
+
+  This will generate one EPW file for each year, with complete data.
