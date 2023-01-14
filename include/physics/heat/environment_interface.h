@@ -15,6 +15,17 @@ struct EnvironmentData
   Real diffuse_radiation;        // W/m^2
 };
 
+EnvironmentData operator+(const EnvironmentData& a, const EnvironmentData& b);
+
+EnvironmentData operator-(const EnvironmentData& a, const EnvironmentData& b);
+
+EnvironmentData operator*(const EnvironmentData& a, Real b);
+
+EnvironmentData operator*(Real a, const EnvironmentData& b);
+
+EnvironmentData operator/(const EnvironmentData& a, Real b);
+
+
 class EnvironmentInterface
 {
   public:

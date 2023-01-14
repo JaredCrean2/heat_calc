@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "physics/heat/dates.h"
+#include "utils/math.h"
 
 
 Real getJulianDate(const EPWDataPoint& data)
@@ -11,6 +12,22 @@ Real getJulianDate(const EPWDataPoint& data)
 
   // for comparison purposes, the time zone doesn't matter
   return computeJulianDate(date, time, 0);
+}
+
+Heat::EnvironmentData convertToEnvData(const EPWDataPoint& pt)
+{
+  Heat::EnvironmentData data;
+  data.air_temp = pt.temperature;
+  data.air_speed = pt.wind_speed;
+  data.ir_horizontal_radiation = pt.horizontal_ir_radiation;
+  data.direct_normal_radiation = pt.direct_normal_radiation;
+  data.diffuse_radiation = pt.diffuse_radiation;
+
+  Real theta = degreesToRadians(pt.wind_direction);
+  // theta is measured clockwise from north
+  data.air_direction = {std::sin(theta), std::cos(theta), 0};
+
+  return data;
 }
 
 std::vector<std::string> splitLine(const std::string& line, const std::string& delim)
@@ -197,7 +214,7 @@ void EPWReader::validateData(const EPWDataPoint& data)
   if (data.hour < 1 || data.hour > 24)
     throw std::runtime_error("parsed hour is out of range");
 
-  if (data.minute < 0 || data.minute > 24)
+  if (data.minute < 0 || data.minute > 60)
     throw std::runtime_error("parsed minute is out of range"); 
 
   if (data.temperature < -70 || data.temperature > 70)

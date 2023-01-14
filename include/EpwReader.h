@@ -2,6 +2,7 @@
 #define EPW_READER_H
 
 #include "ProjectDefs.h"
+#include "physics/heat/environment_interface.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -46,12 +47,13 @@ struct EPWDataPoint
   double horizontal_ir_radiation; // W h /m^2
   double direct_normal_radiation;  // W h/m^2
   double diffuse_radiation;        // W h/m^2
-  double wind_direction;           // degrees, North is 0 degrees, measured counter-clockwise
+  double wind_direction;           // degrees, North is 0 degrees, measured clockwise
   double wind_speed;               // m/s
 };
 
 Real getJulianDate(const EPWDataPoint& data);
 
+Heat::EnvironmentData convertToEnvData(const EPWDataPoint& pt);
 
 struct EPWLocation
 {

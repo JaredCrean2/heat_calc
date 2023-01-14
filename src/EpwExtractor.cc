@@ -26,8 +26,11 @@ std::vector<int> EpwExtractor::getOutputSegments(std::istream& is)
 {
   std::cout << "Select segments to extract to (comma separated values): ";
   std::string vals_string;
-  if (is >> vals_string)
+  if (std::getline(is, vals_string))
   {
+    std::cout << std::endl;
+    std::cout << "vals_string = " << vals_string << std::endl;
+
     std::vector<std::string> vals_split = splitLine(vals_string, ",");
     Parser parser;
     std::vector<int> segments;
@@ -36,15 +39,27 @@ std::vector<int> EpwExtractor::getOutputSegments(std::istream& is)
       segments.push_back(parser.get<int>(vals_split[i]));
     }
 
-    std::cout << std::endl;
+    printSegments(segments);
 
-    is >> std::ws;
     return segments;
   } else
   {
     throw std::runtime_error("could not read segments to extract");
   }
+}
 
+void EpwExtractor::printSegments(const std::vector<int>& segments)
+{
+  assertAlways(segments.size() > 0, "number of segments must be greater than zero");
+
+  std::cout << "Extracting segments: ";
+  for (size_t i=0 ; i < segments.size(); ++i)
+  {
+    std::cout << segments[i];
+    if (i != segments.size() - 1)
+      std::cout << ", ";
+  }
+  std::cout << std::endl;
 }
 
 std::array<char, 64> EpwExtractor::formatDateAndTime(const EPWDataPoint& pt)

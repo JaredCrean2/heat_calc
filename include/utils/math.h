@@ -12,6 +12,8 @@ namespace {
   static constexpr double PI = 3.141592653589793238462643383279502884;
 }
 
+namespace std {
+
 template <typename T,  size_t N>
 std::array<T, N> operator+(const std::array<T, N>& a, const std::array<T, N>& b)
 {
@@ -135,6 +137,8 @@ Vec3<T> cross(const Vec3<T>& a, const Vec3<T>& b)
 
 
   return {c1, c2, c3};
+}
+
 }
 
 constexpr Real degreesToRadians(Real degrees)

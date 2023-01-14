@@ -25,6 +25,8 @@ class EpwExtractor
 
     std::vector<int> getOutputSegments(std::istream& is);
 
+    void printSegments(const std::vector<int>& segments);
+
     std::array<char, 64> formatDateAndTime(const EPWDataPoint& pt);
 
     std::vector<EPWDataPoint> getOutputData(const std::vector<int>& segments);

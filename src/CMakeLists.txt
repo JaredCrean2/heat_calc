@@ -39,6 +39,7 @@ set(src_files EpwReader.cc
               physics/heat/post_processor_interior.cc
               physics/heat/post_processor_environment_data.cc
               physics/heat/air_leakage.cc
+              physics/heat/environment_interface.cc
               linear_system/assembler.cc
               linear_system/bla_wrapper.cc
               linear_system/large_matrix.cc
@@ -84,6 +85,14 @@ target_include_directories(simple_house PUBLIC
                           "${PROJECT_SOURCE_DIR}/include"
                           )
 target_link_libraries(simple_house PUBLIC heat_lib)
+
+add_executable(epw_extractor executables/epw_extractor.cc)
+
+target_include_directories(epw_extractor PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          "${PROJECT_SOURCE_DIR}/include"
+                          )
+target_link_libraries(epw_extractor PUBLIC heat_lib)
 
 
 

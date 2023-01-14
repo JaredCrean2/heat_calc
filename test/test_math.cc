@@ -18,3 +18,12 @@ TEST(Math, SmoothAbsDeriv)
   EXPECT_NEAR(smoothAbsDeriv(0.05, delta), 2*0.05/delta, 1e-13);
   EXPECT_NEAR(smoothAbsDeriv(-0.05, delta), -2*0.05/delta, 1e-13);
 }
+
+TEST(Math, ArrayOps)
+{
+  std::array<double, 3> a = {1, 2, 3}, b = {4, 5, 6};
+  auto c = a + b;
+  EXPECT_EQ(c[0], 5);
+  EXPECT_EQ(c[1], 7);
+  EXPECT_EQ(c[2], 9);
+}
