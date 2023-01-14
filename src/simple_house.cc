@@ -14,6 +14,7 @@
 #include "physics/heat/air_leakage.h"
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/environment_interface.h"
+#include "physics/heat/environment_interface_weather_file.h"
 #include "physics/heat/interior_loads.h"
 #include "physics/heat/post_processor_environment_data.h"
 #include "physics/heat/post_processor_interior.h"
@@ -85,6 +86,7 @@ class GeometryGenerator
 
     Real computeInteriorSurfaceArea(int direction)
     {
+      assertAlways(direction >= 0 && direction <= 2, "direction must be in range [0, 2]");
       std::array<Real, 3> lengths = {m_spec.middle_block.xmax - m_spec.middle_block.xmin,
                                      m_spec.middle_block.ymax - m_spec.middle_block.ymin,
                                      m_spec.middle_block.zmax - m_spec.middle_block.zmin};   
@@ -92,8 +94,10 @@ class GeometryGenerator
       return lengths[direction] * lengths[(direction + 1) % 3];
     }
 
-    Real computeInteriorPerimeterArea(int direction)
+    Real computeInteriorPerimeter(int direction)
     {
+      assertAlways(direction >= 0 && direction <= 3, "direction must be in range [0, 2]");
+
       std::array<Real, 3> lengths = {m_spec.middle_block.xmax - m_spec.middle_block.xmin,
                                      m_spec.middle_block.ymax - m_spec.middle_block.ymin,
                                      m_spec.middle_block.zmax - m_spec.middle_block.zmin};   
@@ -104,11 +108,13 @@ class GeometryGenerator
     // direction: 0 = xy plane, 1 = yz plane, 2 = xz plane
     Real computeExteriorSurfaceArea(int direction)
     {
+      assertAlways(direction >= 0 && direction <= 2, "direction must be in range [0, 2]");
       return m_exterior_lengths[direction] * m_exterior_lengths[(direction + 1) % 3];
     }
 
     Real computeExteriorPerimeter(int direction)
     {
+      assertAlways(direction >= 0 && direction <= 2, "direction must be in range [0, 2]");
       return 2*m_exterior_lengths[direction] + 2*m_exterior_lengths[(direction + 1) % 3];
     }
 
@@ -356,8 +362,9 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
   //heat_eqn->addDirichletBC(makeBottomBC(disc->getSurfDisc((0)), bottom_temp)); // TODO: currently using air temperature
   {
     auto surf = disc->getSurfDisc(0);
-    int direction = 3;
+    int direction = 0;
     Real surface_area = generator.computeExteriorSurfaceArea(direction);
+    std::cout << "surface_area = " << surface_area << std::endl;
     Real perimeter    = generator.computeExteriorPerimeter(direction);
     // absorptivity and emissivity values for stucco from: https://remdb.nrel.gov/measures.php?gId=12&ctId=216&scId=2374
     // absorptivity and emissivity values for asphalt singles from Medina "Effects of Single Absorptivity, 
@@ -368,12 +375,13 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     heat_eqn->addNeumannBC(bc, true);
     postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>("foundation_flux", bc, heat_eqn.get()));    
   }
+
   std::vector<std::string> names = {"east_exterior_wall_flux", "north_exterior_wall_flux", 
                                     "west_exterior_wall_flux", "south_exterior_wall_flux", "roof_flux"};
   for (int i=1; i <= 5; ++i)
   {
     auto surf = disc->getSurfDisc(i);
-    int direction = i < 5 ? (i - 1) % 2 : 3;
+    int direction = i < 5 ? (i - 1) % 2 : 2;
     Real surface_area = generator.computeExteriorSurfaceArea(direction);
     Real perimeter    = generator.computeExteriorPerimeter(direction);
     // absorptivity and emissivity values for stucco from: https://remdb.nrel.gov/measures.php?gId=12&ctId=216&scId=2374
@@ -419,9 +427,9 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
   for (int i=6; i <= 11; ++i)
   {
     auto surf = disc->getSurfDisc(i);
-    int direction = i == 5 || i == 11 ? 3 : (i - 1) % 2;
-    Real surface_area = generator.computeExteriorSurfaceArea(direction);
-    Real perimeter    = generator.computeExteriorPerimeter(direction);
+    int direction = i == 6 || i == 11 ? 2 : (i - 1) % 2;
+    Real surface_area = generator.computeInteriorSurfaceArea(direction);
+    Real perimeter    = generator.computeInteriorPerimeter(direction);
 
     //TODO: need to account for solar heating of floor via windows
     auto bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, 0, vertical_vector);
@@ -454,7 +462,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0;
-  opts.t_end   = 24*60*60; // 24*60*60;  // 1 day
+  opts.t_end   = 5*24*60*60; // 24*60*60;  // 1 day
   opts.delta_t = 300; // 60;  // 1 minute
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;
@@ -479,6 +487,8 @@ int main(int argc, char* argv[])
 
   initialize(argc, argv);
 
+  double t_start_initialize = MPI_Wtime();
+
   {
     GeometryGenerator generator;
     std::shared_ptr<Mesh::MeshCG> mesh = generator.getMesh();
@@ -490,8 +500,9 @@ int main(int argc, char* argv[])
     Heat::SolarPositionCalculator solar_calc(computeJulianDate({1, 1, 2000}), 7,
                                             Heat::solar::DMSToRadians(35, 6, 24.3576), 
                                             Heat::solar::DMSToRadians(106, 37, 45.0516));
-    Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 250, 750, 0};
-    auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
+    //Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 250, 750, 0};
+    //auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
+    auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>("abq.wea");
 
     Real air_rho           = 1.007;
     Real air_cp            = 1006;
@@ -530,7 +541,7 @@ int main(int argc, char* argv[])
     generator.createVolumeGroups(heat_eqn);
 
     // make exterior BCS
-    setExteriorBCs(generator, heat_eqn, edata.air_temp);
+    setExteriorBCs(generator, heat_eqn, environment_interface->getEnvironmentData(0).air_temp );
     setExteriorWallTempPostProcessors(generator, heat_eqn);
 
     // make interior BCS
@@ -554,12 +565,20 @@ int main(int argc, char* argv[])
     timesolvers::CrankNicolson timesolver(heat_eqn, u, u_aux, opts);
 
     // run solver
+    double t_start_run = MPI_Wtime();
     mesh->getFieldDataManager().attachVector(u, "solution");
     mesh->writeVtkFiles("solution_initial");
     timesolver.solve();
     mesh->writeVtkFiles("solution_final");
 
+    double t_end_run = MPI_Wtime();
+
     std::cout << "\n\nFinished simple house run" << std::endl;
+    std::cout << "initializing took " << t_start_run - t_start_initialize << " seconds" << std::endl;
+    double t_run_elapsed = t_end_run - t_start_run;
+    double t_simulated_elapsed = opts.t_end - opts.t_start;
+    std::cout << "simulation took " << t_run_elapsed << " seconds to simulate " << t_simulated_elapsed << " seconds"
+              << ", which is " << t_simulated_elapsed/t_run_elapsed << "x realtime" << std::endl;
 
   } // force destructors to run before MPI_Finalize
 

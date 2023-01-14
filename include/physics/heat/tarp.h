@@ -27,7 +27,10 @@ class TarpModel
       m_point_at_zero_altitude(point_at_zero_altitude),
       m_local_wind_velocity_calc(met_terrain_index, meterological_altitude, local_terrain_index),
       m_alpha(std::pow(m_quadratic_intercept, -5.0/3.0))
-    {}
+    {
+      if (surface_area < 1e-8)
+        throw std::runtime_error("area too small");
+    }
 
     void setAirTemperature(Real temp) { m_air_temp = temp; }
 

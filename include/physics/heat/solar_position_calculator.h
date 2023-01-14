@@ -24,17 +24,14 @@ class SolarPositionCalculator
     DirectionCosines computePositionFromSeconds(Real t_seconds)
     {
       auto cosines = computePosition(t_seconds/(60*60*24));
-      std::cout << "solar angles = " << std::acos(cosines.cs1)*180/3.14159265 << ", " << std::acos(cosines.cs2)*180/3.14159265 << ", " << std::acos(cosines.cs3)*180/3.14159265 << std::endl;
-      std::cout << "direction cosines = " << cosines.cs1 << ", " << cosines.cs1 << ", " << cosines.cs3 << std::endl;
+
       return cosines;
     }
 
     // t is in days
     DirectionCosines computePosition(Real t)
     {
-      std::cout << "computing solar position at t = " << t << std::endl;
       Real julian_date = m_julian_date_start + static_cast<Real>(t);
-      std::cout << "julian_date = " << julian_date << std::endl;
       int julian_date_whole = static_cast<int>(julian_date);
       Real time_hours = 24*(julian_date_whole - julian_date);
       return solar::computeDirectionCosines(julian_date_whole, time_hours, m_time_zone, m_latitude, m_longitude);

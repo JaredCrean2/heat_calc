@@ -368,7 +368,6 @@ void CombinedAirWindSkyNeumannBC::getValue(const Index face, const Real t, const
   //int i=0;
   for (auto& bc : m_bcs)
   {
-    //std::cout << "doing inner bc " << i << std::endl;
     bc->getValue(face, t, sol_vals, flux_vals_tmp.data());
     updateAndZero(flux_vals, flux_vals_tmp.data(), npts);
     //++i;
@@ -430,8 +429,10 @@ void CombinedAirWindSkyNeumannBC::updateAndZero(Real* arr, Real* arr_tmp, int np
 {
   for (int i=0; i < npts; ++i)
   {
+#ifndef NDEBUG
     if (std::isnan(arr_tmp[i]))
       throw std::runtime_error("found nan");
+#endif
 
     arr[i] += arr_tmp[i];
     arr_tmp[i] = 0;

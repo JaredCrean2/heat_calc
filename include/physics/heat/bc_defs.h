@@ -76,7 +76,7 @@ class TarpBC : public AirWindSkyNeumannBC
     TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector,
               const std::array<Real, 3>& point_at_zero_altitude,
               int met_terrain_index, Real meterological_altitude, int local_terrain_index ) : 
-      AirWindSkyNeumannBC(surf, true, "heat_conduction"),
+      AirWindSkyNeumannBC(surf, true, "cond"),
       m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
              point_at_zero_altitude, met_terrain_index, meterological_altitude, 
              local_terrain_index),
@@ -85,7 +85,7 @@ class TarpBC : public AirWindSkyNeumannBC
 
     // this constructor is for a Tarp BC on the interior of the structure (so meterological data is unneeded)
     TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector) : 
-      AirWindSkyNeumannBC(surf, true, "heat_conduction"),
+      AirWindSkyNeumannBC(surf, true, "cond"),
       m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
              {0, 0, 0}, 0, 1, 0),
       m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
@@ -119,7 +119,7 @@ class SkyRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     SkyRadiationBC(SurfDiscPtr surf, Real emittance, std::array<Real, 3> vertical_vector) :
-      AirWindSkyNeumannBC(surf, true, "sky_radiation"),
+      AirWindSkyNeumannBC(surf, true, "sky_rad"),
       m_model(emittance, vertical_vector)
     {}
 
@@ -148,7 +148,7 @@ class SolarRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     SolarRadiationBC(SurfDiscPtr surf, Real absorbtivity) :
-      AirWindSkyNeumannBC(surf, false, "solar_radiation"),
+      AirWindSkyNeumannBC(surf, false, "solar_rad"),
       m_model(absorbtivity)
     {}
 
