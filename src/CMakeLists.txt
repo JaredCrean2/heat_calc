@@ -40,6 +40,7 @@ set(src_files EpwReader.cc
               physics/heat/post_processor_environment_data.cc
               physics/heat/air_leakage.cc
               physics/heat/environment_interface.cc
+              physics/heat/environment_interface_weather_file.cc
               linear_system/assembler.cc
               linear_system/bla_wrapper.cc
               linear_system/large_matrix.cc
