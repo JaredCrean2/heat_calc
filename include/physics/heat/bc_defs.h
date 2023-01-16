@@ -8,6 +8,7 @@
 #include "tarp.h"
 #include "sky_radiation.h"
 #include "solar_radiation.h"
+#include "floor_radiation_model.h"
 
 namespace Heat {
 
@@ -200,6 +201,37 @@ class SimpleConvectionBC : public AirWindSkyNeumannBC
     ArrayType<Real, 2> m_quad_coords;
     Real m_heat_transfer_coeff;
     Real m_air_temp;
+};
+
+
+class FloorRadiationBC : public AirWindSkyNeumannBC
+{
+  public:
+    FloorRadiationBC(SurfDiscPtr surf, Real window_area, std::array<Real, 3> window_normal,
+                     Real shgc, Real floor_area, Real floor_absorbtivity, const std::string& name) :
+      AirWindSkyNeumannBC(surf, false, name),
+      m_model(window_area, window_normal, shgc, floor_area, floor_absorbtivity)
+    {}
+
+    void setAirTemperature(Real t_air) override { m_t_air = t_air; }
+
+    Real getAirTemperature() const override { return m_t_air; }
+
+    void setDirectNormalRadiation(Real flux) override { m_model.setDirectNormalRadiation(flux); }
+
+    void setDiffuseRadiation(Real flux) override { m_model.setDiffuseRadiation(flux); }
+
+    void setSolarDirection(const DirectionCosines& cosines) override { m_model.setSolarDirection(cosines); }
+
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
+
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
+
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
+
+  private:
+    FloorRadiationModel m_model;
+    Real m_t_air;
 };
 
 class AirWindSkyZeroBC : public AirWindSkyNeumannBC

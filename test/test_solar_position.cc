@@ -32,6 +32,7 @@ TEST(SolarPositionCalculator, Denver6am)
 
   EXPECT_NEAR(az.cos_zenith, std::cos(degreesToRadians(90 - -15.06)), 1e-1);
   EXPECT_NEAR(az.cos_azimuth, std::cos(degreesToRadians(107.63)), 1e-1);
+  EXPECT_GE(cosines.cs1, 0);
 }
 
 TEST(SolarPosition, DenverNoon)
@@ -110,6 +111,8 @@ TEST(SolarPositionCalculator, Denver6pm)
 
   EXPECT_NEAR(az.cos_zenith, std::cos(degreesToRadians(90 - -13.79)), 1e-1);
   EXPECT_NEAR(az.cos_azimuth, std::cos(degreesToRadians(251.42)), 1e-1);
+  EXPECT_LE(cosines.cs1, 0);
+
 }
 
 

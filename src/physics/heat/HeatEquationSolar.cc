@@ -38,6 +38,12 @@ void HeatEquationSolar::addNeumannBC(NeumannBCPtr bc, bool is_exterior)
 void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
 {
   DirectionCosines solar_dir = m_solar_position.computePositionFromSeconds(t);
+
+  std::cout << "at t = " << t << ", solar direction = " << solar_dir.cs1 << ", " << solar_dir.cs2 << ", " << solar_dir.cs3 << std::endl;
+  Real mag = std::sqrt(solar_dir.cs1*solar_dir.cs1 + solar_dir.cs2*solar_dir.cs2 + solar_dir.cs3*solar_dir.cs3);
+  std::cout << "magnitude = " << mag << std::endl;
+
+
   EnvironmentData env_data   = m_environment->getEnvironmentData(t);
   const auto& neumann_bcs    = getNeumannBCs();
   for (size_t i=0; i < neumann_bcs.size(); ++i)
@@ -60,8 +66,8 @@ void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
         bc_air_wind_sky->setAirSpeed(0);
         bc_air_wind_sky->setAirDirection(std::array<Real, 3>{1, 0, 0});
         bc_air_wind_sky->setIRHorizontalRadiation(0);
-        bc_air_wind_sky->setDirectNormalRadiation(0);
-        bc_air_wind_sky->setDiffuseRadiation(0);
+        bc_air_wind_sky->setDirectNormalRadiation(env_data.direct_normal_radiation);
+        bc_air_wind_sky->setDiffuseRadiation(env_data.diffuse_radiation);
         bc_air_wind_sky->setSolarDirection(solar_dir);         
       }
     }

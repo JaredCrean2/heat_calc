@@ -108,7 +108,10 @@ DirectionCosines computeDirectionCosines(const DecTimeDist& dec_time_dist, Real 
   Real sin_h = std::sin(hour_angle);
   Real cos_h = std::cos(hour_angle);
 
-  cosines.cs1 = cos_delta * sin_h;
+  //Note: the negative sign in front of cosins.cs1 does not appear in the TARP
+  //      manual.  It appear the coordinate system in TARP has West as the +x
+  //      direction, rather than east.  The negative sign corrects the problem.
+  cosines.cs1 = -cos_delta * sin_h;
   cosines.cs2 = sin_delta * cos_lambda - cos_delta * sin_lambda * cos_h;
   cosines.cs3 = sin_delta * sin_lambda + cos_delta * cos_lambda * cos_h;
 

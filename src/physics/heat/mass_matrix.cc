@@ -86,15 +86,22 @@ void computeMassMatrix(const HeatEquation& physics, linear_system::AssemblerPtr 
 
 void computeMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& params, linear_system::AssemblerPtr assembler)
 {
-  auto& detJ  = vol_disc->detJ;
+  auto& detJinv  = vol_disc->detJInv;
   Real rho_cp = params.rho * params.Cp;
   auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
   Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
   BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
   const auto& rev_nodemap = basis_vals.getRevNodemapOut();
 
-  ArrayType<Real, 3> dN_dx(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumQuadPtsPerElement()][3]);
+  //ArrayType<Real, 3> dN_dx(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumQuadPtsPerElement()][3]);
   ArrayType<Real, 2> dR_du(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumSolPtsPerElement()]);
+  ArrayType<Real, 1> weights(boost::extents[vol_disc->getNumQuadPtsPerElement()]);
+
+  for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+  {
+    int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+    weights[k] = rho_cp * vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+  }
 
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
@@ -108,10 +115,10 @@ void computeMassMatrix(const VolDiscPtr vol_disc, const VolumeGroupParams& param
           Real Ni = basis_vals.getValue(i, k);
           Real Nj = basis_vals.getValue(j, k);
 
-          int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
-          //TODO: store 1/detJ in an array to avoid the division here
-          Real weight = rho_cp * vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k) / detJ[el][k];
-          dR_du[i][j] += Ni * weight * Nj;
+          //int k_i = rev_nodemap[k][0]; int k_j = rev_nodemap[k][1]; int k_k = rev_nodemap[k][2];
+          //Real weight = rho_cp * vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k) * detJinv[el][k];
+          //dR_du[i][j] += Ni * weight * Nj;
+          dR_du[i][j] += weights[k] * Ni * Nj * detJinv[el][k];
         } 
       }
 

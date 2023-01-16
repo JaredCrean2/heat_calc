@@ -282,6 +282,46 @@ void SimpleConvectionBC::getValue_rev(const Index face, const Real t, const Real
 }
 
 //-----------------------------------------------------------------------------
+// FloorRadiationBC
+
+void FloorRadiationBC::getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
+{
+  Real flux = m_model.computeFlux();
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+    auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+    for (int d=0; d < 3; ++d)
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+  }
+}
+
+
+void FloorRadiationBC::getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv)
+{
+  Real flux = m_model.computeFlux();
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    std::array<Real, 3> normal{m_surf->normals[face][i][0], m_surf->normals[face][i][1], m_surf->normals[face][i][2]};
+    auto unit_normal = normal / std::sqrt(dot(normal, normal));
+
+    for (int d=0; d < 3; ++d)
+    {
+      flux_vals[d * m_surf->getNumQuadPtsPerFace() + i] = unit_normal[d] * flux;
+      flux_vals_deriv[d * m_surf->getNumQuadPtsPerFace() + i] = 0;
+    }
+  }
+}
+
+
+void FloorRadiationBC::getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar)
+{
+  // nothing to do here
+}
+
+
+//-----------------------------------------------------------------------------
 // CombinedAirWindSkyBCs
 
 namespace

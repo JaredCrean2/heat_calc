@@ -28,6 +28,8 @@ class EnvironmentInterfaceWeatherFile : public EnvironmentInterface
     // t is in seconds since the starting time
     EnvironmentData getEnvironmentData(Real t) override;
 
+    Real getJulianDateStart() const { return getJulianDate(m_data[0]); }
+
   private:
     void computeSpacing();
 
