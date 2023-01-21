@@ -24,9 +24,11 @@
 #include "physics/heat/window_conduction_model.h"
 #include "physics/post_processors.h"
 #include "physics/post_processor_scheduler.h"
+#include "simple_house/simple_house_spec.h"
 #include "time_solver/crank_nicolson.h"
 #include "utils/initialization.h"
 
+namespace simple_house {
 
 // The coordinate system is: North is +y, East is +x, z is into outer space
 // The surfaces are 0-5 are the outer surface, 6-11 are the inner surfaces.
@@ -38,9 +40,9 @@
 class GeometryGenerator
 {
   public:
-    GeometryGenerator()
+    GeometryGenerator(SimpleHouseSpec& spec)
     {
-      createMeshSpec();
+      createMeshSpec(spec);
       m_exterior_lengths = computeExteriorLengths();
       m_generator = std::make_shared<Mesh::MeshGeneratorMultiBlock>(m_spec);
       m_mesh = m_generator->generate();
@@ -132,8 +134,11 @@ class GeometryGenerator
     }
 
   private:
-    void createMeshSpec()
+    void createMeshSpec(SimpleHouseSpec& spec)
     {
+      m_house_spec = spec;
+      //m_spec = spec.createMeshSpec();
+      
       m_spec.middle_block = Mesh::getMeshSpec(0, 9.23, 0, 15.38, 0, 2.46, 5, 8, 4);
       //m_spec.middle_block = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 5, 8, 4);
 
@@ -162,11 +167,13 @@ class GeometryGenerator
         m_spec.thickness_minusz.push_back(m_foundation_thicknesses[i]);
         m_spec.numel_minusz.push_back(m_foundation_numels[i]);
       }
+      
 
       m_xrange = {-int(m_spec.numel_minusx.size()), int(m_spec.numel_plusx.size())};
       m_yrange = {-int(m_spec.numel_minusy.size()), int(m_spec.numel_plusy.size())};
       m_zrange = {-int(m_spec.numel_minusz.size()), int(m_spec.numel_plusz.size())};
 
+      
       int nx = m_xrange[1] - m_xrange[0] + 1;
       int ny = m_yrange[1] - m_yrange[0] + 1;
       int nz = m_zrange[1] - m_zrange[0] + 1;
@@ -177,6 +184,11 @@ class GeometryGenerator
             m_spec.create_blocks[i][j][k] = true;
 
       m_spec.create_blocks[-m_xrange[0]][-m_yrange[0]][-m_zrange[0]] = false;
+
+      //auto spec2 = spec.createMeshSpec();
+
+
+      
     }
 
     std::array<Real, 3> computeExteriorLengths()
@@ -320,7 +332,7 @@ class GeometryGenerator
 
     std::vector<int> m_surface_directions;
 
-
+    SimpleHouseSpec m_house_spec;
     Mesh::MultiBlockMeshSpec m_spec;
     // 3.5 inches of insulation
     std::vector<double> m_horizontal_thicknesses = {0.0897};
@@ -538,6 +550,10 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
   return opts;
 }
 
+}
+
+using namespace simple_house;
+
 int main(int argc, char* argv[])
 {
   PetscOptionsSetValue(NULL, "-on_error_abort", "");
@@ -547,7 +563,26 @@ int main(int argc, char* argv[])
   double t_start_initialize = MPI_Wtime();
 
   {
-    GeometryGenerator generator;
+    SimpleHouseSpec spec;
+
+    spec.middle_block = Mesh::getMeshSpec(0, 9.23, 0, 15.38, 0, 2.46, 5, 8, 4);
+
+      // 3.5 inches of insulation
+    spec.horizontal_thicknesses = {0.0897};
+    spec.horizontal_numels      = {5};
+    spec.horizontal_params      = { {0.039, 45, 2020} };
+
+    // 6 inches of insulation
+    spec.ceiling_thicknesses = {0.1538};
+    spec.ceiling_numels      = {5};
+    spec.ceiling_params      = { {0.039, 45, 2020} };
+
+    // 6 inches of concrete
+    spec.foundation_thicknesses = {0.1538};
+    spec.foundation_numels      = {5};
+    spec.foundation_params      = { {2.25, 2400, 880} };
+
+    GeometryGenerator generator(spec);
     std::shared_ptr<Mesh::MeshCG> mesh = generator.getMesh();
     std::cout << "total number of dofs = " << mesh->getNumTotalDofs() << std::endl;
     std::cout << "number of local dofs = " << mesh->getNumDofs() << std::endl;

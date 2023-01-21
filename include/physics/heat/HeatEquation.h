@@ -18,7 +18,7 @@ namespace Heat {
 class VolumeGroupParams
 {
   public:
-    VolumeGroupParams (Real kappa, Real rho, Real Cp) :
+    VolumeGroupParams (Real kappa=0, Real rho=0, Real Cp=0) :
       kappa(kappa),
       rho(rho),
       Cp(Cp)

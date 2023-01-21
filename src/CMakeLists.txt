@@ -53,6 +53,7 @@ set(src_files EpwReader.cc
               time_solver/crank_nicolson.cc
               time_solver/crank_nicolson_function.cc
               time_solver/crank_nicolson_aux_equations.cc
+              simple_house/simple_house_spec.cc
               )
 
 add_subdirectory(mesh)

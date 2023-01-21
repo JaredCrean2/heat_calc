@@ -21,6 +21,7 @@ struct MultiBlockMeshSpec
 
   std::vector<int> numel_plusy;
   std::vector<Real> thickness_plusy;
+
   std::vector<int> numel_minusy;
   std::vector<Real> thickness_minusy;  
 
