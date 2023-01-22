@@ -255,7 +255,6 @@ Real InteriorAirTemperatureUpdator::computeLoadFluxDotTair(DiscVectorPtr sol_vec
 
   flux_dot_tmp = 0;
   flux     += m_window_model->computeConductionPowerDot(interior_temp, flux_dot_tmp);
-  std::cout << "window conduction flux_dot_tmp = " << flux_dot_tmp << std::endl;
   flux_dot += flux_dot_tmp;
 
   return flux;

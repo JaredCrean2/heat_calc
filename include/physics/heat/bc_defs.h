@@ -88,7 +88,7 @@ class TarpBC : public AirWindSkyNeumannBC
     TarpBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index, const std::array<Real, 3>& vertical_vector) : 
       AirWindSkyNeumannBC(surf, true, "cond"),
       m_tarp(surface_area, perimeter, roughness_index, vertical_vector, 
-             {0, 0, 0}, 0, 1, 0),
+             {0, 0, -10000}, 0, 1, 0),
       m_quad_coords(boost::extents[m_surf->getNumQuadPtsPerFace()][3])
     {}
 

@@ -25,21 +25,17 @@ void LargeMatrixDense::assembleValues_impl(const std::vector<DofInt>& dofs, cons
 
 void LargeMatrixDense::factor_impl()
 {
-  std::cout << "matrix value = " << m_matrix[0] << std::endl;
   
   std::vector<Real>* matrix_factorization;
   if (m_opts.factor_in_place)
   {
-    std::cout << "factoring in place" << std::endl;
     matrix_factorization = &m_matrix;
   } else
   {
-    std::cout << "factoring out of place" << std::endl;
     matrix_factorization = &m_matrix_factorization;
     *matrix_factorization = m_matrix;
   }
 
-  std::cout << "matrix_factorization value = " << (*matrix_factorization)[0] << std::endl;
 
   if (m_opts.is_value_symmetric)
   {

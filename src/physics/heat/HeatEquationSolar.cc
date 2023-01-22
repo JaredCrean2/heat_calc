@@ -39,11 +39,6 @@ void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
 {
   DirectionCosines solar_dir = m_solar_position.computePositionFromSeconds(t);
 
-  std::cout << "at t = " << t << ", solar direction = " << solar_dir.cs1 << ", " << solar_dir.cs2 << ", " << solar_dir.cs3 << std::endl;
-  Real mag = std::sqrt(solar_dir.cs1*solar_dir.cs1 + solar_dir.cs2*solar_dir.cs2 + solar_dir.cs3*solar_dir.cs3);
-  std::cout << "magnitude = " << mag << std::endl;
-
-
   EnvironmentData env_data   = m_environment->getEnvironmentData(t);
   const auto& neumann_bcs    = getNeumannBCs();
   for (size_t i=0; i < neumann_bcs.size(); ++i)
