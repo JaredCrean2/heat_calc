@@ -43,7 +43,7 @@ class HeatEquationSolarTester : public StandardDiscSetup, public ::testing::Test
       Real initial_air_temp = 298;
       //Real wall_temp = 320;
       //Real t_start = 0;
-      Heat::SolarPositionCalculator solar_position_calc(0, 0, 0, 0);
+      auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
 
       
       auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);

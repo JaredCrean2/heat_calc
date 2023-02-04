@@ -46,6 +46,14 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEqua
   if (!m_un->isVectorCurrent())
     m_un->syncArrayToVector();
 
+  auto& f_np1_vec = f_np1->getVector();
+  Real physics_rhs_norm = 0;
+  if (compute_norm)
+  {
+    for (auto dof : m_owned_dof_to_local)
+      physics_rhs_norm += f_np1_vec[dof] * f_np1_vec[dof];
+  }
+
   // compute M * (u_np1 - u_n)
   m_delta_u->set(0);
   auto& u_np1_vec   = u_np1->getVector();
@@ -61,7 +69,6 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEqua
 
   // compute f_np1 = M * (u_np1 - u_n) / delta_t - 0.5 * f(u_n, t_n) - 0.5 * f(u_np1, t_np1)
   auto& Mdelta_u_vec = m_Mdelta_u->getVector();
-  auto& f_np1_vec    = f_np1->getVector();
   auto& f_n_vec      = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
   for (int i=0; i < f_np1->getNumDofs(); ++i)
@@ -72,15 +79,17 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEqua
   }
   f_np1->markVectorModified();
 
-  Real norm = 0, norm_global = 0;
+  Real norm = 0;
   if (compute_norm)
   {
     //TODO: not sure this is the right norm to use
     for (auto dof : m_owned_dof_to_local)
       norm += f_np1_vec[dof] * f_np1_vec[dof];
     
-    MPI_Allreduce(&norm, &norm_global, 1, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
-    norm = std::sqrt(norm_global);
+    std::array<Real, 2> norms_local = {norm, physics_rhs_norm}, norms_global;
+    MPI_Allreduce(norms_local.data(), norms_global.data(), 2, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
+    norm = std::sqrt(norms_global[0]);
+    m_last_physics_rhs_norm = std::sqrt(norms_global[1]);
   }
 
   return norm;

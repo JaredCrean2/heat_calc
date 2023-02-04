@@ -45,7 +45,7 @@ namespace {
                        std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_temp_updator)
       {
 
-        Heat::SolarPositionCalculator solar_position_calc{0, 0, 0, 0};
+        auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
 
         Heat::VolumeGroupParams params = Heat::VolumeGroupParams{0.04, 45, 2020};
         heat        = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, environment_interface, air_temp_updator);
@@ -146,9 +146,10 @@ TEST_F(HotWallTester, CaseOne)
 
 
   timesolvers::TimeStepperOpts opts;
+  Real delta_t = 120;
   opts.t_start = 0.0;
-  opts.delta_t = 120; 
-  opts.t_end   = 100*opts.delta_t;
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
+  opts.t_end   = 100*delta_t;
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
   opts.nonlinear_abs_tol = 1e-10;

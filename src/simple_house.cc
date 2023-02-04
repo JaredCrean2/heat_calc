@@ -47,7 +47,7 @@ class GeometryGenerator
       m_exterior_lengths = computeExteriorLengths();
       m_generator = std::make_shared<Mesh::MeshGeneratorMultiBlock>(m_spec);
       m_mesh = m_generator->generate();
-      collectGeometricFaces();
+      //collectGeometricFaces();
       createMeshCG();
     }
 
@@ -115,9 +115,9 @@ class GeometryGenerator
           }
     }
 
-    const std::vector<int>& getExteriorGeometricFaces(int face) const { return m_exterior_geometric_faces[face]; }
+    //const std::vector<int>& getExteriorGeometricFaces(int face) const { return m_exterior_geometric_faces[face]; }
 
-    const std::vector<int>& getInteriorGeometricFaces(int face) const { return m_interior_geometric_faces[face]; }
+    //const std::vector<int>& getInteriorGeometricFaces(int face) const { return m_interior_geometric_faces[face]; }
 
     Real computeInteriorVolume()
     {
@@ -268,6 +268,7 @@ class GeometryGenerator
     } 
 
     //TODO: this appears to be unused
+    /*
     void collectGeometricFaces()
     {
       m_exterior_geometric_faces.resize(6);
@@ -301,6 +302,7 @@ class GeometryGenerator
       m_interior_geometric_faces[4].push_back(m_generator->getSurfaceGeometricId(-1, 0,  0, 2));
       m_interior_geometric_faces[5].push_back(m_generator->getSurfaceGeometricId(0,  0,  1, 0));
 
+
       for (int i=m_xrange[0]; i <= m_xrange[1]; ++i)
         for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
         {
@@ -314,12 +316,9 @@ class GeometryGenerator
         }
 
 
-
-      m_surface_directions = {0, 1, 2, 1, 2, 0,
-                              0, 1, 2, 1, 2, 0};
-
       // the underground surfaces have a zero flux BC, so no need to create a boundary condition at all
     }
+    */
 
     void createMeshCG()
     {
@@ -409,6 +408,25 @@ class GeometryGenerator
                                        Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, j, -1)));
         }
 
+
+      // bottom of foundation
+      other_groups.emplace_back("foundation_bottom");
+      other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -1, 0)),
+                                         Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -1)));
+
+      // bottom of foundation insulation
+      other_groups.emplace_back("foundation_insulation_bottom");
+      other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -2, 0)),
+                                         Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -2)));
+
+      // bottom of foundation
+      other_groups.emplace_back("ground_bottom");
+      other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -3, 0)),
+                                         Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -3)));     
+
+      m_surface_directions = {0, 1, 2, 1, 2, 0,
+                              0, 1, 2, 1, 2, 0};        
+
       m_meshcg = Mesh::createMeshCG(m_mesh, volume_groups, bc_groups, other_groups, 1, 1);
     }
 
@@ -445,11 +463,11 @@ class GeometryGenerator
 
     // all the geometric faces on the exterior faces of the geometry,
     // using the standard face numbering
-    std::vector<std::vector<int>> m_exterior_geometric_faces;
+    //std::vector<std::vector<int>> m_exterior_geometric_faces;
 
-    std::vector<std::vector<int>> m_interior_geometric_faces;
+    //std::vector<std::vector<int>> m_interior_geometric_faces;
 
-    std::vector<int> m_lawn_geometric_faces;
+    //std::vector<int> m_lawn_geometric_faces;
 
     std::vector<int> m_surface_directions;
 
@@ -674,12 +692,29 @@ void setInteriorWallTempPostProcessors(GeometryGenerator& generator,  std::share
   postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "interior_wall_temp", f));
 }
 
+void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared_ptr<Heat::HeatEquationSolar> heat_eqn)
+{
+  auto disc = heat_eqn->getDiscretization();
+  auto postprocessors = heat_eqn->getPostProcessors();
+  std::vector<std::string> names = {"found_bottom_temp", "found_insl_bottom_temp", "ground_bottom_temp"};  
+  auto f = [](double val) { return val; };
+  for (int i=13; i <= 15; ++i)
+  {
+    auto surf = disc->getSurfDisc(i);
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-13], f));
+  }
+}
+
 timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
+  Real delta_t = 450;
   opts.t_start = 0;
-  opts.t_end   = 5*24*60*60; // 24*60*60;  // 1 day
-  opts.delta_t = 300; // 60;  // 1 minute
+  opts.t_end   = 20*365*24*60*60; // 24*60*60;  // 1 day
+  //opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerResidual>(delta_t, 2);
+
+
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;
   opts.nonlinear_rel_tol = 1e-8;
@@ -760,10 +795,15 @@ int main(int argc, char* argv[])
 
     //Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 250, 750, 0};
     //auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
-    auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>("abq.wea");
-    Heat::SolarPositionCalculator solar_calc(environment_interface->getJulianDateStart(), 7,  //TODO: use environment interface
+    auto environment_interface_variable = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>("abq.wea");
+    auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(environment_interface_variable->getEnvironmentData(0));
+
+    auto solar_calc_variable = std::make_shared<Heat::SolarPositionCalculatorNaval>(environment_interface_variable->getJulianDateStart(), 7,
                                             Heat::solar::DMSToRadians(35, 6, 24.3576), 
                                             Heat::solar::DMSToRadians(106, 37, 45.0516));
+
+    auto solar_calc = std::make_shared<Heat::SolarPositionCalculatorConstant>(solar_calc_variable->computePosition(0));
+    
 
     Real air_rho           = 1.007;
     Real air_cp            = 1006;
@@ -809,6 +849,8 @@ int main(int argc, char* argv[])
     // make interior BCS
     setInteriorBCs(generator, heat_eqn, window_areas);
     setInteriorWallTempPostProcessors(generator, heat_eqn);
+
+    setUndergroundTempPostProcessors(generator, heat_eqn);
 
     // make postprocessors for air sub model
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_leakage, "air_leakage"));

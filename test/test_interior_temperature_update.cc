@@ -8,6 +8,7 @@
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/interior_temperature_update.h"
 #include "physics/heat/environment_interface.h"
+#include "physics/heat/solar_position_calculator.h"
 #include "physics/heat/window_conduction_model.h"
 
 namespace {
@@ -16,7 +17,7 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
 {
   protected:
     TemperatureUpdatorTester() :
-      solar_position_calc(0, 0, 0, 0)
+      solar_position_calc(std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0))
     {
       auto meshspec = Mesh::getMeshSpec(0, 2, 0, 2, 0, 2, 3, 3, 3);
       std::vector<bool> is_surf_dirichlet{false, false, false, false, false, false};
@@ -52,7 +53,7 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
     }
 
   protected:
-    Heat::SolarPositionCalculator solar_position_calc;
+    std::shared_ptr<Heat::SolarPositionCalculatorNaval> solar_position_calc;
 };
 
 void test_forward_derivative(std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_updator, DiscVectorPtr sol_vec, Real air_temp)

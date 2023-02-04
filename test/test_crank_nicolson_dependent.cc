@@ -5,6 +5,7 @@
 #include "physics/heat/HeatEquation.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/interior_loads.h"
+#include "physics/heat/solar_position_calculator.h"
 #include "physics/heat/window_conduction_model.h"
 #include "time_solver/crank_nicolson.h"
 #include "physics/heat/interior_temperature_update.h"
@@ -96,7 +97,7 @@ class CNDependentTester : public StandardDiscSetup,
     }
 
     std::shared_ptr<Heat::HeatEquationSolar> heat_model;
-    Heat::SolarPositionCalculator solar_position_calc{0, 0, 0, 0};
+    std::shared_ptr<Heat::SolarPositionCalculatorNaval> solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
     DiscVectorPtr u_vec;
     AuxiliaryEquationsStoragePtr u_aux_vec;
 };
@@ -145,7 +146,7 @@ TEST_F(CNDependentTester, InteriorLoad)
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 0.0;
   opts.t_end   = 2.5*delta_t;
-  opts.delta_t = delta_t;
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
   opts.mat_type = linear_system::LargeMatrixType::Dense;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
   opts.nonlinear_abs_tol = 1e-12;

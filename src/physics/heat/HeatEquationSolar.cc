@@ -5,7 +5,8 @@
 
 namespace Heat {
 
-HeatEquationSolar::HeatEquationSolar(DiscPtr disc, SolarPositionCalculator solar_position, std::shared_ptr<EnvironmentInterface> environment_interface,
+HeatEquationSolar::HeatEquationSolar(DiscPtr disc, std::shared_ptr<SolarPositionCalculator> solar_position,
+                  std::shared_ptr<EnvironmentInterface> environment_interface,
                   std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator)
 : HeatEquation(disc),
   m_solar_position(solar_position),
@@ -37,7 +38,7 @@ void HeatEquationSolar::addNeumannBC(NeumannBCPtr bc, bool is_exterior)
 
 void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
 {
-  DirectionCosines solar_dir = m_solar_position.computePositionFromSeconds(t);
+  DirectionCosines solar_dir = m_solar_position->computePosition(t);
 
   EnvironmentData env_data   = m_environment->getEnvironmentData(t);
   const auto& neumann_bcs    = getNeumannBCs();

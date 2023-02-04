@@ -210,7 +210,7 @@ TEST_F(CNDependentTester2, SecondBlockDependentExactnessness)
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 1.0;
   opts.t_end   = opts.t_start + 2.5*delta_t;
-  opts.delta_t = delta_t;
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
   opts.mat_type = linear_system::LargeMatrixType::Dense;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
   opts.nonlinear_abs_tol = 1e-12;
@@ -248,7 +248,7 @@ TEST_F(CNDependentTester2, FirstBlockDependentExactnessness)
   timesolvers::TimeStepperOpts opts;
   opts.t_start = 1.0;
   opts.t_end   = opts.t_start + 2.5*delta_t;
-  opts.delta_t = delta_t;
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
   opts.mat_type = linear_system::LargeMatrixType::Dense;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
   opts.nonlinear_abs_tol = 1e-12;

@@ -31,6 +31,10 @@ class CrankNicolsonFunction : public NewtonFunction
 
     void setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1);
 
+    // return the norm of the physics rhs (not the Crank Nicolson rhs) from
+    // the last iteration when it was computed
+    Real getLastPhysicsRhsNorm() { return m_last_physics_rhs_norm; }
+
   private:
     std::shared_ptr<PhysicsModel> m_physics_model;
     std::shared_ptr<CrankNicolsonAuxiliaryEquations> m_aux_eqns;
@@ -46,6 +50,7 @@ class CrankNicolsonFunction : public NewtonFunction
     DiscVectorPtr m_delta_u;
     DiscVectorPtr m_Mdelta_u;
     std::vector<DofInt> m_owned_dof_to_local;
+    Real m_last_physics_rhs_norm = 0;
 };
 
 }

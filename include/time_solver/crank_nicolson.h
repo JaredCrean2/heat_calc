@@ -12,6 +12,7 @@
 #include "mesh/mesh.h"
 #include "crank_nicolson_function.h"
 #include "crank_nicolson_aux_equations.h"
+#include "time_solver/timestep_controller.h"
 
 
 namespace timesolvers {
@@ -20,7 +21,7 @@ struct TimeStepperOpts
 {
   Real t_start = 0;
   Real t_end   = 0;
-  Real delta_t = 0;
+  std::shared_ptr<TimestepController> timestep_controller;
   linear_system::LargeMatrixType mat_type = linear_system::LargeMatrixType::Unknown;
   std::shared_ptr<linear_system::LargeMatrixOpts> matrix_opts = nullptr;
   Real nonlinear_abs_tol = -1;

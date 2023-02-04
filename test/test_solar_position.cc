@@ -26,8 +26,8 @@ TEST(SolarPositionCalculator, Denver6am)
   Real longitude = degreesToRadians(104.99);
   int time_zone = 7;
   int time = 6;
-  Heat::SolarPositionCalculator calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
-  auto cosines = calc.computePosition(Real(time)/24);
+  Heat::SolarPositionCalculatorNaval calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
+  auto cosines = calc.computePosition(Real(time)*3600);
   auto az = Heat::solar::computeAzimuthZenith(cosines);
 
   EXPECT_NEAR(az.cos_zenith, std::cos(degreesToRadians(90 - -15.06)), 1e-1);
@@ -52,8 +52,8 @@ TEST(SolarPositionCalculator, DenverNoon)
   Real longitude = degreesToRadians(104.99);
   int time_zone = 7;
   int time = 12;
-  Heat::SolarPositionCalculator calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
-  auto cosines = calc.computePosition(Real(time)/24);
+  Heat::SolarPositionCalculatorNaval calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
+  auto cosines = calc.computePosition(Real(time)*3600);
   auto az = Heat::solar::computeAzimuthZenith(cosines);
 
   EXPECT_NEAR(az.cos_zenith, std::cos(degreesToRadians(90 - 27.28)), 1e-1);
@@ -79,8 +79,8 @@ TEST(SolarPositionCalculator, Denver3pm)
   Real longitude = degreesToRadians(104.99);
   int time_zone = 7;
   int time = 15;
-  Heat::SolarPositionCalculator calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
-  auto cosines = calc.computePosition(Real(time)/24);
+  Heat::SolarPositionCalculatorNaval calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
+  auto cosines = calc.computePosition(Real(time)*3600);
   auto az = Heat::solar::computeAzimuthZenith(cosines);
 
   EXPECT_NEAR(az.cos_zenith, std::cos(degreesToRadians(90 - 15.02)), 1e-1);
@@ -105,8 +105,8 @@ TEST(SolarPositionCalculator, Denver6pm)
   Real longitude = degreesToRadians(104.99);
   int time_zone = 7;
   int time = 18;
-  Heat::SolarPositionCalculator calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
-  auto cosines = calc.computePosition(Real(time)/24);
+  Heat::SolarPositionCalculatorNaval calc(computeJulianDate({1, 1, 2000}), time_zone, latitude, longitude);
+  auto cosines = calc.computePosition(Real(time)*3600);
   auto az = Heat::solar::computeAzimuthZenith(cosines);
 
   EXPECT_NEAR(az.cos_zenith, std::cos(degreesToRadians(90 - -13.79)), 1e-1);

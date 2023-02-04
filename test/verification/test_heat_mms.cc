@@ -465,16 +465,17 @@ TEST_F(UnsteadyHeatMMSConvergenceTester, CrankNicolsonExponential)
 
 
   timesolvers::TimeStepperOpts opts;
+  Real delta_t = 0.1;
   opts.t_start = 0.0;
   opts.t_end   = 0.5;
-  opts.delta_t = 0.1; 
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(0.1);
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>(get_options());
   opts.nonlinear_abs_tol = 1e-12;
   opts.nonlinear_rel_tol = 1e-12;
   opts.nonlinear_itermax = 5;  //TODO: test 1
 
-  for (int sol_degree=1; sol_degree <= 1; ++sol_degree)
+  for (int sol_degree=1; sol_degree <= 2; ++sol_degree)
   {
 
     auto ex_sol_l = [&] (Real x, Real y, Real z, Real t) -> Real
@@ -514,7 +515,8 @@ TEST_F(UnsteadyHeatMMSConvergenceTester, CrankNicolsonExponential)
       u_ex_vec->setFunc([&](Real x, Real y, Real z){return ex_sol_l(x, y, z, opts.t_end);});
       
       computeErrorNorm(u_ex_vec, u_vec);
-      opts.delta_t *= 0.5;
+      delta_t *= 0.5;
+      opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);      
     }
 
     auto slopes = computeSlopes();
