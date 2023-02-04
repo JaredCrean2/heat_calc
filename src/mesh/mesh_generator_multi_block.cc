@@ -26,7 +26,6 @@ void validateMultiBlockMeshSpec(MultiBlockMeshSpec& spec)
   int nx = 1 + spec.numel_plusx.size() + spec.numel_minusx.size();
   int ny = 1 + spec.numel_plusy.size() + spec.numel_minusy.size();
   int nz = 1 + spec.numel_plusz.size() + spec.numel_minusz.size();
-  std::cout << "create_blocks shape = " << spec.create_blocks.shape()[0] << ", " << spec.create_blocks.shape()[1] << ", " << spec.create_blocks.shape()[2] << std::endl;
   if (spec.create_blocks.shape()[0] == 0 && spec.create_blocks.shape()[1] == 0 &&
       spec.create_blocks.shape()[2] == 0)
   {
@@ -69,7 +68,6 @@ MeshGeneratorMultiBlock::MeshGeneratorMultiBlock(MultiBlockMeshSpec meshspec) :
   m_meshspec(meshspec),
   m_geometric_id_gen(std::make_shared<GeometricEntityIDGenerator>())
 {
-  std::cout << "create_blocks shape = " << meshspec.create_blocks.shape()[0] << ", " << meshspec.create_blocks.shape()[1] << ", " << meshspec.create_blocks.shape()[2] << std::endl;
   validateMultiBlockMeshSpec(m_meshspec);
   reformatBlockData();
   computeBlockMeshSpecs();
@@ -147,8 +145,6 @@ void MeshGeneratorMultiBlock::computeBlockMeshSpecs()
   int nblocks_y = m_numels[1].size();
   int nblocks_z = m_numels[2].size();
   
-  std::cout << "create_blocks shape = " << m_meshspec.create_blocks.shape()[0] << ", " << m_meshspec.create_blocks.shape()[1] << ", " << m_meshspec.create_blocks.shape()[2] << std::endl;
-
   m_lower_corner_coords = getLowerCornerCoords();
   m_meshspecs.resize(boost::extents[nblocks_x][nblocks_y][nblocks_z]);
   std::array<Real, 3> current_lower_corner_coords = m_lower_corner_coords;

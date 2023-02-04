@@ -33,19 +33,6 @@ void GeometryGenerator::createVolumeGroups(std::shared_ptr<Heat::HeatEquation> h
         bool inside_foundation_insulation = inside_foundation_insulation_top_view && inside_foundation_insulation_side_view && !inside_foundation;
         bool inside_ground = !inside_walls && !inside_ceiling && !inside_foundation && !inside_foundation_insulation;
 
-        std::cout << "\ncreating block " << i << ", " << j << ", " << k << std::endl;
-        std::cout << std::boolalpha;
-        std::cout << "inside_walls      = " << inside_walls << std::endl;
-        std::cout << "inside_ceiling    = " << inside_ceiling << std::endl;
-        std::cout << "inside_foundation = " << inside_foundation << std::endl;
-        std::cout << "inside_foundation_insulation = " << inside_foundation_insulation << std::endl;
-        std::cout << "inside_ground     = " << inside_ground << std::endl;
-        
-        std::cout << "inside_house_top_view = " << inside_house_top_view << std::endl;
-        std::cout << "inside_foundation_vertical = " << inside_foundation_vertical << std::endl;
-        std::cout << "inside_foundation_insulation_top_view = " << inside_foundation_insulation_top_view << std::endl;
-        std::cout << "inside_foundation_insulation_side_view = " << inside_foundation_insulation_side_view << std::endl;
-
         if (m_spec.create_blocks[i - m_xrange[0]][j - m_yrange[0]][k - m_zrange[0]])
         {
 
@@ -82,55 +69,6 @@ void GeometryGenerator::createVolumeGroups(std::shared_ptr<Heat::HeatEquation> h
           heat_eqn->addVolumeGroupParams(params);
         }
       }
-
-
-
-/*
-        std::cout << "for block " << i << ", " << j << ", " << k << ", create_block = " << m_spec.create_blocks[i - m_xrange[0]][j - m_yrange[0]][k - m_zrange[0]] << std::endl;
-        if (m_spec.create_blocks[i - m_xrange[0]][j - m_yrange[0]][k - m_zrange[0]])
-        {
-          Heat::VolumeGroupParams params{0, 0, 0};
-          if (k == 0) {
-            std::cout << "case 1" << std::endl;
-            params = m_house_spec.horizontal_params[std::max(std::abs(i)-1, std::abs(j)-1)];
-          } else if (k > 0) {
-            std::cout << "case 2" << std::endl;
-            params = m_house_spec.ceiling_params[k-1];
-          } else if (k <= -1 && k >= -int(m_house_spec.foundation_numels.size()))
-          {
-            if (i >= (m_xrange[0] + m_num_underground_thicknesses) &&
-                i <= (m_xrange[1] - m_num_underground_thicknesses) &&
-                j >= (m_yrange[0] + m_num_underground_thicknesses) &&
-                j <= (m_yrange[1] + m_num_underground_thicknesses))
-            {
-              std::cout << "case 3" << std::endl;
-              params = m_house_spec.foundation_params[-k - 1];
-            } else if (i == m_xrange[0] || i == m_xrange[1] || 
-                       j == m_yrange[0] || j == m_yrange[1])
-            {
-              std::cout << "case 4" << std::endl;
-              params = m_house_spec.ground_params;
-            } else  // not in the foundation and not in the ground
-            {
-              std::cout << "case 5" << std::endl;
-              params = m_house_spec.foundation_insulation_params;
-            }
-          } else if (k == m_zrange[0] + 1)
-          {
-            std::cout << "case 6" << std::endl;
-            params = m_house_spec.foundation_insulation_params;
-          } else // bottom layer of ground
-          {
-            std::cout << "case 7" << std::endl;
-            params = m_house_spec.ground_params;
-          }
-
-          std::cout << "params = " << params.kappa << ", " << params.Cp << ", " << params.rho << std::endl;
-
-          heat_eqn->addVolumeGroupParams(params);
-        }
-      }
-*/
 }
 
 
@@ -251,8 +189,6 @@ void GeometryGenerator::createMeshCG()
         {
           volume_groups.emplace_back(std::string("volume_group") + std::to_string(i) + std::to_string(j) + std::to_string(k));
           volume_groups.back().addModelEntity(Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, j, k)));
-
-          std::cout << "creating volume group named " << volume_groups.back().getName() << std::endl;
         }
 
   for (int i=0; i < 6; ++i)
