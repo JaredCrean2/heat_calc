@@ -152,7 +152,8 @@ void MeshCG::createVolumeGroups()
     getDofNums(m_apf_data, m_volume_spec[i], elements_group, dof_nums);
     getCoords(m_apf_data,  m_volume_spec[i], elements_group, coords);
 
-    m_vol_group.emplace_back(VolumeGroup(m_volume_spec[i].getIdx(), dof_nums, coords,
+    m_vol_group.emplace_back(VolumeGroup(m_volume_spec[i].getName(),
+      m_volume_spec[i].getIdx(), dof_nums, coords,
       m_tensor_product_coord_map, m_tensor_product_sol_map, 
       m_ref_el_coord, m_ref_el_sol, elements_group, element_weights));
 

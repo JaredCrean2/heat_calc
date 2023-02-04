@@ -10,7 +10,8 @@ namespace Mesh {
   class VolumeGroup
 {
   public:
-    VolumeGroup (const int idx, ArrayType<Index, 2>& nodenums, ArrayType<Real, 3>& coords,
+    VolumeGroup (const std::string& name, 
+                 const int idx, ArrayType<Index, 2>& nodenums, ArrayType<Real, 3>& coords,
                  const TensorProductMapper& tp_mapper_coord,
                  const TensorProductMapper& tp_mapper_sol,
                  REPtr ref_el_coord,
@@ -24,6 +25,7 @@ namespace Mesh {
       ref_el_sol(ref_el_sol),
       sol_degree(ref_el_sol->getDegree()),
       m_elements(elements),
+      m_name(name),
       m_idx(idx),
       m_tp_mapper_coord(tp_mapper_coord),
       m_tp_mapper_sol(tp_mapper_sol),
@@ -40,6 +42,9 @@ namespace Mesh {
     int sol_degree;
 
     std::vector<apf::MeshEntity*> m_elements;
+
+    const std::string& getName() const { return m_name; }
+
     int getIdx() const {return m_idx;}
 
     int getNumElems() const { return nodenums.shape()[0];}
@@ -62,6 +67,7 @@ namespace Mesh {
     void rotateDerivative(ArrayType<T, 2> deriv_xi, ArrayType<T, 2> deriv_x);
 
   private:
+    std::string m_name;
     const int m_idx;
     const TensorProductMapper& m_tp_mapper_coord;
     const TensorProductMapper& m_tp_mapper_sol;

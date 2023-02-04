@@ -174,8 +174,8 @@ void MeshGeneratorMultiBlock::computeBlockMeshSpecs()
         spec_ijk.nz = m_numels[2][k];
 
         m_meshspecs[i][j][k] = spec_ijk;
-        std::cout << "block " << i << ", " << j << ", " << k << " meshspec = " << spec_ijk << std::endl;
-        std::cout << std::boolalpha << "create_block = " << m_meshspec.create_blocks[i][j][k] << std::endl;
+        //std::cout << "block " << i << ", " << j << ", " << k << " meshspec = " << spec_ijk << std::endl;
+        //std::cout << std::boolalpha << "create_block = " << m_meshspec.create_blocks[i][j][k] << std::endl;
 
         current_lower_corner_coords[2] += m_thicknesses[2][k];
       }

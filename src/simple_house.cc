@@ -5,11 +5,8 @@
 #include "discretization/surface_discretization.h"
 #include "linear_system/large_matrix_factory.h"
 #include "linear_system/large_matrix_petsc.h"
-#include "mesh/mesh_generator_multi_block.h"
-#include "mesh/mesh_input.h"
 #include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
-#include "mesh/mesh.h"
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/air_leakage.h"
 #include "physics/heat/bc_defs.h"
@@ -27,471 +24,11 @@
 #include "simple_house/simple_house_spec.h"
 #include "time_solver/crank_nicolson.h"
 #include "utils/initialization.h"
+#include "simple_house/geometry_generator.h"
 
 namespace simple_house {
 
-// The coordinate system is: North is +y, East is +x, z is into outer space
-// The surfaces are 0-5 are the outer surface, 6-11 are the inner surfaces.
-// The order is the same as the reference Hex elements: 0 = bottom, 5 = top,
-// 1 is xz plane at y = ymin -> S
-// 2 is yz plane at x = xmax -> E
-// 3 is xz plane at y = ymax -> N
-// 4 is yz plane at x = xmin -> W
-class GeometryGenerator
-{
-  public:
-    GeometryGenerator(SimpleHouseSpec& spec) :
-      m_spec(spec.createMeshSpec())
-    {
-      createMeshSpec(spec);
-      m_exterior_lengths = computeExteriorLengths();
-      m_generator = std::make_shared<Mesh::MeshGeneratorMultiBlock>(m_spec);
-      m_mesh = m_generator->generate();
-      //collectGeometricFaces();
-      createMeshCG();
-    }
 
-    // creates a MeshCG.  Sets up 1 volume group per mesh block.
-    // Also sets up 12 face groups.  The first 6 the exterior surface, the
-    // last 6 are the interior surface.  They use the standard ordering:
-    // 0 = xy plane at z min
-    // 1 = xz plane at y min
-    // 2 = yz plane at x max
-    // 3 = xz plane at y max
-    // 4 = yz plane at x min
-    // 5 = xy plane at z max
-    std::shared_ptr<Mesh::MeshCG> getMesh() { return m_meshcg; }
-
-    // creates the volume groups and sets the material properties
-    void createVolumeGroups(std::shared_ptr<Heat::HeatEquation> heat_eqn)
-    {
-      for (int i=m_xrange[0]; i <= m_xrange[1]; ++i)
-        for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
-          for (int k=m_zrange[0]; k <= m_zrange[1]; ++k)
-          {
-            std::cout << "for block " << i << ", " << j << ", " << k << ", create_block = " << m_spec.create_blocks[i - m_xrange[0]][j - m_yrange[0]][k - m_zrange[0]] << std::endl;
-            if (m_spec.create_blocks[i - m_xrange[0]][j - m_yrange[0]][k - m_zrange[0]])
-            {
-              Heat::VolumeGroupParams params{0, 0, 0};
-              if (k == 0) {
-                std::cout << "case 1" << std::endl;
-                params = m_house_spec.horizontal_params[std::max(std::abs(i)-1, std::abs(j)-1)];
-              } else if (k > 0) {
-                std::cout << "case 2" << std::endl;
-                params = m_house_spec.ceiling_params[k-1];
-              } else if (k <= -1 && k >= -int(m_house_spec.foundation_numels.size()))
-              {
-                if (i >= (m_xrange[0] + m_num_underground_thicknesses) &&
-                    i <= (m_xrange[1] - m_num_underground_thicknesses) &&
-                    j >= (m_yrange[0] + m_num_underground_thicknesses) &&
-                    j <= (m_yrange[1] + m_num_underground_thicknesses))
-                {
-                  std::cout << "case 3" << std::endl;
-                  params = m_house_spec.foundation_params[-k - 1];
-                } else if (i == m_xrange[0] || i == m_xrange[1] || 
-                           j == m_yrange[0] || j == m_yrange[1])
-                {
-                  std::cout << "case 4" << std::endl;
-                  params = m_house_spec.ground_params;
-                } else  // not in the foundation and not in the ground
-                {
-                  std::cout << "case 5" << std::endl;
-                  params = m_house_spec.foundation_insulation_params;
-                }
-              } else if (k == m_zrange[0] + 1)
-              {
-                std::cout << "case 6" << std::endl;
-                params = m_house_spec.foundation_insulation_params;
-              } else // bottom layer of ground
-              {
-                std::cout << "case 7" << std::endl;
-                params = m_house_spec.ground_params;
-              }
-
-              std::cout << "params = " << params.kappa << ", " << params.Cp << ", " << params.rho << std::endl;
-
-              heat_eqn->addVolumeGroupParams(params);
-            }
-          }
-    }
-
-    //const std::vector<int>& getExteriorGeometricFaces(int face) const { return m_exterior_geometric_faces[face]; }
-
-    //const std::vector<int>& getInteriorGeometricFaces(int face) const { return m_interior_geometric_faces[face]; }
-
-    Real computeInteriorVolume()
-    {
-      auto& spec = m_spec.middle_block;
-      Real delta_x = (spec.xmax - spec.xmin);
-      Real delta_y = (spec.ymax - spec.ymin);
-      Real delta_z = (spec.zmax - spec.zmin);
-      return delta_x * delta_y * delta_z;
-    }
-
-    int getSurfaceDirection(int surface)
-    {
-      return m_surface_directions.at(surface);
-    }
-
-    Real computeInteriorSurfaceArea(int direction)
-    {
-      assertAlways(direction >= 0 && direction <= 2, "direction must be in range [0, 2]");
-      std::array<Real, 3> lengths = {m_spec.middle_block.xmax - m_spec.middle_block.xmin,
-                                     m_spec.middle_block.ymax - m_spec.middle_block.ymin,
-                                     m_spec.middle_block.zmax - m_spec.middle_block.zmin};   
-
-      return lengths[direction] * lengths[(direction + 1) % 3];
-    }
-
-    Real computeInteriorPerimeter(int direction)
-    {
-      assertAlways(direction >= 0 && direction <= 3, "direction must be in range [0, 2]");
-
-      std::array<Real, 3> lengths = {m_spec.middle_block.xmax - m_spec.middle_block.xmin,
-                                     m_spec.middle_block.ymax - m_spec.middle_block.ymin,
-                                     m_spec.middle_block.zmax - m_spec.middle_block.zmin};   
-
-      return 2*lengths[direction] + 2*lengths[(direction + 1) % 3];
-    }    
-
-    // direction: 0 = xy plane, 1 = yz plane, 2 = xz plane
-    Real computeExteriorSurfaceArea(int direction)
-    {
-      assertAlways(direction >= 0 && direction <= 2, "direction must be in range [0, 2]");
-      return m_exterior_lengths[direction] * m_exterior_lengths[(direction + 1) % 3];
-    }
-
-    Real computeExteriorPerimeter(int direction)
-    {
-      assertAlways(direction >= 0 && direction <= 2, "direction must be in range [0, 2]");
-      return 2*m_exterior_lengths[direction] + 2*m_exterior_lengths[(direction + 1) % 3];
-    }
-
-    Real computeLawnSurfaceArea()
-    {
-      auto p = computeLawnDimensions();
-      return p.first * p.second;
-    }
-
-    Real computeLawnPerimeter()
-    {
-      auto p = computeLawnDimensions();
-      return 2*p.first + 2*p.second;
-    }
-
-  private:
-    void createMeshSpec(SimpleHouseSpec& spec)
-    {
-      m_house_spec = spec;
-      //m_spec = spec.createMeshSpec();
-      
-      //m_spec.middle_block = Mesh::getMeshSpec(0, 9.23, 0, 15.38, 0, 2.46, 5, 8, 4);
-      //m_spec.middle_block = Mesh::getMeshSpec(0, 1, 0, 1, 0, 1, 5, 8, 4);
-
-/*
-      for (size_t i=0; i < m_horizontal_thicknesses.size(); ++i)
-      {
-        m_spec.numel_plusx.push_back(m_horizontal_numels[i]);
-        m_spec.numel_plusy.push_back(m_horizontal_numels[i]);
-        m_spec.numel_minusx.push_back(m_horizontal_numels[i]);
-        m_spec.numel_minusy.push_back(m_horizontal_numels[i]);
-
-        m_spec.thickness_plusx.push_back(m_horizontal_thicknesses[i]);
-        m_spec.thickness_plusy.push_back(m_horizontal_thicknesses[i]);
-        m_spec.thickness_minusx.push_back(m_horizontal_thicknesses[i]);
-        m_spec.thickness_minusy.push_back(m_horizontal_thicknesses[i]);
-      }
-
-      for (size_t i=0; i < m_ceiling_thicknesses.size(); ++i)
-      {
-        m_spec.thickness_plusz.push_back(m_ceiling_thicknesses[i]);
-        m_spec.numel_plusz.push_back(m_ceiling_numels[i]);
-      }
-
-      for (size_t i=0; i < m_foundation_thicknesses.size(); ++i)
-      {
-        m_spec.thickness_minusz.push_back(m_foundation_thicknesses[i]);
-        m_spec.numel_minusz.push_back(m_foundation_numels[i]);
-      }
-*/
-
-      m_xrange = {-int(m_spec.numel_minusx.size()), int(m_spec.numel_plusx.size())};
-      m_yrange = {-int(m_spec.numel_minusy.size()), int(m_spec.numel_plusy.size())};
-      m_zrange = {-int(m_spec.numel_minusz.size()), int(m_spec.numel_plusz.size())};
-
-      int num_ground_thicknesses = spec.ground_horizontal_numel > 0 ? 1 : 0;
-      int num_ground_depths = spec.ground_depth_numel > 0 ? 1 : 0;
-      m_num_underground_thicknesses = spec.foundation_insulation_numels.size() + num_ground_thicknesses;
-      m_num_underground_depths = spec.foundation_numels.size() + spec.foundation_insulation_numels.size() + num_ground_depths;
-
-
-/*      
-      int nx = m_xrange[1] - m_xrange[0] + 1;
-      int ny = m_yrange[1] - m_yrange[0] + 1;
-      int nz = m_zrange[1] - m_zrange[0] + 1;
-      m_spec.create_blocks.resize(boost::extents[nx][ny][nz]);
-      for (int i=0; i < nx; ++i)
-        for (int j=0; j < ny; ++j)
-          for (int k=0; k < nz; ++k)
-            m_spec.create_blocks[i][j][k] = true;
-
-      m_spec.create_blocks[-m_xrange[0]][-m_yrange[0]][-m_zrange[0]] = false;
-*/
-      //auto spec2 = spec.createMeshSpec();
-      //m_spec = spec.createMeshSpec();
-
-      
-    }
-
-    std::array<Real, 3> computeExteriorLengths()
-    {
-      std::array<Real, 3> lengths = {m_spec.middle_block.xmax - m_spec.middle_block.xmin,
-                                     m_spec.middle_block.ymax - m_spec.middle_block.ymin,
-                                     m_spec.middle_block.zmax - m_spec.middle_block.zmin};
-
-      for (int i=0; i < int(m_spec.thickness_plusx.size() - m_num_underground_thicknesses); ++i)
-        lengths[0] += m_spec.thickness_plusx[i];
-
-      for (int i=0; i < int(m_spec.thickness_minusx.size() - m_num_underground_thicknesses); ++i)
-        lengths[0] += m_spec.thickness_minusx[i];
-
-      for (int i=0; i < int(m_spec.thickness_plusy.size() - m_num_underground_thicknesses); ++i)
-        lengths[1] += m_spec.thickness_plusy[i];
-
-      for (int i=0; i < int(m_spec.thickness_minusy.size() - m_num_underground_thicknesses); ++i)
-        lengths[1] += m_spec.thickness_minusy[i];
-
-      for (auto t : m_spec.thickness_plusz)
-        lengths[2] += t;
-
-      return lengths;
-    } 
-
-    //TODO: this appears to be unused
-    /*
-    void collectGeometricFaces()
-    {
-      m_exterior_geometric_faces.resize(6);
-      m_interior_geometric_faces.resize(6);
-
-      for (int i=m_xrange[0] + m_num_underground_thicknesses; i <= (m_xrange[1] - m_num_underground_thicknesses); ++i)
-        for (int j=m_yrange[0] + m_num_underground_thicknesses; j <= (m_yrange[1] - m_num_underground_thicknesses); ++j)
-        {
-          m_exterior_geometric_faces[0].push_back(m_generator->getSurfaceGeometricId(i, j, m_zrange[0], 0));
-          m_exterior_geometric_faces[5].push_back(m_generator->getSurfaceGeometricId(i, j, m_zrange[1], 5));
-        }
-
-      for (int i=m_xrange[0] + m_num_underground_thicknesses; i <= (m_xrange[1] - m_num_underground_thicknesses); ++i)
-        for (int k=m_zrange[0] + m_num_underground_depths; k <= m_zrange[1]; ++k)
-        {
-          m_exterior_geometric_faces[1].push_back(m_generator->getSurfaceGeometricId(i, m_yrange[0] + m_num_underground_thicknesses, k, 1));
-          m_exterior_geometric_faces[3].push_back(m_generator->getSurfaceGeometricId(i, m_yrange[1] - m_num_underground_thicknesses, k, 3));
-        }
-
-      for (int j=m_yrange[0] + m_num_underground_thicknesses; j <= (m_yrange[1] - m_num_underground_thicknesses); ++j)
-        for (int k=m_zrange[0] + m_num_underground_depths; k <= m_zrange[1]; ++k)
-        {
-          m_exterior_geometric_faces[4].push_back(m_generator->getSurfaceGeometricId(m_xrange[0] + m_num_underground_thicknesses, j, k, 4));
-          m_exterior_geometric_faces[2].push_back(m_generator->getSurfaceGeometricId(m_xrange[1] - m_num_underground_thicknesses, j, k, 2));
-        }
-
-      m_interior_geometric_faces[0].push_back(m_generator->getSurfaceGeometricId(0,  0, -1, 5));
-      m_interior_geometric_faces[1].push_back(m_generator->getSurfaceGeometricId(0, -1,  0, 3));
-      m_interior_geometric_faces[2].push_back(m_generator->getSurfaceGeometricId(1,  0,  0, 4));
-      m_interior_geometric_faces[3].push_back(m_generator->getSurfaceGeometricId(0,  1,  0, 1));
-      m_interior_geometric_faces[4].push_back(m_generator->getSurfaceGeometricId(-1, 0,  0, 2));
-      m_interior_geometric_faces[5].push_back(m_generator->getSurfaceGeometricId(0,  0,  1, 0));
-
-
-      for (int i=m_xrange[0]; i <= m_xrange[1]; ++i)
-        for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
-        {
-          if (i >= (m_xrange[0] + m_num_underground_thicknesses) && 
-              i <= (m_xrange[1] - m_num_underground_thicknesses) &&
-              j >= (m_yrange[0] + m_num_underground_thicknesses) &&
-              j <= (m_yrange[1] - m_num_underground_thicknesses))
-            continue;
-
-          m_lawn_geometric_faces.push_back(m_generator->getSurfaceGeometricId(i, j, -1, 5));
-        }
-
-
-      // the underground surfaces have a zero flux BC, so no need to create a boundary condition at all
-    }
-    */
-
-    void createMeshCG()
-    {
-      std::vector<Mesh::MeshEntityGroupSpec> volume_groups;
-      std::vector<Mesh::MeshEntityGroupSpec> bc_groups;
-      std::vector<Mesh::MeshEntityGroupSpec> other_groups;
-
-      for (int i=m_xrange[0]; i <= m_xrange[1]; ++i)
-        for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
-          for (int k=m_zrange[0]; k <= m_zrange[1]; ++k)
-            if (m_spec.create_blocks[i - m_xrange[0]][j - m_yrange[0]][k - m_zrange[0]])
-            {
-              volume_groups.emplace_back(std::string("volume_group") + std::to_string(i) + std::to_string(j) + std::to_string(k));
-              volume_groups.back().addModelEntity(Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, j, k)));
-            }
-
-      for (int i=0; i < 6; ++i)
-        bc_groups.emplace_back(std::string("exterior") + std::to_string(i) );
-
-      for (int i=0; i < 6; ++i)
-        bc_groups.emplace_back(std::string("interior") + std::to_string(i) );    
-
-      bc_groups.emplace_back(std::string("lawn"));
-
-      // exterior faces        
-      for (int i=m_xrange[0] + m_num_underground_thicknesses; i <= (m_xrange[1] - m_num_underground_thicknesses); ++i)
-        for (int j=m_yrange[0] + m_num_underground_thicknesses; j <= (m_yrange[1] - m_num_underground_thicknesses); ++j)
-        {
-          bc_groups[0].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, j, m_zrange[0], 0)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,  j, m_zrange[0])));
-          bc_groups[5].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, j, m_zrange[1], 5)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,  j, m_zrange[1])));
-        }
-
-      for (int i=m_xrange[0] + m_num_underground_thicknesses; i <= (m_xrange[1] - m_num_underground_thicknesses); ++i)
-        for (int k=m_zrange[0] + m_num_underground_depths; k <= m_zrange[1]; ++k)
-        {
-          bc_groups[1].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i,
-                                                            m_yrange[0] + m_num_underground_thicknesses, k, 1)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,
-                                                            m_yrange[0] + m_num_underground_thicknesses, k)));
-          bc_groups[3].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i,
-                                                            m_yrange[1] - m_num_underground_thicknesses, k, 3)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,
-                                                            m_yrange[1] - m_num_underground_thicknesses, k)));
-        }    
-
-      for (int j=m_yrange[0] + m_num_underground_thicknesses; j <= (m_yrange[1] - m_num_underground_thicknesses); ++j)
-        for (int k=m_zrange[0] + m_num_underground_depths; k <= m_zrange[1]; ++k)
-        {
-          bc_groups[4].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(
-                                                                 m_xrange[0] + m_num_underground_thicknesses, j, k, 4)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(
-                                                                m_xrange[0] + m_num_underground_thicknesses, j, k)));
-          bc_groups[2].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(
-                                                                 m_xrange[1] - m_num_underground_thicknesses, j, k, 2)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(
-                                                                 m_xrange[1] - m_num_underground_thicknesses, j, k)));
-        }   
-
-      //bc_groups[0].setIsDirichlet(true);
-
-      bc_groups[0+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0,  0, -1, 5)), 
-                                    Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0,  0, -1)));
-      bc_groups[1+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, -1,  0, 3)), 
-                                    Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, -1,  0)));
-      bc_groups[2+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(1,  0,  0, 4)), 
-                                    Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(1,  0,  0)));
-      bc_groups[3+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0,  1,  0, 1)), 
-                                    Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0,  1,  0)));
-      bc_groups[4+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(-1, 0,  0, 2)), 
-                                    Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(-1, 0,  0)));
-      bc_groups[5+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0,  0,  1, 0)),
-                                    Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0,  0,  1)));
-
-
-      for (int i=m_xrange[0]; i <= m_xrange[1]; ++i)
-        for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
-        {
-          if (i >= (m_xrange[0] + m_num_underground_thicknesses) && 
-              i <= (m_xrange[1] - m_num_underground_thicknesses) &&
-              j >= (m_yrange[0] + m_num_underground_thicknesses) &&
-              j <= (m_yrange[1] - m_num_underground_thicknesses))
-            continue;
-
-          bc_groups[12].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, j, -1, 5)),
-                                       Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i, j, -1)));
-        }
-
-
-      // bottom of foundation
-      other_groups.emplace_back("foundation_bottom");
-      other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -1, 0)),
-                                         Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -1)));
-
-      // bottom of foundation insulation
-      other_groups.emplace_back("foundation_insulation_bottom");
-      other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -2, 0)),
-                                         Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -2)));
-
-      // bottom of foundation
-      other_groups.emplace_back("ground_bottom");
-      other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -3, 0)),
-                                         Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -3)));     
-
-      m_surface_directions = {0, 1, 2, 1, 2, 0,
-                              0, 1, 2, 1, 2, 0};        
-
-      m_meshcg = Mesh::createMeshCG(m_mesh, volume_groups, bc_groups, other_groups, 1, 1);
-    }
-
-    std::pair<Real, Real> computeLawnDimensions()
-    {
-      Real total_thickness_x = m_spec.middle_block.xmax - m_spec.middle_block.xmin;
-      Real total_thickness_y = m_spec.middle_block.ymax - m_spec.middle_block.ymin;
-
-      for (auto t : m_spec.thickness_plusx)
-        total_thickness_x += t;
-
-      for (auto t : m_spec.thickness_minusx)
-        total_thickness_x += t;
-
-      for (auto t : m_spec.thickness_plusy)
-        total_thickness_y += t;
-
-      for (auto t : m_spec.thickness_minusy)
-        total_thickness_y += t;
-
-      return std::make_pair(total_thickness_x, total_thickness_y);
-    }
-
-    std::shared_ptr<Mesh::MeshGeneratorMultiBlock> m_generator;
-    apf::Mesh2* m_mesh;
-    std::array<int, 3> m_xrange;
-    std::array<int, 3> m_yrange;
-    std::array<int, 3> m_zrange;
-    int m_num_underground_thicknesses;
-    int m_num_underground_depths;
-    std::array<Real, 3> m_exterior_lengths;
-    std::shared_ptr<Mesh::MeshCG> m_meshcg;
-
-
-    // all the geometric faces on the exterior faces of the geometry,
-    // using the standard face numbering
-    //std::vector<std::vector<int>> m_exterior_geometric_faces;
-
-    //std::vector<std::vector<int>> m_interior_geometric_faces;
-
-    //std::vector<int> m_lawn_geometric_faces;
-
-    std::vector<int> m_surface_directions;
-
-    SimpleHouseSpec m_house_spec;
-    Mesh::MultiBlockMeshSpec m_spec;
-
-    /*
-    // 3.5 inches of insulation
-    std::vector<double> m_horizontal_thicknesses = {0.0897};
-    std::vector<int>    m_horizontal_numels      = {5};
-    std::vector<Heat::VolumeGroupParams> horizontal_params = { {0.039, 45, 2020} };
-
-    // 6 inches of insulation
-    std::vector<double> m_ceiling_thicknesses = {0.1538};
-    std::vector<int>    m_ceiling_numels      = {5};
-    std::vector<Heat::VolumeGroupParams> ceiling_params = { {0.039, 45, 2020} };
-
-
-    // 6 inches of concrete
-    std::vector<double> m_foundation_thicknesses = {0.1538};
-    std::vector<int>    m_foundation_numels      = {5};
-    std::vector<Heat::VolumeGroupParams> foundation_params = { {2.25, 2400, 880} };
-    */
-};
 
 std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr surf, Real surface_area, Real perimeter, int roughness_index,
                                                                     Real emittance, Real absorptivity, bool include_solar)
@@ -531,7 +68,7 @@ void createLawnBC(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquati
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
 
-  int surface_id = 12;
+  int surface_id = generator.getSurfaceId(SurfaceName::Lawn);
   auto surf = disc->getSurfDisc(surface_id);
   Real surface_area = generator.computeLawnSurfaceArea();
   Real perimeter    = generator.computeLawnPerimeter();
@@ -550,7 +87,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
 
   //heat_eqn->addDirichletBC(makeBottomBC(disc->getSurfDisc((0)), bottom_temp)); // TODO: currently using air temperature
   {
-    auto surf = disc->getSurfDisc(0);
+    auto surf = disc->getSurfDisc(generator.getSurfaceId(SurfaceName::GroundBottom));
     auto bc = std::make_shared<Heat::NewtonCooling>(surf, 0.0);  // zero flux BC for the bottom of the
                                                             // ground
     //int direction = generator.getSurfaceDirection(0);
@@ -567,13 +104,16 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     //postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>("foundation_flux", bc, heat_eqn.get()));    
   }
 
+  std::vector<SurfaceName> surf_enums = {SurfaceName::SouthExtWall, SurfaceName::EastExtWall, SurfaceName::NorthExtWall,
+                                         SurfaceName::WestExtWall, SurfaceName::Roof};
   std::vector<std::string> names = {"south_exterior_wall_flux", "east_exterior_wall_flux", 
                                     "north_exterior_wall_flux", "west_exterior_wall_flux", "roof_flux",
                                     };
 
   for (int i=1; i <= 5; ++i)
   {
-    auto surf = disc->getSurfDisc(i);
+    int surf_id = generator.getSurfaceId(surf_enums[i-1]);
+    auto surf = disc->getSurfDisc(surf_id);
     int direction = generator.getSurfaceDirection(i);
     Real surface_area = generator.computeExteriorSurfaceArea(direction);
     Real perimeter    = generator.computeExteriorPerimeter(direction);
@@ -595,18 +135,23 @@ void setExteriorWallTempPostProcessors(GeometryGenerator& generator, std::shared
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
 
-  std::vector<std::string> names = {"foundation_temp", "south_exterior_wall_temp", "east_exterior_wall_temp", 
+  std::vector<SurfaceName> surf_enums = {SurfaceName::GroundBottom, SurfaceName::SouthExtWall, SurfaceName::EastExtWall,
+                                         SurfaceName::NorthExtWall, SurfaceName::WestExtWall, SurfaceName::Roof};
+
+  std::vector<std::string> names = {"ground_bottom_temp", "south_exterior_wall_temp", "east_exterior_wall_temp", 
                                     "north_exterior_wall_temp", "west_exterior_wall_temp", "roof_temp"};
+
+  std::vector<SurfDiscPtr> wall_surfaces;
   auto f = [](double val) { return val; };
   for (int i=0; i <= 5; ++i)
   {
-    auto surf = disc->getSurfDisc(i);
+    int surf_id = generator.getSurfaceId(surf_enums[i]);
+    auto surf = disc->getSurfDisc(surf_id);
     postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
-  }
 
-  std::vector<SurfDiscPtr> wall_surfaces;
-  for (int i=1; i <= 4; ++i)
-    wall_surfaces.push_back(disc->getSurfDisc(i));
+    if (i >= 1 && i <= 4)
+      wall_surfaces.push_back(surf);
+  }
 
   postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "exterior_wall_temp", f));
 }
@@ -616,7 +161,7 @@ std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> makeFloorRadiationBCs(Ge
   Real shgc = 0.9;
   Real floor_absorptivity = 0.65; // unfinished concrete
   Real floor_area = generator.computeInteriorSurfaceArea(0);
-  auto surf = disc->getSurfDisc(6);
+  auto surf = disc->getSurfDisc(generator.getSurfaceId(SurfaceName::Floor));
 
 
   std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> bcs(4);
@@ -645,29 +190,32 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
   auto disc = heat_eqn->getDiscretization();
   std::array<Real, 3> vertical_vector = {0, 0, 1};
   auto postprocessors = heat_eqn->getPostProcessors();
+
+  std::vector<SurfaceName> surf_enums = {SurfaceName::Floor, SurfaceName::SouthIntWall, SurfaceName::EastIntWall,
+                                          SurfaceName::NorthIntWall, SurfaceName::WestIntWall, SurfaceName::Ceiling};
   std::vector<std::string> names = {"floor_flux", "south_interior_wall_flux", "east_interior_wall_flux", 
                                     "north_interior_wall_flux", "west_interior_wall_flux", "ceiling_flux"};
-  for (int i=6; i <= 11; ++i)
+  for (int i=0; i <= 5; ++i)
   {
-    auto surf = disc->getSurfDisc(i);
+    auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
     int direction = generator.getSurfaceDirection(i);
     Real surface_area = generator.computeInteriorSurfaceArea(direction);
     Real perimeter    = generator.computeInteriorPerimeter(direction);
 
     std::shared_ptr<Heat::AirWindSkyNeumannBC> bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, 0, vertical_vector);
 
-    if (i == 6)
+    if (i == 0)
     {
       auto bcs = makeFloorRadiationBCs(generator, heat_eqn->getDiscretization(), window_areas);
       bcs.push_back(bc);
 
       auto bc_combined = std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
       heat_eqn->addNeumannBC(bc_combined, false);
-      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i-6], bc_combined, heat_eqn.get()));
+      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i], bc_combined, heat_eqn.get()));
     } else
     {
       heat_eqn->addNeumannBC(bc, false);
-      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i-6], bc, heat_eqn.get()));
+      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i], bc, heat_eqn.get()));
     }
   }  
 }
@@ -676,18 +224,22 @@ void setInteriorWallTempPostProcessors(GeometryGenerator& generator,  std::share
 {
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
+
+  std::vector<SurfaceName> surf_enums = {SurfaceName::Floor, SurfaceName::SouthIntWall, SurfaceName::EastIntWall,
+                                          SurfaceName::NorthIntWall, SurfaceName::WestIntWall, SurfaceName::Ceiling};
   std::vector<std::string> names = {"floor_temp", "south_interior_wall_temp", "east_interior_wall_temp", 
                                     "north_interior_wall_temp", "west_interior_wall_temp", "ceiling_temp"};
-  auto f = [](double val) { return val; };
-  for (int i=6; i <= 11; ++i)
-  {
-    auto surf = disc->getSurfDisc(i);
-    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-6], f));
-  }
 
   std::vector<SurfDiscPtr> wall_surfaces;
-  for (int i=7; i <= 10; ++i)
-    wall_surfaces.push_back(disc->getSurfDisc(i));
+  auto f = [](double val) { return val; };
+  for (int i=0; i <= 5; ++i)
+  {
+    auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
+
+    if (i >= 1 && i <= 4)
+      wall_surfaces.push_back(surf);
+  }
 
   postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "interior_wall_temp", f));
 }
@@ -696,12 +248,14 @@ void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared
 {
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
-  std::vector<std::string> names = {"found_bottom_temp", "found_insl_bottom_temp", "ground_bottom_temp"};  
+  std::vector<SurfaceName> surf_enums = {SurfaceName::FoundationBottom, SurfaceName::FoundationInsulationBottom, 
+                                         SurfaceName::GroundBottomBeneathFoundation};
+  std::vector<std::string> names = {"found_bottom_temp", "found_insl_bottom_temp", "ground_bottom_temp_beneath_foundation"};  
   auto f = [](double val) { return val; };
-  for (int i=13; i <= 15; ++i)
+  for (int i=0; i <= 2; ++i)
   {
-    auto surf = disc->getSurfDisc(i);
-    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i-13], f));
+    auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
   }
 }
 

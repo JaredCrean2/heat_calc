@@ -94,8 +94,10 @@ class MeshCG
     const MeshEntityGroupSpec& getVolumeGroup(const std::string& name) const
     {
       for (SInt idx=0; idx < m_volume_spec.size(); ++idx)
-        if (m_all_face_spec[idx].getName() == name)
+      {
+        if (m_vol_group[idx].getName() == name)
           return m_volume_spec[idx];
+      }
 
       throw std::invalid_argument(std::string("cannot find volume group named ") + name);
     }
