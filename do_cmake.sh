@@ -19,7 +19,7 @@ BUILDTYPE="Release"
 
 # VTune build
 #CXXFLAGS="-Ofast -march=native -mtune=native -g -Rpass-analysis=loop-vectorize -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -ffast-math -DNDEBUG"
-#BUILDTYPE="Release"
+#BUILDTYPE="ReleaseWithDebInfo"
 
 # set PETSC_DIR and PETSC_ARCH to guide which Petsc installation CMake finds
 

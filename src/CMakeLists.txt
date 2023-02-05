@@ -97,7 +97,7 @@ target_include_directories(epw_extractor PUBLIC
                           )
 target_link_libraries(epw_extractor PUBLIC heat_lib)
 
-
+add_executable(memory_alloc memory_alloc.cc)
 
 #add_executable(gauss_seidel gauss_seidel.cc)
 #

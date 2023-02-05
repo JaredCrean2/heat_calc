@@ -262,11 +262,11 @@ void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared
 timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
-  Real delta_t = 450;
+  Real delta_t = 300;
   opts.t_start = 0;
   opts.t_end   = 20*365*24*60*60; // 24*60*60;  // 1 day
   //opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
-  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerResidual>(delta_t, 2);
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerResidual>(delta_t, 0);
 
 
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
@@ -309,7 +309,7 @@ SimpleHouseSpec createHouseSpec()
 
   spec.foundation_insulation_numels      = {5};
   spec.foundation_insulation_thicknesses = {0.0897};
-  spec.foundation_insulation_params      = {0.039, 45, 2020};
+  spec.foundation_insulation_params      = {2.1, 2200, 1144}; // {0.039, 45, 2020};
 
   spec.ground_horizontal_numel     = 10;
   spec.ground_horizontal_thickness = 5;
@@ -375,7 +375,8 @@ int main(int argc, char* argv[])
     // air properties from 6000 ft altitude
     Real interior_air_min_temp = 295; //293.15;
     Real interior_air_max_temp = 295; // 297.039;
-    Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
+    //Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
+    Real initial_air_temp = environment_interface->getEnvironmentData(0).air_temp;
     auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
     //auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
 
