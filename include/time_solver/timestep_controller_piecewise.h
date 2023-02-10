@@ -29,10 +29,12 @@ class TimestepControllerPiecewise : public TimestepController
 
     Real getNextTimestep(Real t) override
     {
-      return interpolateDeltaT(t);
+      Real delta_t = interpolateDeltaT(t);
+      std::cout << "new delta_t = " << delta_t << std::endl;
+      return delta_t;
     }
 
-    void recordLastIteration(Real physics_rhs) override {}
+    void recordLastIteration(Real physics_rhs) override {  std::cout << "recording residual " << physics_rhs << std::endl;}
 
   private:
     void sortData()

@@ -23,6 +23,7 @@
 #include "physics/post_processor_scheduler.h"
 #include "simple_house/simple_house_spec.h"
 #include "time_solver/crank_nicolson.h"
+#include "time_solver/timestep_controller_piecewise.h"
 #include "utils/initialization.h"
 #include "simple_house/geometry_generator.h"
 
@@ -262,13 +263,20 @@ void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared
 timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
-  Real delta_t = 300;
+  //Real delta_t = 300;
   opts.t_start = 0;
   opts.t_end   = 20*365*24*60*60; // 24*60*60;  // 1 day
   //opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
-  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerResidual>(delta_t, 0);
+  //opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerResidual>(delta_t, 0);
 
+  Real day = 24*60*60;
+  std::vector<timesolvers::TimestepControllerPiecewise::TimestepPoint> pts = { {0, 300}, {day, 300}, {2*day, 800},
+                                                                               //{3*day, 720}, {4*day, 2400}, {5*day, day}, 
+                                                                               //{6*day, 2*day},
+                                                                               {2*opts.t_end, 800}
+                                                                             };
 
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(pts);
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;
   opts.nonlinear_rel_tol = 1e-8;
