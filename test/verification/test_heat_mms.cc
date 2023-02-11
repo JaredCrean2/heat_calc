@@ -94,10 +94,9 @@ namespace {
         u_aux_vec   = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         res_vec     = makeDiscVector(disc);
 
-        auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
         this->matrix_opts = matrix_opts;
         auto sparsity     = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
-        mat               = std::make_shared<linear_system::LargeMatrixPetsc>(num_dofs, num_dofs, matrix_opts, sparsity);
+        mat               = std::make_shared<linear_system::LargeMatrixPetsc>(matrix_opts, sparsity);
         assembler         = std::make_shared<linear_system::Assembler>(disc, mat);
       }
 
@@ -287,10 +286,9 @@ namespace {
         u_aux_vec   = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
         res_vec     = makeDiscVector(disc);
 
-        auto num_dofs     = disc->getDofNumbering()->getNumOwnedDofs();
         this->matrix_opts = matrix_opts;
         auto sparsity     = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
-        mat               = std::make_shared<linear_system::LargeMatrixPetsc>(num_dofs, num_dofs, matrix_opts, sparsity);
+        mat               = std::make_shared<linear_system::LargeMatrixPetsc>(matrix_opts, sparsity);
         assembler         = std::make_shared<linear_system::Assembler>(disc, mat);
       }
 

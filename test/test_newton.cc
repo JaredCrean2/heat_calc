@@ -36,7 +36,7 @@ class NewtonTester : public ::testing::Test,
 
       auto opts = get_options();
       auto sparsity_pattern = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
-      mat = std::make_shared<linear_system::LargeMatrixPetsc>(mesh->getNumOwnedDofs(), mesh->getNumOwnedDofs(), opts, sparsity_pattern);
+      mat = std::make_shared<linear_system::LargeMatrixPetsc>(opts, sparsity_pattern);
       u = makeDiscVector(disc);
     }
 

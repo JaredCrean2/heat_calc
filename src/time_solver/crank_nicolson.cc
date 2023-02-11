@@ -27,7 +27,7 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
   checkTimeStepperOpts(opts);
   auto mesh     = physics_model->getDiscretization()->getMesh();
   auto sparsity = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
-  m_matrix      = largeMatrixFactory(opts.mat_type, mesh->getNumOwnedDofs(), mesh->getNumOwnedDofs(), opts.matrix_opts, sparsity);
+  m_matrix      = largeMatrixFactory(opts.mat_type, opts.matrix_opts, sparsity);
   m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start);
   m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix);
 }

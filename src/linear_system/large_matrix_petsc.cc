@@ -1,10 +1,11 @@
 #include "linear_system/large_matrix_petsc.h"
+#include "linear_system/sparsity_pattern.h"
 #include <petscvec.h>
 
 namespace linear_system {
 
-LargeMatrixPetsc::LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern) :
-  LargeMatrix(mlocal, nlocal),
+LargeMatrixPetsc::LargeMatrixPetsc(LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern) :
+  LargeMatrix(sparsity_pattern->getNumOwnedDofs(), sparsity_pattern->getNumOwnedDofs()),
   m_opts(opts),
   m_owned_dof_to_local(sparsity_pattern->getOwnedToLocalInfo()),
   m_ghost_dofs_to_local(sparsity_pattern->getGhostLocalIndices())

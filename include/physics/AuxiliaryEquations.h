@@ -6,6 +6,7 @@
 #include "linear_system/assembler.h"
 #include "linear_system/large_matrix.h"
 #include "linear_system/large_matrix_factory.h"
+#include "linear_system/sparsity_pattern_dense.h"
 
 class AuxiliaryEquationStorage;
 using AuxiliaryEquationsStoragePtr = std::shared_ptr<AuxiliaryEquationStorage>;
@@ -211,7 +212,8 @@ class AuxiliaryEquationsJacobiansDense : public AuxiliaryEquationsJacobians
       {
         int size = aux_eqns.getBlockSize(i+1);
         auto matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
-        m_jacs[i] = linear_system::largeMatrixFactory(linear_system::LargeMatrixType::Dense, size, size, matrix_opts);
+        auto sparsity = std::make_shared<linear_system::SparsityPatternDense>(size);
+        m_jacs[i] = linear_system::largeMatrixFactory(linear_system::LargeMatrixType::Dense, matrix_opts, sparsity);
       }
     }
 

@@ -4,7 +4,7 @@
 
 namespace linear_system {
 
-std::shared_ptr<LargeMatrix> largeMatrixFactory(LargeMatrixType type, int mlocal, int nlocal, 
+std::shared_ptr<LargeMatrix> largeMatrixFactory(LargeMatrixType type,
                                                std::shared_ptr<LargeMatrixOpts> opts, 
                                                std::shared_ptr<SparsityPattern> sparsity)
 {
@@ -12,13 +12,13 @@ std::shared_ptr<LargeMatrix> largeMatrixFactory(LargeMatrixType type, int mlocal
   {
     case LargeMatrixType::Dense:
     {
-      return std::make_shared<LargeMatrixDense>(mlocal, nlocal, *opts);
+      return std::make_shared<LargeMatrixDense>(sparsity->getNumOwnedDofs(), sparsity->getNumOwnedDofs(), *opts);
     }
 
     case LargeMatrixType::Petsc:
     {
       auto& opts_petsc = dynamic_cast<LargeMatrixOptsPetsc&>(*opts);
-      return std::make_shared<LargeMatrixPetsc>(mlocal, nlocal, opts_petsc, sparsity);
+      return std::make_shared<LargeMatrixPetsc>(opts_petsc, sparsity);
     }
 
     default:

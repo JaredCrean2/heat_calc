@@ -2,6 +2,7 @@
 #include "discretization/DirichletBC.h"
 #include "linear_system/large_matrix_factory.h"
 #include "linear_system/large_matrix_petsc.h"
+#include "linear_system/sparsity_pattern_dense.h"
 #include "mesh_helper.h"
 #include "physics/AuxiliaryEquations.h"
 #include "physics/PhysicsModel.h"
@@ -380,8 +381,8 @@ TEST_F(CNTester, JacobianFD)
   cn_model->setSolveType(SPACETIME);
   const auto num_dofs  = disc->getDofNumbering()->getNumOwnedDofs();
   auto mat_opts = std::make_shared<linear_system::LargeMatrixOpts>();
-  auto mat = linear_system::largeMatrixFactory(linear_system::LargeMatrixType::Dense, num_dofs, num_dofs, 
-                                               mat_opts);
+  auto mat = linear_system::largeMatrixFactory(linear_system::LargeMatrixType::Dense,
+                                               mat_opts, std::make_shared<linear_system::SparsityPatternDense>(num_dofs));
   const Real tn = 1.0;
   const Real delta_t = 0.5;
   timesolvers::CrankNicolsonFunction cn_func(cn_model, mat, tn - delta_t);

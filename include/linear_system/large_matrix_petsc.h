@@ -27,7 +27,7 @@ void setPetscOptions(const LargeMatrixOptsPetsc& opts);
 class LargeMatrixPetsc : public LargeMatrix
 {
   public:
-    LargeMatrixPetsc(DofInt mlocal, DofInt nlocal, LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern);
+    LargeMatrixPetsc(LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern);
 
     ~LargeMatrixPetsc();
 

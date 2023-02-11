@@ -17,6 +17,8 @@ class SparsityPatternMesh : public SparsityPattern
   public:
     explicit SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh);
 
+    PetscInt getNumOwnedDofs() const override;
+
     const std::vector<PetscInt>& getDiagonalCounts() override
     { 
       if (!m_computed_nonsymmetric)

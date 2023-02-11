@@ -11,6 +11,11 @@ SparsityPatternMesh::SparsityPatternMesh(std::shared_ptr<Mesh::MeshCG> mesh) :
   mesh->getOwnedLocalDofInfo(m_owned_dof_to_local);  //TODO: use this in getDofStatus?
 }
 
+PetscInt SparsityPatternMesh::getNumOwnedDofs() const
+{
+  return m_mesh->getNumOwnedDofs();
+}
+
 void SparsityPatternMesh::computePattern(bool symmetric)
 {
   auto& onproc_dofs  = symmetric ? m_onproc_dofs_sym : m_onproc_dofs;

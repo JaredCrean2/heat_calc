@@ -18,6 +18,8 @@ class SparsityPatternTest : public linear_system::SparsityPattern
         m_owned_to_local_dofs[i] = i;
     }
 
+    PetscInt getNumOwnedDofs() const override { return m_local.size(); }
+
     const std::vector<PetscInt>& getDiagonalCounts() override { return m_local; }
 
     const std::vector<PetscInt>& getDiagonalCountsSym() override { return m_local; }
@@ -62,7 +64,7 @@ TEST(LargeMatrixPetsc, GeneralSolve)
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
-  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
+  linear_system::LargeMatrixPetsc mat(opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -92,7 +94,7 @@ TEST(LargeMatrixPetsc, AssembleValuesAdditive)
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
-  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
+  linear_system::LargeMatrixPetsc mat(opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -126,7 +128,7 @@ TEST(LargeMatrixPetsc, AssembleValuesIgnore)
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
-  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
+  linear_system::LargeMatrixPetsc mat(opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -157,7 +159,7 @@ TEST(LargeMatrixPetsc, ZeroMatrix)
 
   auto opts = get_options();
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
-  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
+  linear_system::LargeMatrixPetsc mat(opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);
@@ -206,7 +208,7 @@ TEST(LargeMatrixPetsc, FactorInPlace)
   opts.petsc_opts.erase("ksp_atol");
   opts.petsc_opts.erase("ksp_rtol");
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
-  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
+  linear_system::LargeMatrixPetsc mat(opts, sparsity_pattern);
 
 
   EXPECT_EQ(mat.getMLocal(), 3);
@@ -243,7 +245,7 @@ TEST(LargeMatrixPetsc, SPD)
   opts.petsc_opts["mat_type"] = "aij";  //TODO: need to update assembly procedure to filter
                                         //      out below-diagonal entries
   auto sparsity_pattern = std::make_shared<SparsityPatternTest>(3);
-  linear_system::LargeMatrixPetsc mat(3, 3, opts, sparsity_pattern);
+  linear_system::LargeMatrixPetsc mat(opts, sparsity_pattern);
 
   EXPECT_EQ(mat.getMLocal(), 3);
   EXPECT_EQ(mat.getNLocal(), 3);

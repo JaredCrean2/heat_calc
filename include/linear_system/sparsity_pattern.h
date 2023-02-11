@@ -11,6 +11,8 @@ class SparsityPattern
   public:
     virtual ~SparsityPattern() = default;
 
+    virtual PetscInt getNumOwnedDofs() const = 0;
+
     // returns vector giving number of local dofs connected to each dof
     virtual const std::vector<PetscInt>& getDiagonalCounts() = 0;
 

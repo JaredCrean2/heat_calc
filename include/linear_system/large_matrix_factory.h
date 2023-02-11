@@ -16,9 +16,9 @@ enum class LargeMatrixType
 };
 
 
-std::shared_ptr<LargeMatrix> largeMatrixFactory(LargeMatrixType type, int mlocal, int nlocal, 
+std::shared_ptr<LargeMatrix> largeMatrixFactory(LargeMatrixType type,
                                                std::shared_ptr<LargeMatrixOpts> opts, 
-                                               std::shared_ptr<SparsityPattern> sparsity=nullptr);
+                                               std::shared_ptr<SparsityPattern> sparsity);
 
 
 
