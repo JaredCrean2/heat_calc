@@ -14,6 +14,8 @@ constexpr MPI_Datatype REAL_MPI_DATATYPE = MPI_DOUBLE;
 
 using DofInt = int;      // for degrees of freedom
 using Index = int;       // for element/face numbers
+
+constexpr MPI_Datatype DofInt_MPI_DATATYPE = MPI_INT;
 using LocalIndex = int;  // for local to the element numbering
 
 //TODO: make a generated header

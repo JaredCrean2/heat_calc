@@ -40,9 +40,9 @@ class LargeMatrixPetsc : public LargeMatrix
     }
 
     // dofs are *global* dofs
-    void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac) override
+    void assembleValues_impl(const std::vector<DofInt>& dofs_rows, const std::vector<DofInt>& dofs_cols, const ArrayType<Real, 2>& jac) override
     {
-      MatSetValues(m_A, dofs.size(), dofs.data(), dofs.size(), dofs.data(), jac.data(), ADD_VALUES);
+      MatSetValues(m_A, dofs_rows.size(), dofs_rows.data(), dofs_cols.size(), dofs_cols.data(), jac.data(), ADD_VALUES);
     }
 
     void finishMatrixAssembly_impl() override;

@@ -63,7 +63,18 @@ class LargeMatrix
       assert(it == dofs_copy.end());
 #endif
 
-      assembleValues_impl(dofs, jac);
+      assembleValues(dofs, dofs, jac);
+    }
+
+    void assembleValues(const std::vector<DofInt>& dofs_rows, const std::vector<DofInt>& dofs_cols, const ArrayType<Real, 2>& jac)
+    {
+      assert(!m_is_factored);
+
+      assert(jac.shape()[0] == dofs_rows.size());
+      assert(jac.shape()[1] == dofs_cols.size());    
+
+      assembleValues_impl(dofs_rows, dofs_cols, jac);  
+
     }
         
     void finishMatrixAssembly() { finishMatrixAssembly_impl(); };
@@ -98,7 +109,7 @@ class LargeMatrix
 
     virtual void zeroMatrix_impl() = 0;
 
-    virtual void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac) = 0;
+    virtual void assembleValues_impl(const std::vector<DofInt>& dofs_rows, const std::vector<DofInt>& dofs_cols, const ArrayType<Real, 2>& jac) = 0;
 
     virtual void finishMatrixAssembly_impl() {};
 

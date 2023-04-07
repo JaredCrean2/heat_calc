@@ -20,7 +20,7 @@ class LargeMatrixDense : public LargeMatrix
   protected:
     void zeroMatrix_impl() override;
 
-    void assembleValues_impl(const std::vector<DofInt>& dofs, const ArrayType<Real, 2>& jac) override;
+    void assembleValues_impl(const std::vector<DofInt>& dofs_rows, const std::vector<DofInt>& dofs_cols, const ArrayType<Real, 2>& jac) override;
 
     void factor_impl() override;
 
