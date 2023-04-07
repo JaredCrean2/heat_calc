@@ -1,5 +1,6 @@
 #include "linear_system/sparsity_pattern_augmented.h"
 #include <iostream>
+#include "mpi_utils.h"
 
 namespace linear_system {
 
@@ -14,10 +15,11 @@ std::ostream& operator<<(std::ostream& os, const std::vector<PetscInt>& vec)
 }
 
 
-SparsityPatternAugmented::SparsityPatternAugmented(std::shared_ptr<SparsityPattern> base_pattern, int num_augmented_rows, bool am_i_last_rank) :
+SparsityPatternAugmented::SparsityPatternAugmented(std::shared_ptr<SparsityPattern> base_pattern, int num_augmented_rows, MPI_Comm comm) :
   m_base_pattern(base_pattern),
   m_num_augmented_rows(num_augmented_rows),
-  m_am_i_last_rank(am_i_last_rank)
+  m_comm(comm),
+  m_am_i_last_rank(commRank(comm) == (commSize(comm) - 1))
 {}
 
 PetscInt SparsityPatternAugmented::getNumOwnedDofs() const
@@ -59,11 +61,15 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getOffProcCounts()
 {
   if (m_remote_dofs.size() == 0)
   {
+    PetscInt num_owned_dofs = m_am_i_last_rank ? 0 : getNumOwnedDofs();
+    PetscInt num_off_proc_dofs_on_last_proc = 0;
+    MPI_Reduce(&num_owned_dofs, &num_off_proc_dofs_on_last_proc, 1, MPIU_INT, MPI_SUM, commSize(m_comm) - 1, m_comm);
+
     m_remote_dofs = m_base_pattern->getOffProcCounts();
     if (m_am_i_last_rank)
     {
       for (int i=0; i < m_num_augmented_rows; ++i)
-        m_remote_dofs.push_back(0);
+        m_remote_dofs.push_back(num_off_proc_dofs_on_last_proc);  //TODO: this isn't right: should be number of owned dofs on all other procs
     } else    
     {
       for (auto& val : m_remote_dofs)

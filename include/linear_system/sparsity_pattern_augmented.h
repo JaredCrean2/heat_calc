@@ -11,7 +11,7 @@ namespace linear_system {
 class SparsityPatternAugmented : public SparsityPattern
 {
   public:
-    SparsityPatternAugmented(std::shared_ptr<SparsityPattern> base_pattern, int num_augmented_rows, bool am_i_last_rank);
+    SparsityPatternAugmented(std::shared_ptr<SparsityPattern> base_pattern, int num_augmented_rows, MPI_Comm comm);
 
     PetscInt getNumOwnedDofs() const override;
 
@@ -36,6 +36,7 @@ class SparsityPatternAugmented : public SparsityPattern
   private:
     std::shared_ptr<SparsityPattern> m_base_pattern;
     int m_num_augmented_rows;
+    MPI_Comm m_comm;
     bool m_am_i_last_rank;
 
     std::vector<PetscInt> m_onproc_dofs;

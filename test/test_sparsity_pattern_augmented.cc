@@ -89,7 +89,7 @@ TEST(SparsityPatternAugmented, Values)
   std::cout << "commRank = " << commRank(MPI_COMM_WORLD) << ", commSize = " << commSize(MPI_COMM_WORLD) << std::endl;
   std::cout << std::boolalpha << "am_i_last_rank = " << am_i_last_rank << std::endl;
   auto base_pattern = std::make_shared<SparsityPatternTest>(mesh_dofs);
-  auto augmented_pattern = std::make_shared<linear_system::SparsityPatternAugmented>(base_pattern, augmented_dofs, am_i_last_rank);
+  auto augmented_pattern = std::make_shared<linear_system::SparsityPatternAugmented>(base_pattern, augmented_dofs, MPI_COMM_WORLD);
 
 
   if (am_i_last_rank)
@@ -102,7 +102,8 @@ TEST(SparsityPatternAugmented, Values)
                                                       mesh_dofs + augmented_dofs};
     EXPECT_EQ(augmented_pattern->getDiagonalCounts(),  expected_diagonal_counts);
 
-    std::vector<PetscInt> expected_off_proc_counts = {2, 2, 2, 0, 0};
+    int num_dofs_on_other_procs = mesh_dofs * (commSize(MPI_COMM_WORLD) - 1);
+    std::vector<PetscInt> expected_off_proc_counts = {2, 2, 2, num_dofs_on_other_procs, num_dofs_on_other_procs};
     EXPECT_EQ(augmented_pattern->getOffProcCounts(), expected_off_proc_counts);
 
     std::vector<PetscInt> owned_to_local_dofs = {0, 1, 2, mesh_dofs + 2, mesh_dofs + 2 + 1};

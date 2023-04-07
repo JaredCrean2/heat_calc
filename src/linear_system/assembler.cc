@@ -13,8 +13,7 @@ Assembler::Assembler(DiscPtr disc, LargeMatrixPtr mat) :
   m_face_dofs(disc->getSurfDisc(0)->getNumSolPtsPerFace()),
   m_matrix(mat)
 {
-  disc->getMesh()->getLocalToGlobalDofs(m_local_dof_to_global);
-  
+  disc->getMesh()->getLocalToGlobalDofs(m_local_dof_to_global); 
 }
 
 
