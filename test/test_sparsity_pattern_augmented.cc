@@ -86,8 +86,6 @@ TEST(SparsityPatternAugmented, Values)
 {
   int mesh_dofs = 3, augmented_dofs = 2;
   bool am_i_last_rank = commRank(MPI_COMM_WORLD) == (commSize(MPI_COMM_WORLD) - 1);
-  std::cout << "commRank = " << commRank(MPI_COMM_WORLD) << ", commSize = " << commSize(MPI_COMM_WORLD) << std::endl;
-  std::cout << std::boolalpha << "am_i_last_rank = " << am_i_last_rank << std::endl;
   auto base_pattern = std::make_shared<SparsityPatternTest>(mesh_dofs);
   auto augmented_pattern = std::make_shared<linear_system::SparsityPatternAugmented>(base_pattern, augmented_dofs, MPI_COMM_WORLD);
 
