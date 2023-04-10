@@ -38,9 +38,12 @@ class SparsityPatternAugmented : public SparsityPattern
     int m_num_augmented_rows;
     MPI_Comm m_comm;
     bool m_am_i_last_rank;
+    PetscInt m_num_global_dofs_base;
 
     std::vector<PetscInt> m_onproc_dofs;
     std::vector<PetscInt> m_remote_dofs;
+    std::vector<PetscInt> m_ghost_dofs_to_global;
+    std::vector<PetscInt> m_ghost_dofs_to_local;
     std::vector<PetscInt> m_owned_dof_to_local;    
 };
 

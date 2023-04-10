@@ -84,7 +84,7 @@ class SparsityPatternTest : public linear_system::SparsityPattern
 
 TEST(SparsityPatternAugmented, Values)
 {
-  int mesh_dofs = 3, augmented_dofs = 2;
+  int mesh_dofs = 3, augmented_dofs = 2, mesh_dofs_total = commSize(MPI_COMM_WORLD) * mesh_dofs;
   bool am_i_last_rank = commRank(MPI_COMM_WORLD) == (commSize(MPI_COMM_WORLD) - 1);
   auto base_pattern = std::make_shared<SparsityPatternTest>(mesh_dofs);
   auto augmented_pattern = std::make_shared<linear_system::SparsityPatternAugmented>(base_pattern, augmented_dofs, MPI_COMM_WORLD);
@@ -104,6 +104,16 @@ TEST(SparsityPatternAugmented, Values)
     std::vector<PetscInt> expected_off_proc_counts = {2, 2, 2, num_dofs_on_other_procs, num_dofs_on_other_procs};
     EXPECT_EQ(augmented_pattern->getOffProcCounts(), expected_off_proc_counts);
 
+    std::vector<PetscInt> ghost_dofs_to_local = base_pattern->getGhostLocalIndices();
+    for (auto& val : ghost_dofs_to_local)
+    { 
+      val += augmented_dofs;
+    }
+    EXPECT_EQ(augmented_pattern->getGhostLocalIndices(), ghost_dofs_to_local);
+
+    std::vector<PetscInt> ghost_dofs_to_global = {666, 666};
+    EXPECT_EQ(augmented_pattern->getGhostGlobalIndices(), ghost_dofs_to_global);
+
     std::vector<PetscInt> owned_to_local_dofs = {0, 1, 2, mesh_dofs + 2, mesh_dofs + 2 + 1};
     EXPECT_EQ(augmented_pattern->getOwnedToLocalInfo(), owned_to_local_dofs);
 
@@ -112,6 +122,13 @@ TEST(SparsityPatternAugmented, Values)
     EXPECT_EQ(augmented_pattern->getNumOwnedDofs(), mesh_dofs);
     EXPECT_EQ(augmented_pattern->getDiagonalCounts(),  std::vector<PetscInt>(3, 1));
     EXPECT_EQ(augmented_pattern->getOffProcCounts(), std::vector<PetscInt>(3, 2 + augmented_dofs));
+
+    std::vector<PetscInt> expected_ghost_local_dofs = {mesh_dofs, mesh_dofs + 1, mesh_dofs + 2, mesh_dofs + 3};
+    EXPECT_EQ(augmented_pattern->getGhostLocalIndices(), expected_ghost_local_dofs);
+
+    std::vector<PetscInt> expected_ghost_global_dofs = {666, 666, mesh_dofs_total, mesh_dofs_total + 1};
+    EXPECT_EQ(augmented_pattern->getGhostGlobalIndices(), expected_ghost_global_dofs);
+
     std::vector<PetscInt> expected_owned_to_local_dofs = {0, 1, 2};   
     EXPECT_EQ(augmented_pattern->getOwnedToLocalInfo(), expected_owned_to_local_dofs);
   }

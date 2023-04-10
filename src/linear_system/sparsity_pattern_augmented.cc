@@ -20,12 +20,16 @@ SparsityPatternAugmented::SparsityPatternAugmented(std::shared_ptr<SparsityPatte
   m_num_augmented_rows(num_augmented_rows),
   m_comm(comm),
   m_am_i_last_rank(commRank(comm) == (commSize(comm) - 1))
-{}
+{
+  PetscInt num_base_dofs = base_pattern->getNumOwnedDofs();
+  MPI_Allreduce(&num_base_dofs, &m_num_global_dofs_base, 1, MPIU_INT, MPI_SUM, m_comm);
+}
 
 PetscInt SparsityPatternAugmented::getNumOwnedDofs() const
 {
   return m_base_pattern->getNumOwnedDofs() + (m_am_i_last_rank ? m_num_augmented_rows : 0);
 }
+
 
 // returns vector giving number of local dofs connected to each dof
 const std::vector<PetscInt>& SparsityPatternAugmented::getDiagonalCounts()
@@ -88,12 +92,44 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getOffProcCountsSym()
 
 const std::vector<PetscInt>& SparsityPatternAugmented::getGhostGlobalIndices()
 {
-  return m_base_pattern->getGhostGlobalIndices();
+  if (!m_am_i_last_rank)
+  {
+    m_ghost_dofs_to_global = m_base_pattern->getGhostGlobalIndices();
+
+    PetscInt dof = m_num_global_dofs_base;
+    for (int i=0; i < m_num_augmented_rows; ++i)
+      m_ghost_dofs_to_global.push_back(dof++);
+
+    return m_ghost_dofs_to_global;
+  } else
+  {
+    return m_base_pattern->getGhostGlobalIndices();
+  }
 }
 
 const std::vector<PetscInt>& SparsityPatternAugmented::getGhostLocalIndices()
 {
-  return m_base_pattern->getGhostLocalIndices();
+  std::cout << "\nEntered getGhostLocalIndices" << std::endl;
+  std::cout << "m_ghost_dofs_to_local.size() = " << m_ghost_dofs_to_local.size() << std::endl;
+  if (m_ghost_dofs_to_local.size() == 0)
+  {
+    if (m_am_i_last_rank)
+    {
+      m_ghost_dofs_to_local = m_base_pattern->getGhostLocalIndices();
+      for (auto& val : m_ghost_dofs_to_local)
+        val += m_num_augmented_rows;
+    } else
+    {
+      m_ghost_dofs_to_local = m_base_pattern->getGhostLocalIndices();
+      std::cout << "base pattern ghost_dofs_to_local = " << m_ghost_dofs_to_local << std::endl;
+      PetscInt dof = m_base_pattern->getNumLocalDofs();
+      for (int i=0; i < m_num_augmented_rows; ++i)
+        m_ghost_dofs_to_local.push_back(dof++);
+    }
+  }
+
+  return m_ghost_dofs_to_local;
+
 }
 
 const std::vector<PetscInt>& SparsityPatternAugmented::getOwnedToLocalInfo()

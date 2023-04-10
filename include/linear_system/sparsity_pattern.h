@@ -13,6 +13,8 @@ class SparsityPattern
 
     virtual PetscInt getNumOwnedDofs() const = 0;
 
+    virtual PetscInt getNumLocalDofs() { return getNumOwnedDofs() + getGhostLocalIndices().size(); }
+
     // returns vector giving number of local dofs connected to each dof
     virtual const std::vector<PetscInt>& getDiagonalCounts() = 0;
 
