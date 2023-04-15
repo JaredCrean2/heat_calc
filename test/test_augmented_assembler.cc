@@ -107,8 +107,8 @@ TEST_F(AugmentedAssemblerTester, Values)
   auto mat = std::make_shared<linear_system::LargeMatrixPetsc>(opts, augmented_pattern);
   auto assembler = std::make_shared<linear_system::AugmentedAssembler>(disc, mat, num_augmented_dofs);
 
-  std::vector<DofInt> local_dofs_to_global;
-  mesh->getLocalToGlobalDofs(local_dofs_to_global);
+  const auto& local_dofs_to_global = augmented_pattern->getLocalToGlobalDofs();
+ // mesh->getLocalToGlobalDofs(local_dofs_to_global);  //TODO: THIS NEEDS TO LIVE IN SPARSITYPATTERN NOW
 
   PetscInt num_owned_dofs = mesh->getNumOwnedDofs() + (am_i_last_rank ? num_augmented_dofs : 0);
   PetscInt num_dofs_total;

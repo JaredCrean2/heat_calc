@@ -5,7 +5,7 @@
 namespace linear_system {
 
 LargeMatrixPetsc::LargeMatrixPetsc(LargeMatrixOptsPetsc opts, std::shared_ptr<SparsityPattern> sparsity_pattern) :
-  LargeMatrix(sparsity_pattern->getNumOwnedDofs(), sparsity_pattern->getNumOwnedDofs()),
+  LargeMatrix(sparsity_pattern->getNumOwnedDofs(), sparsity_pattern->getNumOwnedDofs(), sparsity_pattern),
   m_opts(opts),
   m_owned_dof_to_local(sparsity_pattern->getOwnedToLocalInfo()),
   m_ghost_dofs_to_local(sparsity_pattern->getGhostLocalIndices())
@@ -156,6 +156,9 @@ void LargeMatrixPetsc::matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 
   assertAlways(x.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
   
   copyVec(x, m_x, true);
+
+  VecView(m_x, PETSC_VIEWER_STDOUT_WORLD);
+
   MatMult(m_A, m_x, m_b);
   copyVec(m_b, b, false);
 }

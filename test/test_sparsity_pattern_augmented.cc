@@ -54,6 +54,12 @@ class SparsityPatternTest : public linear_system::SparsityPattern
       return m_owned_dof_to_local;
     }
 
+    const std::vector<PetscInt>& getLocalToGlobalDofs() override
+    {
+      return m_local_dof_to_global;
+    }
+
+
   private:
     void setup()
     {
@@ -62,12 +68,14 @@ class SparsityPatternTest : public linear_system::SparsityPattern
         m_onproc_dofs.push_back(1);
         m_remote_dofs.push_back(2);
         m_owned_dof_to_local.push_back(i);
+        m_local_dof_to_global.push_back(i);
       }
 
       for (int i=0; i < 2; ++i)
       {
         m_ghost_global_dofs.push_back(666);
         m_ghost_onproc_dofs.push_back(m_num_owned_dofs + i);
+        m_local_dof_to_global.push_back(666);
       }
     }
 
@@ -76,7 +84,8 @@ class SparsityPatternTest : public linear_system::SparsityPattern
     std::vector<PetscInt> m_remote_dofs;
     std::vector<PetscInt> m_ghost_global_dofs;
     std::vector<PetscInt> m_ghost_onproc_dofs;
-    std::vector<PetscInt> m_owned_dof_to_local;       
+    std::vector<PetscInt> m_owned_dof_to_local; 
+    std::vector<PetscInt> m_local_dof_to_global;      
 };
 
 }
@@ -117,6 +126,9 @@ TEST(SparsityPatternAugmented, Values)
     std::vector<PetscInt> owned_to_local_dofs = {0, 1, 2, mesh_dofs + 2, mesh_dofs + 2 + 1};
     EXPECT_EQ(augmented_pattern->getOwnedToLocalInfo(), owned_to_local_dofs);
 
+    std::vector<PetscInt> local_to_global_dofs = {0, 1, 2, mesh_dofs_total, mesh_dofs_total + 1, 666, 666};
+    EXPECT_EQ(augmented_pattern->getLocalToGlobalDofs(), local_to_global_dofs);
+
   } else
   {
     EXPECT_EQ(augmented_pattern->getNumOwnedDofs(), mesh_dofs);
@@ -131,5 +143,8 @@ TEST(SparsityPatternAugmented, Values)
 
     std::vector<PetscInt> expected_owned_to_local_dofs = {0, 1, 2};   
     EXPECT_EQ(augmented_pattern->getOwnedToLocalInfo(), expected_owned_to_local_dofs);
+
+    std::vector<PetscInt> local_to_global_dofs = {0, 1, 2, 666, 666, mesh_dofs_total, mesh_dofs_total + 1};
+    EXPECT_EQ(augmented_pattern->getLocalToGlobalDofs(), local_to_global_dofs);    
   }
 }

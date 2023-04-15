@@ -12,7 +12,8 @@ class SparsityPatternTest : public linear_system::SparsityPattern
     explicit SparsityPatternTest(int size) :
       m_local(size, size),
       m_offproc(size, size),
-      m_owned_to_local_dofs(size)
+      m_owned_to_local_dofs(size),
+      m_local_dof_to_global(size)
     {
       for (int i=0; i < size; ++i)
         m_owned_to_local_dofs[i] = i;
@@ -34,11 +35,15 @@ class SparsityPatternTest : public linear_system::SparsityPattern
 
     const std::vector<PetscInt>& getOwnedToLocalInfo() override { return m_owned_to_local_dofs; };
 
+    const std::vector<PetscInt>& getLocalToGlobalDofs() override { return m_local_dof_to_global; }
+
+
   private:
     std::vector<PetscInt> m_local;
     std::vector<PetscInt> m_offproc;
     std::vector<PetscInt> m_ghost_dofs;
     std::vector<PetscInt> m_owned_to_local_dofs;
+    std::vector<PetscInt> m_local_dof_to_global;
 };
 
 linear_system::LargeMatrixOptsPetsc get_options()

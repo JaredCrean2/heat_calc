@@ -41,7 +41,6 @@ class Assembler
   private:
     DiscPtr m_disc;
     DofNumberingPtr m_dof_nums;
-    std::vector<DofInt> m_local_dof_to_global;
     Real m_alpha;
     std::vector<DofInt> m_vol_dofs;
     std::vector<DofInt> m_face_dofs;

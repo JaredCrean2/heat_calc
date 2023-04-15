@@ -66,6 +66,11 @@ class SparsityPatternMesh : public SparsityPattern
       return m_owned_dof_to_local;
     }
 
+    const std::vector<PetscInt>& getLocalToGlobalDofs() override
+    {
+      return m_local_to_global_dofs;
+    }
+
 
   private:
     void computePattern(bool symmetric);
@@ -82,6 +87,7 @@ class SparsityPatternMesh : public SparsityPattern
     std::vector<PetscInt> m_ghost_global_dofs;
     std::vector<PetscInt> m_ghost_onproc_dofs;
     std::vector<PetscInt> m_owned_dof_to_local;
+    std::vector<PetscInt> m_local_to_global_dofs;
 };
 
 } // namespace

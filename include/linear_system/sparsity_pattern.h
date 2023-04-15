@@ -32,6 +32,8 @@ class SparsityPattern
     virtual const std::vector<PetscInt>& getGhostLocalIndices() = 0;
 
     virtual const std::vector<PetscInt>& getOwnedToLocalInfo() = 0;
+
+    virtual const std::vector<PetscInt>& getLocalToGlobalDofs() = 0;
 };
 
 } // namespace

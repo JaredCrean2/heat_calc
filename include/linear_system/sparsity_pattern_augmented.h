@@ -33,6 +33,8 @@ class SparsityPatternAugmented : public SparsityPattern
 
     const std::vector<PetscInt>& getOwnedToLocalInfo() override;
 
+    const std::vector<PetscInt>& getLocalToGlobalDofs() override;
+
   private:
     std::shared_ptr<SparsityPattern> m_base_pattern;
     int m_num_augmented_rows;
@@ -44,7 +46,8 @@ class SparsityPatternAugmented : public SparsityPattern
     std::vector<PetscInt> m_remote_dofs;
     std::vector<PetscInt> m_ghost_dofs_to_global;
     std::vector<PetscInt> m_ghost_dofs_to_local;
-    std::vector<PetscInt> m_owned_dof_to_local;    
+    std::vector<PetscInt> m_owned_dof_to_local; 
+    std::vector<PetscInt> m_local_dof_to_global;   
 };
 
 }  // namespace

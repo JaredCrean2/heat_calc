@@ -3,6 +3,7 @@
 
 #include "large_matrix.h"
 #include "bla_wrapper.h"
+#include "linear_system/sparsity_pattern_dense.h"
 
 #include <ostream>
 
@@ -12,7 +13,7 @@ class LargeMatrixDense : public LargeMatrix
 {
   public:
     LargeMatrixDense(DofInt mlocal, DofInt nlocal, LargeMatrixOpts opts) :
-      LargeMatrix(mlocal, nlocal),
+      LargeMatrix(mlocal, nlocal, std::make_shared<SparsityPatternDense>(mlocal)),
       m_opts(opts),
       m_matrix(mlocal * nlocal)
     {}

@@ -3,6 +3,7 @@
 
 #include "ProjectDefs.h"
 #include "discretization/disc_vector.h"
+#include "linear_system/sparsity_pattern.h"
 #include "utils/error_handling.h"
 
 namespace linear_system {
@@ -20,9 +21,10 @@ struct LargeMatrixOpts
 class LargeMatrix
 {
   public:
-    LargeMatrix(DofInt m_local, DofInt n_local) :
+    LargeMatrix(DofInt m_local, DofInt n_local, std::shared_ptr<SparsityPattern> sparsity) :
       m_mlocal(m_local),
       m_nlocal(n_local),
+      m_sparsity_pattern(sparsity),
       m_is_factored(false)
     {}
 
@@ -37,6 +39,8 @@ class LargeMatrix
     DofInt getNLocal() const { return m_nlocal; }
 
     std::array<DofInt, 2> getSize() const { return {m_mlocal, m_nlocal}; }
+
+    std::shared_ptr<SparsityPattern> getSparsityPattern() const { return m_sparsity_pattern; }
 
     void zeroMatrix()
     {
@@ -125,6 +129,7 @@ class LargeMatrix
   private:
     DofInt m_mlocal;
     DofInt m_nlocal;
+    std::shared_ptr<SparsityPattern> m_sparsity_pattern;
     bool m_is_factored;
 };
 

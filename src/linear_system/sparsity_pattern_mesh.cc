@@ -72,6 +72,11 @@ void SparsityPatternMesh::computePattern(bool symmetric)
     m_computed_symmetric = true;
   else
     m_computed_nonsymmetric = true;
+
+
+  std::vector<DofInt> local_to_global_dofs;
+  m_mesh->getLocalToGlobalDofs(local_to_global_dofs);
+  m_local_to_global_dofs = local_to_global_dofs;
 }
 
 // gives a vector v such that v[local_dof] = owned_dof, or -1 if dof is not owned

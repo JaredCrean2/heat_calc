@@ -152,4 +152,48 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getOwnedToLocalInfo()
   }
 }
 
+const std::vector<PetscInt>& SparsityPatternAugmented::getLocalToGlobalDofs()
+{
+  if (m_local_dof_to_global.size() == 0)
+  {
+    const auto& local_dof_to_global_base = m_base_pattern->getLocalToGlobalDofs();
+    m_local_dof_to_global.reserve(local_dof_to_global_base.size() + m_num_augmented_rows);
+
+    std::cout << "base local_dof_to_global = " << local_dof_to_global_base << std::endl;
+
+    for (size_t i=0; i < m_base_pattern->getNumOwnedDofs(); ++i)
+      m_local_dof_to_global.push_back(local_dof_to_global_base[i]);
+
+    std::cout << "after copying owned dofs, local_dof_to_global = " << m_local_dof_to_global << std::endl;
+
+    if (m_am_i_last_rank)
+    {
+      PetscInt dof = m_num_global_dofs_base;
+      for (int i=0; i < m_num_augmented_rows; ++i)
+        m_local_dof_to_global.push_back(dof++);
+
+      std::cout << "after copying augmented dofs, local_dof_to_global = " << m_local_dof_to_global << std::endl;
+
+      const auto& ghost_global_indices_base = m_base_pattern->getGhostGlobalIndices();
+      for (size_t i=0; i < ghost_global_indices_base.size(); ++i)
+        m_local_dof_to_global.push_back(ghost_global_indices_base[i]);
+
+      std::cout << "after copying ghost dofs, local_dof_to_global = " << m_local_dof_to_global << std::endl;
+    } else
+    {
+      const auto& ghost_global_indices_base = m_base_pattern->getGhostGlobalIndices();
+      for (size_t i=0; i < ghost_global_indices_base.size(); ++i)
+        m_local_dof_to_global.push_back(ghost_global_indices_base[i]);    
+
+      PetscInt dof = m_num_global_dofs_base;
+      for (int i=0; i < m_num_augmented_rows; ++i)
+        m_local_dof_to_global.push_back(dof++);
+    }
+  }
+
+
+  return m_local_dof_to_global;
+}
+
+
 }  // namespace

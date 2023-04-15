@@ -48,16 +48,16 @@ class LargeMatrixPetsc : public LargeMatrix
     // dofs are *global* dofs
     void assembleValues_impl(const std::vector<DofInt>& dofs_rows, const std::vector<DofInt>& dofs_cols, const ArrayType<Real, 2>& jac) override
     {
-      std::cout << "\nassembling into matrix" << std::endl;
-      std::cout << "size = " << dofs_rows.size() << ", " << dofs_cols.size() << std::endl;
-      for (size_t i=0; i < dofs_rows.size(); ++i)
-      {
-        std::cout << "i = " << dofs_rows[i] << ": ";
-        for (size_t j=0; j < dofs_cols.size(); ++j)
-          std::cout << "j = " << dofs_cols[j] << ", val = " << jac[i][j] << "  ";
-        std::cout << std::endl;
-
-      }
+      //std::cout << "\nassembling into matrix" << std::endl;
+      //std::cout << "size = " << dofs_rows.size() << ", " << dofs_cols.size() << std::endl;
+      //for (size_t i=0; i < dofs_rows.size(); ++i)
+      //{
+      //  std::cout << "i = " << dofs_rows[i] << ": ";
+      //  for (size_t j=0; j < dofs_cols.size(); ++j)
+      //    std::cout << "j = " << dofs_cols[j] << ", val = " << jac[i][j] << "  ";
+      //  std::cout << std::endl;
+//
+      //}
       MatSetValues(m_A, dofs_rows.size(), dofs_rows.data(), dofs_cols.size(), dofs_cols.data(), jac.data(), ADD_VALUES);
     }
 
