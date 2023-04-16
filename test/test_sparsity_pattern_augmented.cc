@@ -126,7 +126,7 @@ TEST(SparsityPatternAugmented, Values)
     std::vector<PetscInt> owned_to_local_dofs = {0, 1, 2, mesh_dofs + 2, mesh_dofs + 2 + 1};
     EXPECT_EQ(augmented_pattern->getOwnedToLocalInfo(), owned_to_local_dofs);
 
-    std::vector<PetscInt> local_to_global_dofs = {0, 1, 2, mesh_dofs_total, mesh_dofs_total + 1, 666, 666};
+    std::vector<PetscInt> local_to_global_dofs = {0, 1, 2, 666, 666, mesh_dofs_total, mesh_dofs_total + 1};
     EXPECT_EQ(augmented_pattern->getLocalToGlobalDofs(), local_to_global_dofs);
 
   } else
