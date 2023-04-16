@@ -223,16 +223,18 @@ TEST_F(AugmentedAssemblerTester, ColumnValues)
   PetscInt num_dofs_total;
   MPI_Allreduce(&num_owned_dofs, &num_dofs_total, 1, MPIU_INT, MPI_SUM, MPI_COMM_WORLD);  
 
+  const auto& owned_dof_to_local = augmented_pattern->getOwnedToLocalInfo();
   for (int augmented_row=0; augmented_row < num_augmented_dofs; ++augmented_row)
   {
     std::cout << "number of owned dofs = " << mesh->getNumOwnedDofs() << std::endl;
     std::cout << "size of localToGlobal dofs = " << local_dofs_to_global.size() << std::endl;
     std::vector<DofInt> dofs(mesh->getNumOwnedDofs());
     std::vector<Real> vals(mesh->getNumOwnedDofs());
-    for (size_t i=0; i < local_dofs_to_global.size(); ++i)
+    for (size_t i=0; i < mesh->getNumOwnedDofs(); ++i)
     {
-      dofs[i] = i;
-      vals[i] = local_dofs_to_global[i] + augmented_row;
+      PetscInt local_dof = owned_dof_to_local[i];
+      dofs[i] = local_dof;
+      vals[i] = local_dofs_to_global[local_dof] + augmented_row;
     }
 
     std::cout << "assembling augmented row of size " << dofs.size() << std::endl;
@@ -244,30 +246,34 @@ TEST_F(AugmentedAssemblerTester, ColumnValues)
   assembler->finishAssembly();
   mat->finishMatrixAssembly();
 
-  //TODO: get this from SparsityPattern
-  int num_dofs_local = mesh->getNumDofs();
-  if (am_i_last_rank)
-    num_dofs_local += num_augmented_dofs;
+  mat->printToStdout();
 
+
+  int num_dofs_local = augmented_pattern->getNumLocalDofs();
   ArrayType<Real, 1> x(boost::extents[num_dofs_local]), b(boost::extents[num_dofs_local]);
-
   for (int augmented_row=0; augmented_row < num_augmented_dofs; ++augmented_row)
   {
     std::fill(x.begin(), x.end(), 0);
     std::fill(b.begin(), b.end(), 0);
 
     if (am_i_last_rank)
-      x[num_owned_dofs - num_augmented_dofs + augmented_row] = 1;
+    {
+      PetscInt local_dof = owned_dof_to_local[num_owned_dofs - num_augmented_dofs + augmented_row];
+      PetscInt global_dof = local_dofs_to_global[local_dof];
+
+
+      std::cout << "x[" << local_dof << "] = 1, local dof = " << local_dof << ", global_dof = " << global_dof << std::endl;
+      x[local_dof] = 1;
+    }
 
     mat->matVec(x, b);
 
-    for (int i=0; i < augmented_pattern->getNumOwnedDofs(); ++i)
+    for (int i=0; i < mesh->getNumOwnedDofs(); ++i)
     {
-      const auto& owned_dof_to_local = augmented_pattern->getOwnedToLocalInfo();
       PetscInt local_dof = owned_dof_to_local[i];
       PetscInt global_dof = local_dofs_to_global[local_dof];
 
-      EXPECT_EQ(x[i], global_dof + augmented_row);
+      EXPECT_EQ(b[local_dof], global_dof + augmented_row);
     }
   }
 
