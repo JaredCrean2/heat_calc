@@ -18,11 +18,14 @@ PetscInt SparsityPatternMesh::getNumOwnedDofs() const
 
 void SparsityPatternMesh::computePattern(bool symmetric)
 {
+  std::cout << std::boolalpha;
+  std::cout << "computing pattern, symmetric = " << symmetric << std::endl;
+
   auto& onproc_dofs  = symmetric ? m_onproc_dofs_sym : m_onproc_dofs;
   auto& remote_dofs = symmetric ? m_remote_dofs_sym : m_remote_dofs;
 
-  onproc_dofs.resize(m_mesh->getNumDofs());
-  remote_dofs.resize(m_mesh->getNumDofs());
+  onproc_dofs.resize(m_mesh->getNumOwnedDofs());
+  remote_dofs.resize(m_mesh->getNumOwnedDofs());
   std::fill(onproc_dofs.begin(), onproc_dofs.end(), -1);
 
   std::vector<DofInt> local_to_owned_dof;
@@ -61,6 +64,7 @@ void SparsityPatternMesh::computePattern(bool symmetric)
                 local_to_owned_dof[dof] == -1 ? offproc_count++ : onproc_count++;
           }
 
+          std::cout << "owned dof " << owned_dof_num << " has " << onproc_count << " onproc dofs and " << offproc_count << " offproc dofs" << std::endl;
           onproc_dofs[owned_dof_num] = onproc_count;
           remote_dofs[owned_dof_num] = offproc_count;
         }

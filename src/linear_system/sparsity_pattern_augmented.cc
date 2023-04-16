@@ -73,7 +73,7 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getOffProcCounts()
     if (m_am_i_last_rank)
     {
       for (int i=0; i < m_num_augmented_rows; ++i)
-        m_remote_dofs.push_back(num_off_proc_dofs_on_last_proc);  //TODO: this isn't right: should be number of owned dofs on all other procs
+        m_remote_dofs.push_back(num_off_proc_dofs_on_last_proc);
     } else    
     {
       for (auto& val : m_remote_dofs)
@@ -156,7 +156,13 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getLocalToGlobalDofs()
 {
   if (m_local_dof_to_global.size() == 0)
   {
-    const auto& local_dof_to_global_base = m_base_pattern->getLocalToGlobalDofs();
+    m_local_dof_to_global = m_base_pattern->getLocalToGlobalDofs();
+
+    PetscInt dof = m_num_global_dofs_base;
+    for (int i=0; i < m_num_augmented_rows; ++i)
+      m_local_dof_to_global.push_back(dof++);    
+
+    /*
     m_local_dof_to_global.reserve(local_dof_to_global_base.size() + m_num_augmented_rows);
 
     std::cout << "base local_dof_to_global = " << local_dof_to_global_base << std::endl;
@@ -189,6 +195,7 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getLocalToGlobalDofs()
       for (int i=0; i < m_num_augmented_rows; ++i)
         m_local_dof_to_global.push_back(dof++);
     }
+    */
   }
 
 

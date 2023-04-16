@@ -15,7 +15,7 @@ class AugmentedAssembler
   public:
     AugmentedAssembler(DiscPtr disc, LargeMatrixPtr mat, int num_augmented) :
       m_comm(MPI_COMM_WORLD),
-      m_am_i_last_rank(commRank(m_comm) == commSize(m_comm)-1),
+      m_am_i_last_rank(commRank(m_comm) == (commSize(m_comm)-1)),
       m_num_augmented(num_augmented),
       m_mat(mat),
       m_dofs_rows(num_augmented),
@@ -147,6 +147,9 @@ class AugmentedAssembler
 
     void startRecvs()
     {
+      if (!m_am_i_last_rank)
+        return;
+        
       int comm_size = commSize(m_comm);
 
       for (int rank=0; rank < comm_size; ++rank)

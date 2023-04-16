@@ -102,8 +102,8 @@ class LargeMatrix
     // compute b = A * x, overwriting b
     void matVec(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
     {
-      assert(x.shape()[0] == getNLocal());
-      assert(b.shape()[0] == getMLocal());
+      assert(x.shape()[0] >= getNLocal());
+      assert(b.shape()[0] >= getMLocal());
       matVec_impl(x, b);
     }
 
