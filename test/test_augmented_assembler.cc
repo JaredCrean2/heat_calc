@@ -9,15 +9,6 @@
 
 namespace {
 
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
-{
-  for (size_t i=0; i < v.size(); ++i)
-    os << "index " << i << " = " << v[i] << std::endl;
-
-  return os;
-}
-
 class SparsityPatternTest : public linear_system::SparsityPattern
 {
   public:
@@ -117,18 +108,7 @@ TEST_F(AugmentedAssemblerTester, RowValues)
   auto mat = std::make_shared<linear_system::LargeMatrixPetsc>(opts, augmented_pattern);
   auto assembler = std::make_shared<linear_system::AugmentedAssembler>(disc, mat, num_augmented_dofs);
 
-  std::cout << "number of owned dofs = " << augmented_pattern->getNumOwnedDofs() << std::endl;
-  std::cout << "number of local dofs = " << augmented_pattern->getNumLocalDofs() << std::endl;
-  std::cout << "number of local non-zeros per row = " << augmented_pattern->getDiagonalCounts() << std::endl;
-  std::cout << "number of off proc non-zeros per row = " << augmented_pattern->getOffProcCounts() << std::endl;
-
-  mesh->writeVtkFiles("mesh_test");
-
   const auto& local_dofs_to_global = augmented_pattern->getLocalToGlobalDofs();
-  std::cout << "owned dofs to local = " << augmented_pattern->getOwnedToLocalInfo() << std::endl;
-  std::cout << "local dofs to global = " << local_dofs_to_global << std::endl;
-  std::cout << "base pattern local dofs to global = " << base_pattern->getLocalToGlobalDofs() << std::endl;
- // mesh->getLocalToGlobalDofs(local_dofs_to_global);  //TODO: THIS NEEDS TO LIVE IN SPARSITYPATTERN NOW
 
   PetscInt num_owned_dofs = mesh->getNumOwnedDofs() + (am_i_last_rank ? num_augmented_dofs : 0);
   PetscInt num_dofs_total;
@@ -137,8 +117,6 @@ TEST_F(AugmentedAssemblerTester, RowValues)
   const auto& owned_dof_to_local = augmented_pattern->getOwnedToLocalInfo();
   for (int augmented_row=0; augmented_row < num_augmented_dofs; ++augmented_row)
   {
-    std::cout << "number of owned dofs = " << mesh->getNumOwnedDofs() << std::endl;
-    std::cout << "size of localToGlobal dofs = " << local_dofs_to_global.size() << std::endl;
     std::vector<DofInt> dofs(mesh->getNumOwnedDofs());
     std::vector<Real> vals(mesh->getNumOwnedDofs());
     for (size_t i=0; i < mesh->getNumOwnedDofs(); ++i)
@@ -147,8 +125,6 @@ TEST_F(AugmentedAssemblerTester, RowValues)
       dofs[i] = local_dof;
       vals[i] = local_dofs_to_global[local_dof] + augmented_row;
     }
-
-    std::cout << "assembling augmented row of size " << dofs.size() << std::endl;
 
     assembler->assembleValuesRow(augmented_row, dofs, vals);
   }
@@ -167,39 +143,26 @@ TEST_F(AugmentedAssemblerTester, RowValues)
   assembler->finishAssembly();
   mat->finishMatrixAssembly();
 
-  mat->printToStdout();
-
-
-  
   int num_dofs_local = augmented_pattern->getNumLocalDofs();;
   ArrayType<Real, 1> x(boost::extents[num_dofs_local]), b(boost::extents[num_dofs_local]);
 
   for (PetscInt i=0; i < num_dofs_total; ++i)
   {
-    std::cout << "\ni = " << i << std::endl;
     std::fill(x.begin(), x.end(), 0);
     std::fill(b.begin(), b.end(), 0);
 
     auto it = std::find(local_dofs_to_global.begin(), local_dofs_to_global.end(), i);
-    std::cout << "local_dofs_to_global = " << local_dofs_to_global << std::endl;
     if (it != local_dofs_to_global.end())
     {
       int local_dof = std::distance(local_dofs_to_global.begin(), it);
-      std::cout << "x[" << local_dof << "] = 1" << " (global dof " << local_dofs_to_global[local_dof] << ")" << std::endl;
       x[local_dof] = 1;
     }
 
     mat->matVec(x, b);
 
-    std::cout << "local_dofs_to_global.size = " << local_dofs_to_global.size() << std::endl;
-    for (size_t i=0; i < num_dofs_local; ++i)
-      if (b[i] != 0)
-        std::cout << "b[" << i << "] = " << b[i]  << " (global dof " << local_dofs_to_global[i] << ")" << std::endl;
-
     for (int augmented_dof=0; augmented_dof < num_augmented_dofs; ++augmented_dof)
       if (am_i_last_rank)
       {
-        std::cout << "checking b idx " << num_dofs_local - num_augmented_dofs + augmented_dof << std::endl;
         EXPECT_NEAR(b[num_dofs_local - num_augmented_dofs + augmented_dof], i + augmented_dof, 1e-12);
       }
   }
@@ -217,7 +180,6 @@ TEST_F(AugmentedAssemblerTester, ColumnValues)
   auto assembler = std::make_shared<linear_system::AugmentedAssembler>(disc, mat, num_augmented_dofs);
 
   const auto& local_dofs_to_global = augmented_pattern->getLocalToGlobalDofs();
- // mesh->getLocalToGlobalDofs(local_dofs_to_global);  //TODO: THIS NEEDS TO LIVE IN SPARSITYPATTERN NOW
 
   PetscInt num_owned_dofs = mesh->getNumOwnedDofs() + (am_i_last_rank ? num_augmented_dofs : 0);
   PetscInt num_dofs_total;
@@ -226,8 +188,6 @@ TEST_F(AugmentedAssemblerTester, ColumnValues)
   const auto& owned_dof_to_local = augmented_pattern->getOwnedToLocalInfo();
   for (int augmented_row=0; augmented_row < num_augmented_dofs; ++augmented_row)
   {
-    std::cout << "number of owned dofs = " << mesh->getNumOwnedDofs() << std::endl;
-    std::cout << "size of localToGlobal dofs = " << local_dofs_to_global.size() << std::endl;
     std::vector<DofInt> dofs(mesh->getNumOwnedDofs());
     std::vector<Real> vals(mesh->getNumOwnedDofs());
     for (size_t i=0; i < mesh->getNumOwnedDofs(); ++i)
@@ -237,17 +197,12 @@ TEST_F(AugmentedAssemblerTester, ColumnValues)
       vals[i] = local_dofs_to_global[local_dof] + augmented_row;
     }
 
-    std::cout << "assembling augmented row of size " << dofs.size() << std::endl;
-
     assembler->assembleValuesColumn(dofs, augmented_row, vals);
   }
 
   assembler->startAssembly();
   assembler->finishAssembly();
   mat->finishMatrixAssembly();
-
-  mat->printToStdout();
-
 
   int num_dofs_local = augmented_pattern->getNumLocalDofs();
   ArrayType<Real, 1> x(boost::extents[num_dofs_local]), b(boost::extents[num_dofs_local]);
@@ -259,10 +214,6 @@ TEST_F(AugmentedAssemblerTester, ColumnValues)
     if (am_i_last_rank)
     {
       PetscInt local_dof = owned_dof_to_local[num_owned_dofs - num_augmented_dofs + augmented_row];
-      PetscInt global_dof = local_dofs_to_global[local_dof];
-
-
-      std::cout << "x[" << local_dof << "] = 1, local dof = " << local_dof << ", global_dof = " << global_dof << std::endl;
       x[local_dof] = 1;
     }
 

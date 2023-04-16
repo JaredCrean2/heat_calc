@@ -37,10 +37,8 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getDiagonalCounts()
   if (m_onproc_dofs.size() == 0)
   {
     m_onproc_dofs = m_base_pattern->getDiagonalCounts();
-    std::cout << "base onproc dofs = " << m_onproc_dofs << std::endl;
     if (m_am_i_last_rank)
     {
-      std::cout << "I am the last rank" << std::endl;
       int num_owned_dofs_base = m_onproc_dofs.size();
       for (auto& val : m_onproc_dofs)
         val += m_num_augmented_rows;
@@ -50,7 +48,6 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getDiagonalCounts()
     }
   }
 
-  std::cout << "augmented dofs = " << m_onproc_dofs << std::endl;
   return m_onproc_dofs;
 }
 
@@ -109,8 +106,6 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getGhostGlobalIndices()
 
 const std::vector<PetscInt>& SparsityPatternAugmented::getGhostLocalIndices()
 {
-  std::cout << "\nEntered getGhostLocalIndices" << std::endl;
-  std::cout << "m_ghost_dofs_to_local.size() = " << m_ghost_dofs_to_local.size() << std::endl;
   if (m_ghost_dofs_to_local.size() == 0)
   {
     if (m_am_i_last_rank)
@@ -121,7 +116,6 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getGhostLocalIndices()
     } else
     {
       m_ghost_dofs_to_local = m_base_pattern->getGhostLocalIndices();
-      std::cout << "base pattern ghost_dofs_to_local = " << m_ghost_dofs_to_local << std::endl;
       PetscInt dof = m_base_pattern->getNumLocalDofs();
       for (int i=0; i < m_num_augmented_rows; ++i)
         m_ghost_dofs_to_local.push_back(dof++);
@@ -161,41 +155,6 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getLocalToGlobalDofs()
     PetscInt dof = m_num_global_dofs_base;
     for (int i=0; i < m_num_augmented_rows; ++i)
       m_local_dof_to_global.push_back(dof++);    
-
-    /*
-    m_local_dof_to_global.reserve(local_dof_to_global_base.size() + m_num_augmented_rows);
-
-    std::cout << "base local_dof_to_global = " << local_dof_to_global_base << std::endl;
-
-    for (size_t i=0; i < m_base_pattern->getNumOwnedDofs(); ++i)
-      m_local_dof_to_global.push_back(local_dof_to_global_base[i]);
-
-    std::cout << "after copying owned dofs, local_dof_to_global = " << m_local_dof_to_global << std::endl;
-
-    if (m_am_i_last_rank)
-    {
-      PetscInt dof = m_num_global_dofs_base;
-      for (int i=0; i < m_num_augmented_rows; ++i)
-        m_local_dof_to_global.push_back(dof++);
-
-      std::cout << "after copying augmented dofs, local_dof_to_global = " << m_local_dof_to_global << std::endl;
-
-      const auto& ghost_global_indices_base = m_base_pattern->getGhostGlobalIndices();
-      for (size_t i=0; i < ghost_global_indices_base.size(); ++i)
-        m_local_dof_to_global.push_back(ghost_global_indices_base[i]);
-
-      std::cout << "after copying ghost dofs, local_dof_to_global = " << m_local_dof_to_global << std::endl;
-    } else
-    {
-      const auto& ghost_global_indices_base = m_base_pattern->getGhostGlobalIndices();
-      for (size_t i=0; i < ghost_global_indices_base.size(); ++i)
-        m_local_dof_to_global.push_back(ghost_global_indices_base[i]);    
-
-      PetscInt dof = m_num_global_dofs_base;
-      for (int i=0; i < m_num_augmented_rows; ++i)
-        m_local_dof_to_global.push_back(dof++);
-    }
-    */
   }
 
 

@@ -156,9 +156,6 @@ void LargeMatrixPetsc::matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 
   assertAlways(x.shape()[0] == m_owned_dof_to_local.size() + m_ghost_dofs_to_local.size(), "vector must be a local (owned + ghost) vector");
   
   copyVec(x, m_x, true);
-
-  VecView(m_x, PETSC_VIEWER_STDOUT_WORLD);
-
   MatMult(m_A, m_x, m_b);
   copyVec(m_b, b, false);
 }
@@ -175,8 +172,6 @@ void LargeMatrixPetsc::copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out, bo
 
   PetscScalar* vec_p;
   VecGetArray(vec_out_local, &vec_p);
-  //int len = vec_in.shape()[0];
-  //std::copy(&(vec_in[0]), &(vec_in[0]) + len, vec_p);
   for (size_t owned_dof=0; owned_dof < m_owned_dof_to_local.size(); ++owned_dof)
   {
     auto local_dof = m_owned_dof_to_local[owned_dof];

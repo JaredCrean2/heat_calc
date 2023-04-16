@@ -69,16 +69,11 @@ class AugmentedAssembler
       assert(augmented_row >= 0 && augmented_row < m_num_augmented);
       assert(vals.size() == column_local_dofs.size());
 
-      std::cout << "assembling augmented row " << augmented_row << ", number of columns = " << column_local_dofs.size() << std::endl;
-
       for (size_t i=0; i < vals.size(); ++i) 
       {
         m_dofs_rows[augmented_row].push_back(m_local_dof_to_global[column_local_dofs[i]]);
         m_vals_rows[augmented_row].push_back(vals[i]);
-        std::cout << "dof " << m_dofs_rows[augmented_row].back() << ", val = " << m_vals_rows[augmented_row].back() << std::endl;
       }
-
-      std::cout << "size of dofs, vals = " << m_dofs_rows[augmented_row].size() << ", " << m_vals_rows[augmented_row].size() << std::endl;
     }
 
     void assembleAugmentedValuesDiag(const std::vector<DofInt>& augmented_rows, const std::vector<DofInt>& augmented_columns,
@@ -171,7 +166,6 @@ class AugmentedAssembler
 
     void finishRecvs()
     {
-      std::cout << "finishing receives" << std::endl;
       int comm_size = commSize(m_comm);
 
       for (int rank=0; rank < comm_size; ++rank)
@@ -184,9 +178,6 @@ class AugmentedAssembler
         for (int i=0; i < m_num_augmented; ++i)
         {
           row_dofs[0] = i + m_num_mesh_dofs;
-
-          std::cout << "augmented row " << i << ", dof = " << row_dofs[0] << std::endl;
-          std::cout << "m_num_mesh_dofs = " << m_num_mesh_dofs << std::endl;
 
           int nvals = m_recv_vals_rows[rank][i].size();
           ArrayType<Real, 2> vals(boost::extents[1][nvals]);
@@ -210,27 +201,17 @@ class AugmentedAssembler
     DofInt m_num_mesh_dofs;
     LargeMatrixPtr m_mat;
     std::vector<DofInt> m_local_dof_to_global;
-    
-    //std::vector<std::vector<DofInt>> m_dofs_columns;
-    //std::vector<std::vector<Real>> m_vals_columns;
-    //std::vector<MPI_Request> m_dofs_columns_reqs;
-    //std::vector<MPI_Request> m_vals_columns_reqs;
 
     std::vector<std::vector<DofInt>> m_dofs_rows;
     std::vector<std::vector<Real>> m_vals_rows;
     std::vector<MPI_Request> m_dofs_rows_reqs;
     std::vector<MPI_Request> m_vals_rows_reqs;
 
-    //std::vector<int> m_recv_counts_columns;
     std::vector<int> m_recv_counts_rows;
 
-    //std::vector<std::vector<std::vector<DofInt>>> m_recv_dofs_columns;
-    //std::vector<std::vector<std::vector<Real>>>   m_recv_vals_columns;
     std::vector<std::vector<std::vector<DofInt>>> m_recv_dofs_rows;
     std::vector<std::vector<std::vector<Real>>>   m_recv_vals_rows;
 
-    //std::vector<std::vector<MPI_Request>> m_recv_dofs_columns_reqs;
-    //std::vector<std::vector<MPI_Request>> m_recv_vals_columns_reqs;
     std::vector<std::vector<MPI_Request>> m_recv_dofs_rows_reqs;
     std::vector<std::vector<MPI_Request>> m_recv_vals_rows_reqs;
 
