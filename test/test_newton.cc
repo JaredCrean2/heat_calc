@@ -183,6 +183,25 @@ class AuxiliaryEquationsCoupledBlock : public AuxiliaryEquations
         b[0] = m_c * x[0];
     }
 
+    void computeAuxiliaryJacobianDiagonalBlock(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                               Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "not supported");
+    }                                               
+
+    // compute the block that couples the finite element jacobian to the jth auxiliary block
+    void computeFiniteElementJacobianOffDiagonallBlock(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                       Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "not supported");
+    }                                                       
+    // assembles block that couples iblock to jblock
+    void computeAuxiliaryJacobianOffDiagonalBlock(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                          Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "not supported");
+    }                                                           
+
   private:
     DiscPtr m_disc;
     AuxiliaryEquationsJacobiansPtr m_jacs;

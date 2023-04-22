@@ -10,6 +10,7 @@
 #include "physics/heat/environment_interface.h"
 #include "physics/heat/solar_position_calculator.h"
 #include "physics/heat/window_conduction_model.h"
+#include "test_helper.h"
 
 namespace {
 
@@ -58,7 +59,6 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
 
 void test_forward_derivative(std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_updator, DiscVectorPtr sol_vec, Real air_temp)
 {
-  std::cout << std::setprecision(16);
   Real eps = 1e-7;
   Real flux0 = air_updator->computeNetFlux(sol_vec, air_temp, 0.0);
   Real flux1 = air_updator->computeNetFlux(sol_vec, air_temp + eps, 0.0);
@@ -73,6 +73,7 @@ void test_forward_derivative(std::shared_ptr<Heat::InteriorAirTemperatureUpdator
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5.0;
   Real min_temp = 0;
@@ -110,6 +111,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5.0;
   Real min_temp = 300;
@@ -148,6 +150,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 298;
@@ -187,6 +190,7 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 
 TEST_F(TemperatureUpdatorTester, AirLeakage)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 0;
@@ -227,6 +231,7 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
 
 TEST_F(TemperatureUpdatorTester, Ventilation)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 0;
@@ -267,6 +272,7 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
 
 TEST_F(TemperatureUpdatorTester, WindowConduction)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 0;
@@ -307,6 +313,7 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
 
 TEST_F(TemperatureUpdatorTester, WallConduction)
 {
+  SERIAL_ONLY();
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = -10000;

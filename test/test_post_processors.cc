@@ -41,6 +41,7 @@ TEST_F(PostProcessorTester, SurfaceAverage)
 
 TEST_F(PostProcessorTester, BCFlux)
 {
+  SERIAL_ONLY();
   auto u = makeDiscVector(disc);
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   u->set(2);

@@ -108,6 +108,9 @@ class CNDependentTester : public StandardDiscSetup,
 
 TEST_F(CNDependentTester, InteriorLoad)
 {
+  if (commSize(MPI_COMM_WORLD) != 1)
+    GTEST_SKIP();
+    
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real min_temp = 0;
   Real max_temp = 10000;

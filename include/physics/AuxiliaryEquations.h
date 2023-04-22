@@ -4,9 +4,11 @@
 #include "discretization/discretization.h"
 #include "discretization/disc_vector.h"
 #include "linear_system/assembler.h"
+#include "linear_system/augmented_assembler.h"
 #include "linear_system/large_matrix.h"
 #include "linear_system/large_matrix_factory.h"
 #include "linear_system/sparsity_pattern_dense.h"
+#include "mpi_utils.h"
 
 class AuxiliaryEquationStorage;
 using AuxiliaryEquationsStoragePtr = std::shared_ptr<AuxiliaryEquationStorage>;
@@ -99,6 +101,28 @@ class AuxiliaryEquations
 
     virtual AuxiliaryEquationsJacobiansPtr getJacobians() = 0;
 
+    //-------------------------------------------------------------------------
+    // For augmented system
+    virtual void computeJacobian(DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, linear_system::AugmentedAssemblerPtr mat)
+    {
+      bool am_i_last_rank = commRank(m_comm) == (commSize(m_comm) - 1);
+      for (int i=0; i < getNumBlocks(); ++i)
+        for (int j=0; j < getNumBlocks(); ++j)
+        {
+          if (i == j)
+            computeAuxiliaryJacobianDiagonalBlock(i, u_vec, u_aux_vec, t, am_i_last_rank ? mat : nullptr);
+          else if (i == 0)
+            computeFiniteElementJacobianOffDiagonallBlock(j, u_vec, u_aux_vec, t, mat);
+          else
+            computeAuxiliaryJacobianOffDiagonalBlock(i, j, u_vec, u_aux_vec, t, mat);
+
+  
+        }
+        //TODO: reverse order of i, j, then after the j=0 iteration, start a flush assembly of the matrix because
+        //      all of the entries that need to be communicated in parallel will be done
+    }
+
+
   protected:
     // return number of auxiliary sets of equations
     virtual int getNumAuxiliaryBlocks() const = 0;
@@ -107,26 +131,43 @@ class AuxiliaryEquations
     virtual int getAuxiliaryBlockSize(int block) const = 0;
 
     // each auxiliary block must be of the form du/dt = rhs(u, t).  This function computes the rhs
-    virtual void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs) = 0;
+    virtual void computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                     Real t, ArrayType<Real, 1>& rhs) = 0;
 
     virtual void computeAuxiliaryMassMatrix(int block, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     virtual void multiplyAuxiliaryMassMatrix(int block, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
     // compute the diagonal Jacobian block for the given block
-    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
+    virtual void computeAuxiliaryJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                          Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     // compute the diagonal Jacobian block for the given block
     //virtual void computeAuxiliaryJacobian(int block, Real t, linear_system::SimpleAssemblerPtr mat) = 0;
 
     // compute the Jacobian-vector product for the block the couples the finite element problem to auxiliary block jblock
-    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
+    virtual void computeFiniteElementJacobianVectorProduct(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                           Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
     // compute the Jacobian-vector product for the block that couples auxiliary block i to auxiliary block j
-    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
+    virtual void computeAuxiliaryJacobianVectorProduct(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                       Real t, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
 
+    
+    //-------------------------------------------------------------------------
+    // For augmented system
+    virtual void computeAuxiliaryJacobianDiagonalBlock(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                       Real t, linear_system::AugmentedAssemblerPtr mat) = 0;
+
+    // compute the block that couples the finite element jacobian to the jth auxiliary block
+    virtual void computeFiniteElementJacobianOffDiagonallBlock(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                              Real t, linear_system::AugmentedAssemblerPtr mat) = 0;
+    // assembles block that couples iblock to jblock
+    virtual void computeAuxiliaryJacobianOffDiagonalBlock(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                          Real t, linear_system::AugmentedAssemblerPtr mat) = 0;
   private:
     DiscPtr m_disc;
+    MPI_Comm m_comm = MPI_COMM_WORLD;
 };
 
 using AuxiliaryEquationsPtr = std::shared_ptr<AuxiliaryEquations>;
@@ -287,6 +328,25 @@ class AuxiliaryEquationsNone : public AuxiliaryEquations
     {
       assertAlways(false, "cannot compute auxiliary Jacobian vector product for AuxiliaryEquationsNone"); 
     }
+
+    void computeAuxiliaryJacobianDiagonalBlock(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                               Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "cannot compute auxiliary Jacobian diagonal block for AuxiliaryEquationsNone"); 
+    }                                               
+
+    // compute the block that couples the finite element jacobian to the jth auxiliary block
+    void computeFiniteElementJacobianOffDiagonallBlock(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                       Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "cannot compute auxiliary Jacobian off diagonal block for AuxiliaryEquationsNone"); 
+    }                                                       
+    // assembles block that couples iblock to jblock
+    void computeAuxiliaryJacobianOffDiagonalBlock(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                  Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "cannot compute auxiliary Jacobian off diagonal block for AuxiliaryEquationsNone"); 
+    }                                                  
 
   private:
     DiscPtr m_disc;

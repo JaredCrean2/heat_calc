@@ -48,6 +48,18 @@ class AuxiliaryEquationsSolar : public AuxiliaryEquations
 
     AuxiliaryEquationsJacobiansPtr getJacobians() override { return m_jacs; }
 
+    //-------------------------------------------------------------------------
+    // For augmented system
+    void computeAuxiliaryJacobianDiagonalBlock(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                               Real t, linear_system::AugmentedAssemblerPtr mat) override;
+
+    // compute the block that couples the finite element jacobian to the jth auxiliary block
+    void computeFiniteElementJacobianOffDiagonallBlock(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                       Real t, linear_system::AugmentedAssemblerPtr mat) override;
+    // assembles block that couples iblock to jblock
+    void computeAuxiliaryJacobianOffDiagonalBlock(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                  Real t, linear_system::AugmentedAssemblerPtr mat) override;
+
   private:
     HeatEquationSolar& m_heat_eqn;
     std::shared_ptr<InteriorAirTemperatureUpdator> m_air_temp;

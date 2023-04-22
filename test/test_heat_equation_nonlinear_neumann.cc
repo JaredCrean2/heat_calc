@@ -289,6 +289,7 @@ TEST_F(NeumannBCTester, SkyRadiationBC)
 
 TEST_F(NeumannBCTester, SolarRadiationBC)
 {
+  SERIAL_ONLY();
   Real absorbtivity = 0.9;
   auto bc = std::make_shared<Heat::SolarRadiationBC>(disc->getSurfDisc(0), absorbtivity);
 
@@ -307,6 +308,8 @@ TEST_F(NeumannBCTester, SolarRadiationBC)
 
 TEST_F(NeumannBCTester, SimpleConvectionBC)
 {
+  SERIAL_ONLY();
+  
   Real heat_transfer_coeff = 2;
   auto bc = std::make_shared<Heat::SimpleConvectionBC>(disc->getSurfDisc(0), heat_transfer_coeff);
 

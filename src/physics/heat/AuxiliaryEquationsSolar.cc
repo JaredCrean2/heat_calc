@@ -61,4 +61,57 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianVectorProduct(int iblock, 
     b[0] += u_bar_vec[i] * x[i];
 }
 
+
+void AuxiliaryEquationsSolar::computeAuxiliaryJacobianDiagonalBlock(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                            Real t, linear_system::AugmentedAssemblerPtr mat)
+{
+  Real interior_temp = u_aux_vec->getVector(1)[0];
+  Real val = m_air_temp->computeNetFluxJacobian(u_vec, interior_temp, t);
+
+  if (mat)
+  {
+    std::vector<DofInt> dofs = {0};
+    ArrayType<Real, 2> vals(boost::extents[1][1]);
+    vals[0][0] = val;
+    mat->assembleAugmentedValuesDiag(dofs, dofs, vals);
+  }
+}                                            
+
+// compute the block that couples the finite element jacobian to the jth auxiliary block
+void AuxiliaryEquationsSolar::computeFiniteElementJacobianOffDiagonallBlock(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                    Real t, linear_system::AugmentedAssemblerPtr mat)
+{
+  Real interior_temp = u_aux_vec->getVector(1)[0];
+  ArrayType<Real, 1> b(boost::extents[u_vec->getNumDofs()]);
+  m_heat_eqn.computedRdTinterior_airProduct(u_vec, interior_temp, t, 1, b);
+
+  std::vector<Real> vals(b.begin(), b.end());
+  std::vector<DofInt> dofs(b.size());
+  for (size_t i=0; i < b.size(); ++i)
+    dofs[i] = i;
+
+  mat->assembleValuesColumn(dofs, 0, vals);
+}                                                    
+// assembles block that couples iblock to jblock
+void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                              Real t, linear_system::AugmentedAssemblerPtr mat)
+{
+  Real t_interior = u_aux_vec->getVector(1)[0];
+  auto u_bar = makeDiscVector(m_heat_eqn.getDiscretization());  //TODO: cache this
+  u_bar->set(0);
+  m_air_temp->computeNetFlux_rev(u_vec, t_interior, t, u_bar, 1);
+
+  if (!u_bar->isVectorCurrent())
+    u_bar->syncArrayToVector();
+
+  auto& u_bar_vec = u_bar->getVector();
+  std::vector<Real> vals(u_bar_vec.begin(), u_bar_vec.end());
+  std::vector<DofInt> dofs(u_bar_vec.size());
+  for (size_t i=0; i < dofs.size(); ++i)
+    dofs[i] = i;
+
+  //TODO: are ghost dofs being double counted?
+  mat->assembleValuesRow(0, dofs, vals);
+}                                              
+
 }

@@ -1,5 +1,9 @@
 #include "gtest/gtest.h"
 #include "discretization/disc_vector.h"
+#include "linear_system/augmented_assembler.h"
+#include "linear_system/sparsity_pattern_mesh.h"
+#include "linear_system/sparsity_pattern_augmented.h"
+#include "linear_system/large_matrix_petsc.h"
 #include "mesh_helper.h"
 #include "physics/AuxiliaryEquations.h"
 #include "physics/heat/HeatEquation.h"
@@ -171,7 +175,8 @@ TEST_F(AuxiliaryEquationsSolarTester, MassMatrix)
   EXPECT_NEAR(product[0], rho*cp*air_volume, 1e-13);
 }
 
-TEST_F(AuxiliaryEquationsSolarTester, dRdTair)
+
+TEST_F(AuxiliaryEquationsSolarTester, dRdTairAugmented)
 {
   makeHeatEquationSolarBC();
   sol_vec->set(320);
@@ -187,10 +192,26 @@ TEST_F(AuxiliaryEquationsSolarTester, dRdTair)
 
   for (int i=0; i < aux_eqn->getBlockSize(0); ++i)
     EXPECT_NEAR(rhs_aux[i], rhs_direct[i], 1e-13);
+
+  auto sparsity_base = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
+  auto sparsity_augmented = std::make_shared<linear_system::SparsityPatternAugmented>(sparsity_base, 1, MPI_COMM_WORLD);
+  auto mat = std::make_shared<linear_system::LargeMatrixPetsc>(linear_system::LargeMatrixOptsPetsc(), sparsity_augmented);
+  auto assembler = std::make_shared<linear_system::AugmentedAssembler>(disc, mat, 1);
+  aux_eqn->computeJacobian(sol_vec, sol_aux_vec, 0.0, assembler);
+  assembler->finishAssembly();
+  mat->finishMatrixAssembly();
+
+  ArrayType<Real, 1> x(boost::extents[sparsity_augmented->getNumLocalDofs()]), b(boost::extents[sparsity_augmented->getNumLocalDofs()]);
+  x[sparsity_augmented->getNumLocalDofs()-1] = 1;
+  mat->matVec(x, b);
+
+  for (int i=0; i < aux_eqn->getBlockSize(0); ++i)
+    EXPECT_NEAR(b[i], rhs_direct[i], 1e-13);
 }
 
 
-TEST_F(AuxiliaryEquationsSolarTester, dTairdU)
+
+TEST_F(AuxiliaryEquationsSolarTester, dTairdUAugmented)
 {
   makeHeatEquationSolarBC();
   sol_vec->set(320);
@@ -215,4 +236,21 @@ TEST_F(AuxiliaryEquationsSolarTester, dTairdU)
     rhs_direct += sol_vec_bar_vec[i];
 
   EXPECT_NEAR(rhs_aux[0], rhs_direct, 1e-13);
+
+  auto sparsity_base = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
+  auto sparsity_augmented = std::make_shared<linear_system::SparsityPatternAugmented>(sparsity_base, 1, MPI_COMM_WORLD);
+  auto mat = std::make_shared<linear_system::LargeMatrixPetsc>(linear_system::LargeMatrixOptsPetsc(), sparsity_augmented);
+  auto assembler = std::make_shared<linear_system::AugmentedAssembler>(disc, mat, 1);
+  aux_eqn->computeJacobian(sol_vec, sol_aux_vec, 0.0, assembler);
+  assembler->finishAssembly();
+  mat->finishMatrixAssembly();
+
+  ArrayType<Real, 1> x(boost::extents[sparsity_augmented->getNumLocalDofs()]), b(boost::extents[sparsity_augmented->getNumLocalDofs()]);
+  for (int i=0; i < sparsity_augmented->getNumLocalDofs()-1; ++i)
+    x[i] = 1;
+
+  mat->matVec(x, b);
+
+  EXPECT_NEAR(b[sparsity_augmented->getNumLocalDofs()-1], rhs_direct, 1e-13);  
 }
+

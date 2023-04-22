@@ -218,6 +218,8 @@ class AugmentedAssembler
     const int m_start_tag = 1000;
 };
 
+using AugmentedAssemblerPtr = std::shared_ptr<AugmentedAssembler>;
+
 
 }  // namespace
 

@@ -120,6 +120,25 @@ class AuxiliaryEquationsTest : public AuxiliaryEquations
       }
     }
 
+    void computeAuxiliaryJacobianDiagonalBlock(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                               Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "not supported");
+    }                                               
+
+    // compute the block that couples the finite element jacobian to the jth auxiliary block
+    void computeFiniteElementJacobianOffDiagonallBlock(int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                       Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "not supported");
+    }                                                       
+    // assembles block that couples iblock to jblock
+    void computeAuxiliaryJacobianOffDiagonalBlock(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec,
+                                                          Real t, linear_system::AugmentedAssemblerPtr mat) override
+    {
+      assertAlways(false, "not supported");
+    }      
+
   private:
     DiscPtr m_disc;
     AuxiliaryEquationsJacobiansPtr m_jacs;
@@ -201,6 +220,8 @@ class PhysicsModelTest : public PhysicsModel
 
 TEST_F(CNDependentTester2, SecondBlockDependentExactnessness)
 {
+  if (commSize(MPI_COMM_WORLD) != 1)
+    GTEST_SKIP();
 
   // The exact solution is u(t) = t^2, and u_aux(t) = t^2 + 0.1*t^2 + 1
   // Note that d u_aux/dt  = 2*t + 0.2*t = 2*t + 0.2*sqrt(u(t)), so this
@@ -240,7 +261,9 @@ TEST_F(CNDependentTester2, SecondBlockDependentExactnessness)
 
 TEST_F(CNDependentTester2, FirstBlockDependentExactnessness)
 {
-
+  if (commSize(MPI_COMM_WORLD) != 1)
+    GTEST_SKIP();
+    
   // Similiar to the SecondBlockDependentExactness, except that
   // u is a function of t and u_aux and
   // u_aux is a function of t only (the equations are flipped),
