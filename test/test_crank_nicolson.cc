@@ -407,13 +407,14 @@ TEST_F(CNTester, JacobianFD)
                       { return ex_sol_l(x, y, z, t); };
 
   u_vec->setFunc(ex_sol_t);
-  cn_func.setTnp1(u_vec, u_aux_vec, tn);
+  cn_func.setTnp1(u_vec->getVector(), u_aux_vec, tn);
 
   // get current timestep residual and jacobian
   t = tn;
   u_vec->setFunc(ex_sol_t);
-  cn_func.computeFunc(u_vec, u_aux_vec, t,res_vec1);
-  cn_func.computeJacobian(u_vec, u_aux_vec, mat);
+  cn_func.computeFunc(u_vec->getVector(), u_aux_vec, t, res_vec1->getVector());
+  res_vec1->markVectorModified();
+  cn_func.computeJacobian(u_vec->getVector(), u_aux_vec, mat);
 
   for (int i=0; i < nvectors; ++i)
   {
@@ -429,7 +430,8 @@ TEST_F(CNTester, JacobianFD)
       u_vec->getVector()[j] += eps * pert_vec[j];
     u_vec->markVectorModified();
 
-    cn_func.computeFunc(u_vec, u_aux_vec, false, res_vec2);
+    cn_func.computeFunc(u_vec->getVector(), u_aux_vec, false, res_vec2->getVector());
+    res_vec2->markVectorModified();
 
     for (int j=0; j < num_dofs; ++j)
       product_fd[j] = (res_vec2->getVector()[j] - res_vec1->getVector()[j])/eps;

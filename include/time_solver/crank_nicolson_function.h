@@ -17,19 +17,16 @@ class CrankNicolsonFunction : public NewtonFunction
 
     void resetForNewSolve() override ;
   
-    Real computeFunc(const DiscVectorPtr u_np1, AuxiliaryEquationsStoragePtr u_aux_np1, bool compute_norm, DiscVectorPtr f_np1) override;
+    Real computeFunc(const ArrayType<Real, 1>& u_np1, AuxiliaryEquationsStoragePtr u_aux_np1, bool compute_norm, ArrayType<Real, 1>& f_np1) override;
 
     // compute jac = df/du, overwriting jac
-    void computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) override;
+    void computeJacobian(const ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) override;
 
     //void updateDependentQuantities(DiscVectorPtr u) override;
 
     virtual NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() override { return m_aux_eqns; }
 
-    // create an empty vector
-    DiscVectorPtr createVector() override;
-
-    void setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1);
+    void setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1);
 
     // return the norm of the physics rhs (not the Crank Nicolson rhs) from
     // the last iteration when it was computed

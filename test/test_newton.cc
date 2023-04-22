@@ -49,10 +49,12 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
 {
   public:
     NewtonTestAuxiliaryEquations(DiscPtr disc) :
+      m_disc(disc),
       m_aux_eqns(std::make_shared<AuxiliaryEquationsNone>(disc))
     {}
 
     NewtonTestAuxiliaryEquations(DiscPtr disc, AuxiliaryEquationsPtr aux_eqns) :
+      m_disc(disc),
       m_aux_eqns(aux_eqns)
     {}
 
@@ -61,9 +63,12 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
     // returns the number of variables in the given block
     int getBlockSize(int block) const override { return m_aux_eqns->getBlockSize(block); }
 
-    Real computeRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, ArrayType<Real, 1>& rhs) override 
+    Real computeRhs(int block, const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, ArrayType<Real, 1>& rhs) override 
     { 
-      m_aux_eqns->computeRhs(block, u_vec, u_aux_vec, 0.0, rhs);
+      auto u_disc_vec = makeDiscVector(m_disc);
+      copyToVector(u_vec, u_disc_vec);
+
+      m_aux_eqns->computeRhs(block, u_disc_vec, u_aux_vec, 0.0, rhs);
 
       if (compute_norm)
         return std::abs(rhs[0]);
@@ -71,15 +76,21 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
         return 0;
     }
 
-    void computeJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr mat) override
+    void computeJacobian(int block, const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr mat) override
     {
+      auto u_disc_vec = makeDiscVector(m_disc);
+      copyToVector(u_vec, u_disc_vec);
+
       auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
-      return m_aux_eqns->computeJacobian(block, u_vec, u_aux_vec, 0.0, assembler);
+      return m_aux_eqns->computeJacobian(block, u_disc_vec, u_aux_vec, 0.0, assembler);
     }
 
-    void multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
+    void multiplyOffDiagonal(int iblock, int jblock, const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override
     {
-      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, u_aux_vec, 0.0, x, b);
+      auto u_disc_vec = makeDiscVector(m_disc);
+      copyToVector(u_vec, u_disc_vec);
+
+      m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_disc_vec, u_aux_vec, 0.0, x, b);
     }
 
     AuxiliaryEquationsJacobiansPtr getJacobians() override
@@ -93,6 +104,7 @@ class NewtonTestAuxiliaryEquations : public timesolvers::NewtonAuxiliaryEquation
     }
 
   private:
+    DiscPtr m_disc;
     AuxiliaryEquationsPtr m_aux_eqns;
 };
 
@@ -231,16 +243,11 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
 
     void resetForNewSolve() override {}
   
-    Real computeFunc(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, DiscVectorPtr f) override
+    Real computeFunc(const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, ArrayType<Real, 1>& f_vec) override
     {
-      if (!u->isVectorCurrent())
-        u->syncArrayToVector();
+      fill(f_vec, 0.0);
 
-      f->set(0);
-      auto& u_vec = u->getVector();
-      auto& f_vec = f->getVector();
-
-      for (int i=0; i < u->getNumDofs(); ++i)
+      for (int i=0; i < u_vec.shape()[0]; ++i)
         f_vec[i] = (u_vec[i] - 1)*(u_vec[i] - 1);
 
       double norm = 0.0, norm_global;
@@ -256,17 +263,13 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
       return norm;
     }
 
-    void computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) override
+    void computeJacobian(const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac) override
     {    
-      if (!u->isVectorCurrent())
-        u->syncArrayToVector();
-
       std::vector<PetscInt> dofs(1);
       ArrayType<Real, 2> vals(boost::extents[1][1]);
-      auto& u_vec = u->getVector();
 
       jac->zeroMatrix();
-      for (int i=0; i < u->getNumDofs(); ++i)
+      for (int i=0; i < u_vec.shape()[0]; ++i)
       {
         dofs[0] = m_local_dof_to_global[i];
         vals[0][0] = 2*(u_vec[i] - 1);
@@ -276,11 +279,6 @@ class NewtonTestFunc : public timesolvers::NewtonFunction
 
 
     timesolvers::NewtonAuxiliaryEquationsPtr getAuxiliaryEquations() override { return m_aux_eqns; }
-
-    virtual DiscVectorPtr createVector() override
-    {
-      return makeDiscVector(m_disc);
-    }
 
   private:
     DiscPtr m_disc;
@@ -307,7 +305,7 @@ TEST_F(NewtonTester, Quadratic)
   opts.nonlinear_itermax = itermax;
   opts.nonlinear_rel_tol = -1;
   opts.linear_itermax = 5;
-  auto result = newton.solve(u, u_aux, opts);
+  auto result = newton.solve(u->getVector(), u_aux, opts);
 
   if (!u->isVectorCurrent())
     u->syncArrayToVector();
@@ -347,7 +345,7 @@ TEST_F(NewtonTester, CoupledAuxiliaryBlock)
   opts.nonlinear_abs_tol = abstol;
   opts.nonlinear_itermax = itermax;
   opts.nonlinear_rel_tol = -1;
-  auto result = newton.solve(u, u_aux, opts);
+  auto result = newton.solve(u->getVector(), u_aux, opts);
 
   if (!u->isVectorCurrent())
     u->syncArrayToVector();

@@ -21,6 +21,18 @@ using LocalIndex = int;  // for local to the element numbering
 //TODO: make a generated header
 #define MESH_USE_MDS_NUMBERING
 
+template <typename T>
+void fill(ArrayType<T, 1>& u, T val)
+{
+  for (auto& v : u)
+    v = val;
+}
+
+template <typename T, typename T2>
+void fill(ArrayType<T, 1>& u, T2 val)
+{
+  fill(u, T(val));
+}
 /*
 //TODO: there is another way to do this with variadic templates
 template <typename Array, typename T1>

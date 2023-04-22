@@ -1,4 +1,5 @@
 #include "time_solver/crank_nicolson_aux_equations.h"
+#include "discretization/disc_vector.h"
 
 namespace timesolvers {
 
@@ -8,7 +9,7 @@ AuxiliaryEquationsStoragePtr CrankNicolsonAuxiliaryEquations::createStorage()
 }
 
 
-Real CrankNicolsonAuxiliaryEquations::computeRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, ArrayType<Real, 1>& rhs)
+Real CrankNicolsonAuxiliaryEquations::computeRhs(int block, const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, bool compute_norm, ArrayType<Real, 1>& rhs)
 {
   int num_vars = getBlockSize(block);
 
@@ -24,9 +25,11 @@ Real CrankNicolsonAuxiliaryEquations::computeRhs(int block, DiscVectorPtr u_vec,
   //  rhs[i] = 0;
 
   // compute 1/2(f(u_np1, t_np1) + f(u_n, t_n))
+  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  copyToVector(u_vec, u_disc_vec);
   ArrayType<Real, 1> rhs_tmp(boost::extents[num_vars]), rhs_tmp2(boost::extents[num_vars]);
   m_aux_eqns->computeRhs(block, m_un, m_aux_un, m_tn, rhs_tmp);
-  m_aux_eqns->computeRhs(block, u_vec, u_aux_vec, m_tnp1, rhs_tmp2);
+  m_aux_eqns->computeRhs(block, u_disc_vec, u_aux_vec, m_tnp1, rhs_tmp2);
 
   Real norm = 0;
   for (int i=0; i < num_vars; ++i)
@@ -38,23 +41,28 @@ Real CrankNicolsonAuxiliaryEquations::computeRhs(int block, DiscVectorPtr u_vec,
   return std::sqrt(norm);
 }
 
-void CrankNicolsonAuxiliaryEquations::computeJacobian(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr mat)
+void CrankNicolsonAuxiliaryEquations::computeJacobian(int block, const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr mat)
 {
   auto assembler = std::make_shared<linear_system::SimpleAssembler>(mat);
-
   Real delta_t = m_tnp1 - m_tn;
   assembler->setAlpha(1.0/delta_t);
   m_aux_eqns->computeMassMatrix(block, m_tnp1, assembler);
 
+  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  copyToVector(u_vec, u_disc_vec);
   assembler->setAlpha(-0.5);
-  m_aux_eqns->computeJacobian(block, u_vec, u_aux_vec, m_tnp1, assembler);
+  m_aux_eqns->computeJacobian(block, u_disc_vec, u_aux_vec, m_tnp1, assembler);
 }
 
-void CrankNicolsonAuxiliaryEquations::multiplyOffDiagonal(int iblock, int jblock, DiscVectorPtr u_vec,
+void CrankNicolsonAuxiliaryEquations::multiplyOffDiagonal(int iblock, int jblock, const ArrayType<Real, 1>& u_vec,
                                                           AuxiliaryEquationsStoragePtr u_aux_vec, 
                                                           const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b)
 {
-  m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_vec, u_aux_vec, m_tnp1, x, b);
+
+  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  copyToVector(u_vec, u_disc_vec);
+
+  m_aux_eqns->multiplyOffDiagonal(iblock, jblock, u_disc_vec, u_aux_vec, m_tnp1, x, b);
   int num_vars = getBlockSize(iblock);
   for (int i=0; i < num_vars; ++i)
     b[i] *= -0.5;

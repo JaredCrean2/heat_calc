@@ -45,6 +45,12 @@ class AugmentedAssembler
       m_num_mesh_dofs++;
     }
 
+
+
+    void setAlpha(Real alpha) { m_alpha = alpha; }
+
+    Real getAlpha() const { return m_alpha; }
+
     void assembleValuesColumn(const std::vector<DofInt>& row_local_dofs, int augmented_column, const std::vector<Real>& vals)
     {
       assert(augmented_column >= 0 && augmented_column < m_num_augmented);
@@ -59,7 +65,7 @@ class AugmentedAssembler
         val = m_local_dof_to_global[val];
 
       for (size_t i=0; i < row_dofs.size(); ++i)
-        vals_mat[i][0] = vals[i];
+        vals_mat[i][0] = m_alpha * vals[i];
 
       m_mat->assembleValues(row_dofs, col_dofs, vals_mat);
     }
@@ -72,12 +78,12 @@ class AugmentedAssembler
       for (size_t i=0; i < vals.size(); ++i) 
       {
         m_dofs_rows[augmented_row].push_back(m_local_dof_to_global[column_local_dofs[i]]);
-        m_vals_rows[augmented_row].push_back(vals[i]);
+        m_vals_rows[augmented_row].push_back(m_alpha * vals[i]);
       }
     }
 
     void assembleAugmentedValuesDiag(const std::vector<DofInt>& augmented_rows, const std::vector<DofInt>& augmented_columns,
-                                     const ArrayType<Real, 2>& vals)
+                                     ArrayType<Real, 2>& vals)
     {
       if (!m_am_i_last_rank)
         throw std::runtime_error("can only assemble diagonal block of augmented values on the last process");
@@ -91,6 +97,10 @@ class AugmentedAssembler
       for (auto& dof : col_dofs)
         dof += m_num_mesh_dofs;
 
+      for (size_t i=0; i < vals.shape()[0]; ++i)
+        for (int j=0; j < vals.shape()[0]; ++j)
+          vals[i][j] *= m_alpha;
+        
       m_mat->assembleValues(row_dofs, col_dofs, vals);      
     }
 
@@ -201,6 +211,7 @@ class AugmentedAssembler
     DofInt m_num_mesh_dofs;
     LargeMatrixPtr m_mat;
     std::vector<DofInt> m_local_dof_to_global;
+    Real m_alpha = 1.0;
 
     std::vector<std::vector<DofInt>> m_dofs_rows;
     std::vector<std::vector<Real>> m_vals_rows;

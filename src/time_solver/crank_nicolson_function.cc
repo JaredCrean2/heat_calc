@@ -1,4 +1,5 @@
 #include "time_solver/crank_nicolson_function.h"
+#include "discretization/disc_vector.h"
 #include "mesh/mesh.h"
 
 namespace timesolvers {
@@ -28,39 +29,46 @@ void CrankNicolsonFunction::resetForNewSolve()
 }
 
 
-Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEquationsStoragePtr u_aux_np1, bool compute_norm, DiscVectorPtr f_np1)
+Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, AuxiliaryEquationsStoragePtr u_aux_np1,
+                                        bool compute_norm, ArrayType<Real, 1>& f_np1)
 {
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
   assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
 
   //std::cout << "evaluating CN function" << std::endl;
+  //TODO: cache these
+  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  auto f_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  copyToVector(u_np1, u_disc_vec);
+  //copyToVector(f_np1, f_disc_vec);
 
-  f_np1->set(0);
-  m_physics_model->computeRhs(u_np1, u_aux_np1, m_tnp1, f_np1);
-  if (!f_np1->isVectorCurrent())
-    f_np1->syncArrayToVector();
+  fill(f_np1, 0.0);
+  f_disc_vec->set(0);
+  m_physics_model->computeRhs(u_disc_vec, u_aux_np1, m_tnp1, f_disc_vec);
+  if (!f_disc_vec->isVectorCurrent())
+    f_disc_vec->syncArrayToVector();
 
-  if (!u_np1->isVectorCurrent())
-    u_np1->syncArrayToVector();
+  copyFromVector(f_disc_vec, f_np1);
+
+  //if (!u_np1->isVectorCurrent())
+  //  u_np1->syncArrayToVector();
 
   if (!m_un->isVectorCurrent())
     m_un->syncArrayToVector();
 
-  auto& f_np1_vec = f_np1->getVector();
   Real physics_rhs_norm = 0;
   if (compute_norm)
   {
     for (auto dof : m_owned_dof_to_local)
-      physics_rhs_norm += f_np1_vec[dof] * f_np1_vec[dof];
+      physics_rhs_norm += f_np1[dof] * f_np1[dof];
   }
 
   // compute M * (u_np1 - u_n)
   m_delta_u->set(0);
-  auto& u_np1_vec   = u_np1->getVector();
   auto& u_n_vec     = m_un->getVector();
   auto& delta_u_vec = m_delta_u->getVector();
   for (int i=0; i < m_delta_u->getNumDofs(); ++i)
-    delta_u_vec[i] = u_np1_vec[i] - u_n_vec[i];
+    delta_u_vec[i] = u_np1[i] - u_n_vec[i];
   m_delta_u->markVectorModified();
 
   m_physics_model->applyMassMatrix(m_delta_u, m_Mdelta_u);
@@ -71,20 +79,19 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEqua
   auto& Mdelta_u_vec = m_Mdelta_u->getVector();
   auto& f_n_vec      = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
-  for (int i=0; i < f_np1->getNumDofs(); ++i)
+  for (int i=0; i < f_np1.shape()[0]; ++i)
   {
     //std::cout << "i = " << i << ", delta_t_inv = " << delta_t_inv << ", Mdelta_u = "
     //         << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_vec[i] << ", f_n_vec = " << f_n_vec[i] << std::endl;
-    f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1_vec[i] - 0.5*f_n_vec[i];
+    f_np1[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1[i] - 0.5*f_n_vec[i];
   }
-  f_np1->markVectorModified();
 
   Real norm = 0;
   if (compute_norm)
   {
     //TODO: not sure this is the right norm to use
     for (auto dof : m_owned_dof_to_local)
-      norm += f_np1_vec[dof] * f_np1_vec[dof];
+      norm += f_np1[dof] * f_np1[dof];
     
     std::array<Real, 2> norms_local = {norm, physics_rhs_norm}, norms_global;
     MPI_Allreduce(norms_local.data(), norms_global.data(), 2, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
@@ -96,10 +103,13 @@ Real CrankNicolsonFunction::computeFunc(const DiscVectorPtr u_np1, AuxiliaryEqua
 }
 
 // compute jac = df/du, overwriting jac
-void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac)
+void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec, linear_system::LargeMatrixPtr jac)
 {
+  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());  //TODO
+  copyToVector(u, u_disc_vec); 
+
   m_assembler->setAlpha(-0.5);
-  m_physics_model->computeJacobian(u, u_aux_vec, m_tnp1, m_assembler);
+  m_physics_model->computeJacobian(u_disc_vec, u_aux_vec, m_tnp1, m_assembler);
 
   m_assembler->setAlpha(1.0/(m_tnp1 - m_tn));
   m_physics_model->computeMassMatrix(m_assembler);
@@ -107,21 +117,14 @@ void CrankNicolsonFunction::computeJacobian(const DiscVectorPtr u, AuxiliaryEqua
   m_assembler->setAlpha(1);
 }
 
-
-// create an empty vector
-DiscVectorPtr CrankNicolsonFunction::createVector()
-{ 
-  return makeDiscVector(m_physics_model->getDiscretization()); 
-}
-
-void CrankNicolsonFunction::setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1)
+void CrankNicolsonFunction::setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1)
 {
   m_tn = m_tnp1;
   m_tnp1 = t_np1;
-  *m_un = *u_n;
+  copyToVector(u_n, m_un);
   *m_u_aux_n = *u_aux_n;
 
-  m_aux_eqns->setTnp1(u_n, u_aux_n, t_np1);
+  m_aux_eqns->setTnp1(m_un, u_aux_n, t_np1);
 }
 
 }

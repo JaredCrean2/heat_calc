@@ -230,4 +230,24 @@ void printVector(DiscVectorPtr vec)
   }
 }
 
+void copyToVector(const ArrayType<Real, 1>& vec_in, DiscVectorPtr vec_out)
+{
+  auto& vec_out_vec = vec_out->getVector();
+  for (int i=0; i < vec_out_vec.shape()[0]; ++i)
+    vec_out_vec[i] = vec_in[i];
+
+  vec_out->markVectorModified();
+
+  vec_out->syncVectorToArray();
+}
+
+void copyFromVector(const DiscVectorPtr vec_in, ArrayType<Real, 1>& vec_out)
+{
+  if (!vec_in->isVectorCurrent())
+    vec_in->syncArrayToVector();
+
+  const auto& vec_in_vec = vec_in->getVector();
+  for (int i=0; i < vec_in_vec.shape()[0]; ++i)
+    vec_out[i] = vec_in_vec[i];
+}
 
