@@ -1,5 +1,7 @@
 #include "time_solver/crank_nicolson.h"
+#include "linear_system/sparsity_pattern.h"
 #include "linear_system/sparsity_pattern_mesh.h"
+#include "linear_system/sparsity_pattern_augmented.h"
 
 namespace timesolvers {
 
@@ -20,15 +22,24 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
                              AuxiliaryEquationsStoragePtr u_aux_vec, 
                              TimeStepperOpts opts) :
   m_physics_model(physics_model),
+  m_aux_eqns(physics_model->getAuxEquations()),
   m_u(u),
   m_u_aux(u_aux_vec),
   m_opts(opts)
 {
   checkTimeStepperOpts(opts);
   auto mesh     = physics_model->getDiscretization()->getMesh();
-  auto sparsity = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
+  std::shared_ptr<linear_system::SparsityPattern> sparsity = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
+  if (opts.solve_auxiliary_equations_combined_system)
+  {
+    int num_augmented = 0;
+    for (int i=1; i < physics_model->getAuxEquations()->getNumBlocks(); ++i)
+      num_augmented += physics_model->getAuxEquations()->getBlockSize(i);
+    
+    sparsity = std::make_shared<linear_system::SparsityPatternAugmented>(sparsity, num_augmented, MPI_COMM_WORLD);
+  }
   m_matrix      = largeMatrixFactory(opts.mat_type, opts.matrix_opts, sparsity);
-  m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start);
+  m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start, opts.solve_auxiliary_equations_combined_system);
   m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix);
 }
 

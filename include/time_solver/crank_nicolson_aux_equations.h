@@ -11,12 +11,12 @@ namespace timesolvers {
 class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
 {
   public:
-    CrankNicolsonAuxiliaryEquations(std::shared_ptr<PhysicsModel> physics_model, Real t0) :
+    CrankNicolsonAuxiliaryEquations(std::shared_ptr<PhysicsModel> physics_model, Real t0, bool use_aux_eqns=true) :
       m_physics_model(physics_model),
-      m_aux_eqns(physics_model->getAuxEquations()),
+      m_aux_eqns(use_aux_eqns ? physics_model->getAuxEquations() : std::make_shared<AuxiliaryEquationsNone>(physics_model->getDiscretization())),
       m_tn(-1),
       m_tnp1(t0),
-      m_un(makeDiscVector(physics_model->getDiscretization())),
+      m_un(use_aux_eqns ? makeDiscVector(physics_model->getDiscretization()) : nullptr),
       m_aux_un(makeAuxiliaryEquationsStorage(m_aux_eqns))
     {}
 

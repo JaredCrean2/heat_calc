@@ -27,6 +27,12 @@ struct TimeStepperOpts
   Real nonlinear_abs_tol = -1;
   Real nonlinear_rel_tol = -1;
   int nonlinear_itermax  = -1;
+
+  // Defines how the auxiliary equations are solved.  If false, a block system is
+  // created that is iterated to convergence with Gauss-Seidel.  If true, a single
+  // linear system is created with denser rows/columns appended to it for the
+  // auxiliary equations
+  bool solve_auxiliary_equations_combined_system = false;
 };
 
 void checkTimeStepperOpts(const TimeStepperOpts& opts, bool check_implicit=true);
@@ -47,6 +53,7 @@ class CrankNicolson
     double finalStepSize();
 
     std::shared_ptr<PhysicsModel> m_physics_model;
+    std::shared_ptr<AuxiliaryEquations> m_aux_eqns;
     linear_system::LargeMatrixPtr m_matrix;
     DiscVectorPtr m_u;
     AuxiliaryEquationsStoragePtr m_u_aux;

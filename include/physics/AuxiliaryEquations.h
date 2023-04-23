@@ -172,6 +172,15 @@ class AuxiliaryEquations
 
 using AuxiliaryEquationsPtr = std::shared_ptr<AuxiliaryEquations>;
 
+inline int getNumAuxiliaryVariables(AuxiliaryEquationsPtr aux_eqns)
+{
+  int count = 0;
+  for (int i=1; i < aux_eqns->getNumBlocks(); ++i)
+    count += aux_eqns->getBlockSize(i);
+
+  return count;
+}
+
 
 class AuxiliaryEquationStorage
 {
