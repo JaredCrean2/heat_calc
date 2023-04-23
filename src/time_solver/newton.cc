@@ -304,11 +304,9 @@ Real NewtonSolver::gaussSeidelStepFirstRow(const ArrayType<Real, 1>& u, Auxiliar
   ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(0)]);
   for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
   {
-    std::cout << "computing rhs contribution from block " << block << std::endl;
     aux_eqns->multiplyOffDiagonal(0, block, u, u_aux_vec, m_aux_delta_u->getVector(block), rhs_tmp);
     for (size_t j=0; j < rhs.shape()[0]; ++j)
     {
-      std::cout << "dof " << j << " contribution = " << rhs_tmp[j] << std::endl;
       rhs[j] -= rhs_tmp[j];
     }
   }

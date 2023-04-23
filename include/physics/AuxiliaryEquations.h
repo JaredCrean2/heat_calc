@@ -109,8 +109,6 @@ class AuxiliaryEquations
       for (int i=0; i < getNumBlocks(); ++i)
         for (int j=0; j < getNumBlocks(); ++j)
         {
-          std::cout << "i = " << i << ", j = " << j << std::endl;
-
           if (i == 0 && j == 0)
             continue;
             
@@ -119,9 +117,7 @@ class AuxiliaryEquations
           else if (i == 0)
             computeFiniteElementJacobianOffDiagonallBlock(j, u_vec, u_aux_vec, t, mat);
           else
-            computeAuxiliaryJacobianOffDiagonalBlock(i, j, u_vec, u_aux_vec, t, mat);
-
-  
+            computeAuxiliaryJacobianOffDiagonalBlock(i, j, u_vec, u_aux_vec, t, mat);  
         }
         //TODO: reverse order of i, j, then after the j=0 iteration, start a flush assembly of the matrix because
         //      all of the entries that need to be communicated in parallel will be done

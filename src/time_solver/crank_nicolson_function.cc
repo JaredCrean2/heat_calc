@@ -50,7 +50,6 @@ void CrankNicolsonFunction::resetForNewSolve()
 Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, AuxiliaryEquationsStoragePtr u_aux_np1,
                                         bool compute_norm, ArrayType<Real, 1>& f_np1)
 {
-  std::cout << "\nComputing CN rhs" << std::endl;
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
   assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
 
@@ -73,22 +72,12 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
     //copyToVector(f_np1, f_disc_vec);
   }
 
-  {
-    auto& u_vec = u_disc_vec->getVector();
-    for (int i=0; i < u_vec.shape()[0]; ++i)
-      std::cout << "u vec " << i << " = " << u_vec[i] << std::endl;
-
-    std::cout << "u_aux = " << u_aux->getVector(1)[0] << std::endl;
-  }
-
 
   fill(f_np1, 0.0);  //TODO: unnecessary?
   f_disc_vec->set(0);
   m_physics_model->computeRhs(u_disc_vec, u_aux, m_tnp1, f_disc_vec);
   if (!f_disc_vec->isVectorCurrent())
     f_disc_vec->syncArrayToVector();
-
-  std::cout << "f_np1[0] = " << f_disc_vec->getVector()[0] << std::endl;
 
   if (m_aux_eqns_combined_system)
     for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
@@ -150,8 +139,8 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
   for (int i=0; i < f_np1_vec.shape()[0]; ++i)
   {
-    std::cout << "i = " << i << ", delta_t_inv = " << delta_t_inv << ", Mdelta_u = "
-             << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_vec[i] << ", f_n_vec = " << f_n_vec[i] << std::endl;
+    //std::cout << "i = " << i << ", delta_t_inv = " << delta_t_inv << ", Mdelta_u = "
+    //         << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_vec[i] << ", f_n_vec = " << f_n_vec[i] << std::endl;
     f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1_vec[i] - 0.5*f_n_vec[i];
   }
 
@@ -165,10 +154,9 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
         f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5 * f_np1_vec[i] - 0.5*f_n_vec[i];
     }
 
-  if (m_aux_eqns_combined_system) {
+  if (m_aux_eqns_combined_system)
     combineVector(f_disc_vec, f_aux, f_np1);
-    std::cout << "f_aux = " << f_aux->getVector(1)[0] << std::endl;
-  } else
+  else
     copyFromVector(f_disc_vec, f_np1);
 
   Real norm = 0;
@@ -214,7 +202,6 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
 
   if (m_aux_eqns_combined_system)
   {
-    std::cout << "assembling combined system stiffness contribution" << std::endl;
     m_augmented_assembler->setAlpha(-0.5);
     aux_eqns->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_augmented_assembler);
 

@@ -13,7 +13,6 @@ void AuxiliaryEquationsSolar::computeAuxiliaryMassMatrix(int block, Real t, line
   std::vector<DofInt> dofs = {0};
   ArrayType<Real, 2> mat(boost::extents[1][1]);
   mat[0][0] = m_air_temp->getThermalMass();
-  std::cout << "AuxiliaryEquationsSolar Mass matrix value = " << mat[0][0] << std::endl;
   assembler->assembleEntry(dofs, mat);
 }
 
@@ -99,7 +98,6 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int ibloc
   Real t_interior = u_aux_vec->getVector(1)[0];
   auto u_bar = makeDiscVector(m_heat_eqn.getDiscretization());  //TODO: cache this
   u_bar->set(0);
-  std::cout << "t_interior = " << t_interior << std::endl;
   m_air_temp->computeNetFlux_rev(u_vec, t_interior, t, u_bar, 1);
 
   if (!u_bar->isVectorCurrent())
@@ -108,11 +106,6 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int ibloc
   auto& u_bar_vec = u_bar->getVector();
   std::vector<Real> vals(u_bar_vec.begin(), u_bar_vec.end());
   std::vector<DofInt> dofs(u_bar_vec.size());
-  for (size_t i=0; i < dofs.size(); ++i)
-  {
-    dofs[i] = i;
-    std::cout << "u_bar_vec " << i << " = " << u_bar_vec[i] << std::endl;
-  }
 
   //TODO: are ghost dofs being double counted?
   mat->assembleValuesRow(0, dofs, vals);

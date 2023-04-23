@@ -67,15 +67,6 @@ void LargeMatrixDense::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1
   assert(b.shape()[0] == getMLocal());
   assert(x.shape()[0] == getMLocal());
 
-  //printToStdout();
-  std::cout << "final column of matrix:" << std::endl;
-  for (int i=0; i < getMLocal(); ++i)
-    std::cout << "row " << i << " = " << m_matrix[getIdx(i, getNLocal()-1)] << std::endl;
-
-
-  for (int i=0; i < b.shape()[0]; ++i)
-    std::cout << "rhs " << i << " = " << b[i] << std::endl;  
-
   std::copy(&(b[0]), (&b[0] + getMLocal()), &(x[0]));
 
   auto& matrix_factorization = m_opts.factor_in_place ? m_matrix : m_matrix_factorization;
@@ -86,9 +77,6 @@ void LargeMatrixDense::solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1
   {
     getrs('N', getMLocal(), 1, matrix_factorization.data(), getMLocal(), m_ipiv.data(), &(x[0]), getMLocal());
   }
-
-  for (int i=0; i < x.shape()[0]; ++i)
-    std::cout << "delta u " << i << " = " << x[i] << std::endl;
 }
 
 
