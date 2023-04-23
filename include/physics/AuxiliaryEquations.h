@@ -109,6 +109,11 @@ class AuxiliaryEquations
       for (int i=0; i < getNumBlocks(); ++i)
         for (int j=0; j < getNumBlocks(); ++j)
         {
+          std::cout << "i = " << i << ", j = " << j << std::endl;
+
+          if (i == 0 && j == 0)
+            continue;
+            
           if (i == j)
             computeAuxiliaryJacobianDiagonalBlock(i, u_vec, u_aux_vec, t, am_i_last_rank ? mat : nullptr);
           else if (i == 0)
@@ -195,6 +200,8 @@ class AuxiliaryEquationStorage
         m_vectors.emplace_back(boost::extents[size]);
       }
     }
+
+    int getNumBlocks() const { return m_aux_eqns->getNumBlocks(); }
 
     ArrayType<Real, 1>& getVector(int block)
     {
@@ -368,5 +375,12 @@ inline AuxiliaryEquationsPtr makeAuxiliaryEquationsNone(DiscPtr disc)
 {
   return std::make_shared<AuxiliaryEquationsNone>(disc);
 }
+
+
+void splitVector(const ArrayType<Real, 1>& combined_vec, DiscVectorPtr sol_vec,
+                 AuxiliaryEquationsStoragePtr sol_aux);
+
+void combineVector(DiscVectorPtr res_vec, AuxiliaryEquationsStoragePtr res_aux,
+                   ArrayType<Real, 1>& res_combined);
 
 #endif

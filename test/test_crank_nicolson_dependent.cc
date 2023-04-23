@@ -166,3 +166,65 @@ TEST_F(CNDependentTester, InteriorLoad)
   std::cout << "total temperature change = " << total_temperature_change << std::endl;
   EXPECT_NEAR(u_aux_vec->getVector(1)[0], initial_air_temp + total_temperature_change, 1e-10);
 }
+
+TEST_F(CNDependentTester, InteriorLoadCombinedSystem)
+{
+  if (commSize(MPI_COMM_WORLD) != 1)
+    GTEST_SKIP();
+    
+  Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
+  Real min_temp = 0;
+  Real max_temp = 10000;
+  Real rho = 2;
+  Real cp = 3;
+  Real air_volume = 4;
+  Real ach50_air = 0;
+  Real ach50_vent = 0;
+  Real expected_pressure = 5;
+  Real interior_load = 6;
+  Real r_val = 7;
+  Real window_area = 0;
+  Real initial_air_temp = 298;
+  Real delta_t = 2;  // time is in seconds
+  Real hvac_restore_time = 1;
+  
+  auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
+  auto air_leakage   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_air, expected_pressure, air_volume, cp, rho);
+  auto ventilation   = std::make_shared<Heat::AirLeakageModelPressure>(ach50_vent, expected_pressure, air_volume, cp, rho);
+  auto interior_loads = std::make_shared<Heat::InteriorLoadsConstant>(interior_load);
+  auto window_conduction = std::make_shared<Heat::WindowConductionModel>(r_val, window_area);
+  auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(min_temp, max_temp, rho*cp, air_volume, hvac_restore_time);
+
+
+  auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(rho*cp, air_volume, 
+    air_leakage, ventilation, interior_loads, window_conduction, hvac_model);
+
+  Real energy_change_rate = interior_load;
+  Real temperature_change_rate = energy_change_rate/(rho*cp*air_volume);
+  std::cout << "temperature change rate = " << temperature_change_rate << std::endl;
+  std::cout << "temperature change per timestep = " << temperature_change_rate * delta_t << std::endl;
+
+  setSolution(ex_sol, ex_sol_deriv, src_func,  env_interface, air_updator);
+  u_aux_vec->getVector(1)[0] = initial_air_temp;
+
+  timesolvers::TimeStepperOpts opts;
+  opts.t_start = 0.0;
+  opts.t_end   = 2.5*delta_t;
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerConstant>(delta_t);
+  opts.mat_type = linear_system::LargeMatrixType::Dense;
+  opts.matrix_opts = std::make_shared<linear_system::LargeMatrixOpts>();
+  opts.nonlinear_abs_tol = 1e-12;
+  opts.nonlinear_rel_tol = 1e-12;
+  opts.nonlinear_itermax = 5;  //TODO: test 1
+  opts.solve_auxiliary_equations_combined_system = true;
+
+  timesolvers::CrankNicolson crank(heat_model, u_vec, u_aux_vec, opts);
+  crank.solve();
+
+  // the -0.5 is because the previous flux is zero at the initial condition, and the trapizoid
+  // rule gives 1/2 of the first timestep flux
+  //eal timesteps = opts.t_end/delta_t;
+  Real total_temperature_change = temperature_change_rate * opts.t_end;
+  std::cout << "total temperature change = " << total_temperature_change << std::endl;
+  EXPECT_NEAR(u_aux_vec->getVector(1)[0], initial_air_temp + total_temperature_change, 1e-10);
+}

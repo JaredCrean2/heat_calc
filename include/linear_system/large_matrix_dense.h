@@ -20,6 +20,8 @@ class LargeMatrixDense : public LargeMatrix
 
     const Real& operator()(int i, int j) const { return m_matrix[getIdx(i, j)]; }
 
+    void printToStdout();
+
   protected:
     void zeroMatrix_impl() override;
 

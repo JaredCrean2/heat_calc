@@ -2,6 +2,7 @@
 #include "linear_system/sparsity_pattern.h"
 #include "linear_system/sparsity_pattern_mesh.h"
 #include "linear_system/sparsity_pattern_augmented.h"
+#include "physics/AuxiliaryEquations.h"
 
 namespace timesolvers {
 
@@ -91,15 +92,33 @@ void CrankNicolson::solve()
 void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
 {
   std::cout << "CN advancing to time " << t_new << std::endl;
-  m_func->setTnp1(m_u->getVector(), m_u_aux, t_new);
 
   NewtonOpts opts;
   opts.nonlinear_abs_tol = m_opts.nonlinear_abs_tol;
   opts.nonlinear_rel_tol = m_opts.nonlinear_rel_tol;
   opts.nonlinear_itermax = m_opts.nonlinear_itermax;
 
-  NewtonResult result = m_newton->solve(m_u->getVector(), m_u_aux, opts);
-  m_u->markVectorModified();
+  NewtonResult result;
+  if (m_opts.solve_auxiliary_equations_combined_system)
+  {
+    //TODO: copying back and forth every timestep is unnecessary
+    ArrayType<Real, 1> u_augmented(boost::extents[m_u->getNumDofs() + getNumAuxiliaryVariables(m_aux_eqns)]);
+    combineVector(m_u, m_u_aux, u_augmented);
+    auto aux_eqns_none = makeAuxiliaryEquationsNone(m_physics_model->getDiscretization());
+    auto aux_storage_none = makeAuxiliaryEquationsStorage(aux_eqns_none);
+
+    m_func->setTnp1(u_augmented, aux_storage_none, t_new);
+    result = m_newton->solve(u_augmented, aux_storage_none, opts);
+
+    splitVector(u_augmented, m_u, m_u_aux);
+  } else
+  {
+    m_func->setTnp1(m_u->getVector(), m_u_aux, t_new);
+
+    result = m_newton->solve(m_u->getVector(), m_u_aux, opts);
+    m_u->markVectorModified();
+  }
+
   //m_func->completeTimestep(m_u);
 
   if (!result.isConverged())

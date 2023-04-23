@@ -77,6 +77,7 @@ class AugmentedAssembler
 
       for (size_t i=0; i < vals.size(); ++i) 
       {
+        std::cout << "assembling (" << m_local_dof_to_global[column_local_dofs[i]] << ", " << vals[i] << ")" << std::endl;
         m_dofs_rows[augmented_row].push_back(m_local_dof_to_global[column_local_dofs[i]]);
         m_vals_rows[augmented_row].push_back(m_alpha * vals[i]);
       }

@@ -122,6 +122,7 @@ void NewtonSolver::updateNonlinearSolution(ArrayType<Real, 1>& u_vec, AuxiliaryE
     auto& delta_u_block = m_aux_delta_u->getVector(block);
     for (int i=0; i < num_vars; ++i)
     {
+      std::cout << "block " << block << " delta u = " << delta_u_block[i] << std::endl;
       u_block[i] -= damp_factor * delta_u_block[i];
       delta_u_block[i] = 0;
     }
@@ -295,17 +296,21 @@ Real NewtonSolver::gaussSeidelStepFirstRow(const ArrayType<Real, 1>& u, Auxiliar
 {
   auto aux_eqns = m_func->getAuxiliaryEquations();
   ArrayType<Real, 1> delta_u_tmp(boost::extents[u.shape()[0]]);
-  ArrayType<Real, 1> rhs(boost::extents[aux_eqns->getBlockSize(0)]);
+  ArrayType<Real, 1> rhs(boost::extents[u.shape()[0]]);
   
-  for (int i=0; i < aux_eqns->getBlockSize(0); ++i)
+  for (int i=0; i < u.shape()[0]; ++i)
     rhs[i] = m_f[i];
     
   ArrayType<Real, 1> rhs_tmp(boost::extents[aux_eqns->getBlockSize(0)]);
   for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
   {
+    std::cout << "computing rhs contribution from block " << block << std::endl;
     aux_eqns->multiplyOffDiagonal(0, block, u, u_aux_vec, m_aux_delta_u->getVector(block), rhs_tmp);
     for (size_t j=0; j < rhs.shape()[0]; ++j)
+    {
+      std::cout << "dof " << j << " contribution = " << rhs_tmp[j] << std::endl;
       rhs[j] -= rhs_tmp[j];
+    }
   }
 
   m_jac->solve(rhs, delta_u_tmp);

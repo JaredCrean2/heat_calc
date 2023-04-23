@@ -70,17 +70,22 @@ void CrankNicolsonAuxiliaryEquations::multiplyOffDiagonal(int iblock, int jblock
 
 void CrankNicolsonAuxiliaryEquations::setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_vec, Real t_np1)
 {
-  *m_un  = *u_n;
+  std::cout << "u_n = " << u_n << std::endl;
   m_tn   = m_tnp1;
   m_tnp1 = t_np1;
 
-  for (int iblock=1; iblock < m_aux_eqns->getNumBlocks(); ++iblock)
+  if (m_use_aux_eqns)
   {
-    auto& aux_u_np1 = u_aux_vec->getVector(iblock); //m_aux_unp1.getVector(iblock);
-    auto& aux_u_n = m_aux_un->getVector(iblock);
-    for (int i=0; i < m_aux_eqns->getBlockSize(iblock); ++i)
-      aux_u_n[i] = aux_u_np1[i];
+    *m_un  = *u_n;
+
+    for (int iblock=1; iblock < m_aux_eqns->getNumBlocks(); ++iblock)
+    {
+      auto& aux_u_np1 = u_aux_vec->getVector(iblock); //m_aux_unp1.getVector(iblock);
+      auto& aux_u_n = m_aux_un->getVector(iblock);
+      for (int i=0; i < m_aux_eqns->getBlockSize(iblock); ++i)
+        aux_u_n[i] = aux_u_np1[i];
+    }
   }
 }
 
-}
+}  // namespace

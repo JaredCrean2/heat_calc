@@ -20,6 +20,7 @@ set(src_files EpwReader.cc
               discretization/disc_vector.cc
               #discretization/model.cc
               physics/PhysicsModel.cc
+              physics/AuxiliaryEquations.cc
               physics/post_processors.cc
               physics/post_processor_manager.cc
               physics/heat/HeatEquation.cc

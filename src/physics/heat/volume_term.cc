@@ -110,14 +110,21 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
 
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
+    std::cout << "\nel = " << el << std::endl;
     zeroMatrix(du_dx);
     computedNdx(basis_vals, dxidx, el, dN_dx);
+
+    for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+      std::cout << "node " << i << ", u = " << u_arr[el][i] << std::endl;
 
     //TODO: is there a tensor-product form of this?
     for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
       for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
         for (int d=0; d < 3; ++d)
           du_dx[k][d] += dN_dx[i][k][d] * u_arr[el][i];
+
+    for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)
+      std::cout << "at quad pt " << k << ", du/dx = " << du_dx[k][0] << ", " << du_dx[k][1] << ", " << du_dx[k][2] << std::endl;
 
     for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
       for (int k=0; k < vol_disc->getNumQuadPtsPerElement(); ++k)

@@ -177,6 +177,4 @@ void copyToVector(const ArrayType<Real, 1>& vec_in, DiscVectorPtr vec_out);
 void copyFromVector(const DiscVectorPtr vec_in, ArrayType<Real, 1>& vec_out);
 
 
-
-
 #endif

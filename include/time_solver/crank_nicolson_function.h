@@ -35,11 +35,11 @@ class CrankNicolsonFunction : public NewtonFunction
     Real getLastPhysicsRhsNorm() { return m_last_physics_rhs_norm; }
 
   private:
-    void splitSolutionVector(const ArrayType<Real, 1>& combined_vec, ArrayType<Real, 1>& sol_vec,
-                             AuxiliaryEquationsStoragePtr sol_aux);
-
-    void combineResidualVector(const ArrayType<Real, 1>& res_vec, AuxiliaryEquationsStoragePtr res_aux,
-                                ArrayType<Real, 1>& res_combined);
+    //void splitSolutionVector(const ArrayType<Real, 1>& combined_vec, ArrayType<Real, 1>& sol_vec,
+    //                         AuxiliaryEquationsStoragePtr sol_aux);
+//
+    //void combineResidualVector(const ArrayType<Real, 1>& res_vec, AuxiliaryEquationsStoragePtr res_aux,
+    //                            ArrayType<Real, 1>& res_combined);
     
     std::shared_ptr<PhysicsModel> m_physics_model;
     std::shared_ptr<CrankNicolsonAuxiliaryEquations> m_aux_eqns;

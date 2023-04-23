@@ -99,6 +99,7 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int ibloc
   Real t_interior = u_aux_vec->getVector(1)[0];
   auto u_bar = makeDiscVector(m_heat_eqn.getDiscretization());  //TODO: cache this
   u_bar->set(0);
+  std::cout << "t_interior = " << t_interior << std::endl;
   m_air_temp->computeNetFlux_rev(u_vec, t_interior, t, u_bar, 1);
 
   if (!u_bar->isVectorCurrent())
@@ -108,7 +109,10 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int ibloc
   std::vector<Real> vals(u_bar_vec.begin(), u_bar_vec.end());
   std::vector<DofInt> dofs(u_bar_vec.size());
   for (size_t i=0; i < dofs.size(); ++i)
+  {
     dofs[i] = i;
+    std::cout << "u_bar_vec " << i << " = " << u_bar_vec[i] << std::endl;
+  }
 
   //TODO: are ghost dofs being double counted?
   mat->assembleValuesRow(0, dofs, vals);

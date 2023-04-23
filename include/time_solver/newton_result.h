@@ -25,8 +25,8 @@ struct NewtonOpts
 class NewtonResult
 {
   public:
-    NewtonResult(Real norm0, Real norm, Real niters,
-                 NewtonOpts opts) :
+    NewtonResult(Real norm0=0, Real norm=0, Real niters=0,
+                 NewtonOpts opts=NewtonOpts()) :
       m_norm0(norm0),
       m_norm(norm),
       m_niters(niters),

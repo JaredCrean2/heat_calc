@@ -20,9 +20,13 @@ CrankNicolsonFunction::CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physi
   m_un(makeDiscVector(physics_model->getDiscretization())),
   m_u_aux_n(makeAuxiliaryEquationsStorage(physics_model->getAuxEquations())),
   m_fn(makeDiscVector(physics_model->getDiscretization())),
+  m_fn_aux(makeAuxiliaryEquationsStorage(physics_model->getAuxEquations())),
   m_tnp1(t0),
   m_delta_u(makeDiscVector(physics_model->getDiscretization())),
-  m_Mdelta_u(makeDiscVector(physics_model->getDiscretization()))
+  m_delta_u_aux(makeAuxiliaryEquationsStorage(physics_model->getAuxEquations())),
+  m_Mdelta_u(makeDiscVector(physics_model->getDiscretization())),
+  m_Mdelta_u_aux(makeAuxiliaryEquationsStorage(physics_model->getAuxEquations()))
+
 {
   m_physics_model->getDiscretization()->getMesh()->getOwnedLocalDofInfo(m_owned_dof_to_local);
 }
@@ -46,6 +50,7 @@ void CrankNicolsonFunction::resetForNewSolve()
 Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, AuxiliaryEquationsStoragePtr u_aux_np1,
                                         bool compute_norm, ArrayType<Real, 1>& f_np1)
 {
+  std::cout << "\nComputing CN rhs" << std::endl;
   //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
   assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
 
@@ -60,7 +65,7 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
   {
     u_aux = makeAuxiliaryEquationsStorage(aux_eqns);
     f_aux = makeAuxiliaryEquationsStorage(aux_eqns);
-    splitSolutionVector(u_np1, u_disc_vec->getVector(), u_aux);
+    splitVector(u_np1, u_disc_vec, u_aux);
   } else
   {
     copyToVector(u_np1, u_disc_vec);
@@ -68,17 +73,28 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
     //copyToVector(f_np1, f_disc_vec);
   }
 
+  {
+    auto& u_vec = u_disc_vec->getVector();
+    for (int i=0; i < u_vec.shape()[0]; ++i)
+      std::cout << "u vec " << i << " = " << u_vec[i] << std::endl;
+
+    std::cout << "u_aux = " << u_aux->getVector(1)[0] << std::endl;
+  }
+
+
   fill(f_np1, 0.0);  //TODO: unnecessary?
   f_disc_vec->set(0);
   m_physics_model->computeRhs(u_disc_vec, u_aux, m_tnp1, f_disc_vec);
   if (!f_disc_vec->isVectorCurrent())
     f_disc_vec->syncArrayToVector();
 
+  std::cout << "f_np1[0] = " << f_disc_vec->getVector()[0] << std::endl;
+
   if (m_aux_eqns_combined_system)
     for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
       aux_eqns->computeRhs(block, u_disc_vec, u_aux, m_tnp1, f_aux->getVector(block));
 
-  copyFromVector(f_disc_vec, f_np1);
+  copyFromVector(f_disc_vec, f_np1);  //TODO: unnecessary?
 
   //if (!u_np1->isVectorCurrent())
   //  u_np1->syncArrayToVector();
@@ -132,10 +148,10 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
   auto& f_np1_vec     = f_disc_vec->getVector();
   auto& f_n_vec       = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
-  for (int i=0; i < f_np1.shape()[0]; ++i)
+  for (int i=0; i < f_np1_vec.shape()[0]; ++i)
   {
-    //std::cout << "i = " << i << ", delta_t_inv = " << delta_t_inv << ", Mdelta_u = "
-    //         << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_vec[i] << ", f_n_vec = " << f_n_vec[i] << std::endl;
+    std::cout << "i = " << i << ", delta_t_inv = " << delta_t_inv << ", Mdelta_u = "
+             << Mdelta_u_vec[i] << ", f_np1 = " << f_np1_vec[i] << ", f_n_vec = " << f_n_vec[i] << std::endl;
     f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5*f_np1_vec[i] - 0.5*f_n_vec[i];
   }
 
@@ -149,9 +165,10 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
         f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5 * f_np1_vec[i] - 0.5*f_n_vec[i];
     }
 
-  if (m_aux_eqns_combined_system)
-    combineResidualVector(f_disc_vec->getVector(), f_aux, f_np1);
-  else
+  if (m_aux_eqns_combined_system) {
+    combineVector(f_disc_vec, f_aux, f_np1);
+    std::cout << "f_aux = " << f_aux->getVector(1)[0] << std::endl;
+  } else
     copyFromVector(f_disc_vec, f_np1);
 
   Real norm = 0;
@@ -185,7 +202,7 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
   if (m_aux_eqns_combined_system)
   {
     u_aux = makeAuxiliaryEquationsStorage(aux_eqns);    
-    splitSolutionVector(u, u_disc_vec->getVector(), u_aux);
+    splitVector(u, u_disc_vec, u_aux);
   } else
   {
     copyToVector(u, u_disc_vec);
@@ -193,12 +210,15 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
   }
 
   m_assembler->setAlpha(-0.5);
-  m_physics_model->computeJacobian(u_disc_vec, u_aux_vec, m_tnp1, m_assembler);
+  m_physics_model->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_assembler);
 
   if (m_aux_eqns_combined_system)
   {
+    std::cout << "assembling combined system stiffness contribution" << std::endl;
     m_augmented_assembler->setAlpha(-0.5);
     aux_eqns->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_augmented_assembler);
+
+    m_augmented_assembler->finishAssembly();
   }
 
 
@@ -232,48 +252,27 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
     }
   }
 
+
   m_assembler->setAlpha(1);
+  m_augmented_assembler->setAlpha(1);
 }
 
 void CrankNicolsonFunction::setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1)
 {
   m_tn = m_tnp1;
   m_tnp1 = t_np1;
-  copyToVector(u_n, m_un);
-  *m_u_aux_n = *u_aux_n;
+
+  if (m_aux_eqns_combined_system)
+  {
+    splitVector(u_n, m_un, m_u_aux_n);
+  } else
+  {
+    copyToVector(u_n, m_un);
+    *m_u_aux_n = *u_aux_n;
+  }
 
   m_aux_eqns->setTnp1(m_un, u_aux_n, t_np1);
-}
-
-void CrankNicolsonFunction::splitSolutionVector(const ArrayType<Real, 1>& combined_vec, ArrayType<Real, 1>& sol_vec,
-                                                AuxiliaryEquationsStoragePtr sol_aux)
-{
-  int dof=0;
-  for (int i=0; i < sol_vec.shape()[0]; ++i)
-    sol_vec[i] = combined_vec[dof++];
-
-  for (int block=0; block < m_aux_eqns->getNumBlocks(); ++block)
-  {
-    auto& vec = sol_aux->getVector(block);
-    for (int i=0; i < vec.shape()[0]; ++i)
-      vec[i] = combined_vec[dof++];
-  }
-}
-
-void CrankNicolsonFunction::combineResidualVector(const ArrayType<Real, 1>& res_vec, AuxiliaryEquationsStoragePtr res_aux,
-                                                   ArrayType<Real, 1>& res_combined)
-{
-  int dof = 0;
-  for (int i=0; i < res_vec.shape()[0]; ++i)
-    res_combined[dof++] = res_vec[i];
-
-  for (int block=0; block < m_aux_eqns->getNumBlocks(); ++block)
-  {
-    const auto& vec = res_aux->getVector(block);
-    for (int i=0; i < vec.shape()[0]; ++i)
-      res_combined[dof++] = vec[i];
-  }
-}                            
+}                         
 
 
 }

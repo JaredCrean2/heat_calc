@@ -17,7 +17,8 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
       m_tn(-1),
       m_tnp1(t0),
       m_un(use_aux_eqns ? makeDiscVector(physics_model->getDiscretization()) : nullptr),
-      m_aux_un(makeAuxiliaryEquationsStorage(m_aux_eqns))
+      m_aux_un(makeAuxiliaryEquationsStorage(m_aux_eqns)),
+      m_use_aux_eqns(use_aux_eqns)
     {}
 
     virtual int getNumBlocks() const override { return m_aux_eqns->getNumBlocks(); }
@@ -48,6 +49,7 @@ class CrankNicolsonAuxiliaryEquations : public NewtonAuxiliaryEquations
     Real m_tnp1;
     DiscVectorPtr m_un;
     AuxiliaryEquationsStoragePtr m_aux_un;
+    bool m_use_aux_eqns;
 
     friend class CrankNicolsonFunction;
 };

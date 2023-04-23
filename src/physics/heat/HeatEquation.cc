@@ -47,8 +47,8 @@ void HeatEquation::computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_au
   // compute volume terms
   computeVolumeTerm(*this, u, rhs);
 
-  //std::cout << "\nafter volume term " << std::endl;
-  //printArray(rhs);
+  std::cout << "\nafter volume term " << std::endl;
+  printArray(rhs);
 
   // compute Neumann BC terms
   computeNeumannBC(*this, t, u, rhs);
@@ -62,16 +62,16 @@ void HeatEquation::computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_au
   // compute source term
   computeSourceTerm(*this, t, rhs);
 
-  //std::cout << "\nafter source term " << std::endl;
-  //printArray(rhs);
-  //printVector(rhs);
+  std::cout << "\nafter source term " << std::endl;
+  printArray(rhs);
+  printVector(rhs);
 }
 
 
 void HeatEquation::computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler)
 {
   if (!u->isArrayCurrent())
-    u->syncArrayToVector();
+    u->syncVectorToArray();
 
   applyDirichletValues(*this, t, u);
 
