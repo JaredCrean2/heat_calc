@@ -110,11 +110,7 @@ const std::vector<PetscInt>& SparsityPatternAugmented::getGhostLocalIndices()
   {
     if (m_am_i_last_rank)
     {
-      //TODO: is this right?  If the augmented dofs come after the local ones,
-      //      this doesn't seem right
       m_ghost_dofs_to_local = m_base_pattern->getGhostLocalIndices();
-      for (auto& val : m_ghost_dofs_to_local)
-        val += m_num_augmented_rows;
     } else
     {
       m_ghost_dofs_to_local = m_base_pattern->getGhostLocalIndices();

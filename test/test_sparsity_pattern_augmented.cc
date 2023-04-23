@@ -113,12 +113,7 @@ TEST(SparsityPatternAugmented, Values)
     std::vector<PetscInt> expected_off_proc_counts = {2, 2, 2, num_dofs_on_other_procs, num_dofs_on_other_procs};
     EXPECT_EQ(augmented_pattern->getOffProcCounts(), expected_off_proc_counts);
 
-    std::vector<PetscInt> ghost_dofs_to_local = base_pattern->getGhostLocalIndices();
-    for (auto& val : ghost_dofs_to_local)
-    { 
-      val += augmented_dofs;
-    }
-    EXPECT_EQ(augmented_pattern->getGhostLocalIndices(), ghost_dofs_to_local);
+    EXPECT_EQ(augmented_pattern->getGhostLocalIndices(), base_pattern->getGhostLocalIndices());
 
     std::vector<PetscInt> ghost_dofs_to_global = {666, 666};
     EXPECT_EQ(augmented_pattern->getGhostGlobalIndices(), ghost_dofs_to_global);

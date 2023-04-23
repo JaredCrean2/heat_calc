@@ -248,9 +248,6 @@ void CrankNicolsonFunction::setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEqua
 void CrankNicolsonFunction::splitSolutionVector(const ArrayType<Real, 1>& combined_vec, ArrayType<Real, 1>& sol_vec,
                                                 AuxiliaryEquationsStoragePtr sol_aux)
 {
-  //TODO: not sure this is correct for the last proc.  I think SparsityPatternAugmented puts the
-  //      augmented dofs at the end of the owned dofs, not local, for the last proc only
-
   int dof=0;
   for (int i=0; i < sol_vec.shape()[0]; ++i)
     sol_vec[i] = combined_vec[dof++];
