@@ -89,7 +89,9 @@ void NewtonSolver::solveStep(ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr
 
   computeJacobians(u, u_aux_vec);
 
-  for (int i=0; i < m_opts.linear_itermax; ++i)
+  // if there are no auxiliary blocks, no need to do more than one Gauss-Seidel step
+  int linear_itermax = u_aux_vec->getNumBlocks() > 1 ? m_opts.linear_itermax : 1;
+  for (int i=0; i < linear_itermax; ++i)
   {
     std::cout << "\nGauss Seidel iteration " << i << std::endl;
     Real delta_u_relative_norm = gaussSeidelStep(u, u_aux_vec);
