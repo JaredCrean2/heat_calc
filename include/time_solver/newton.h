@@ -85,7 +85,7 @@ class NewtonSolver
 
     Real computeRhsAndNorm(const ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
-    void computeJacobians(const ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec);
+    void computeJacobians(ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
     void checkJacobianFiniteDifference(ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec);
 
@@ -100,7 +100,7 @@ class NewtonSolver
 
     Real updateLinearSolution(const ArrayType<Real, 1>& delta_u_tmp, ArrayType<Real, 1>& delta_u);
 
-    void computeLinearResidual(const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec);
+    void computeLinearResidual(ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec);
 
 
     NewtonFunctionPtr m_func;

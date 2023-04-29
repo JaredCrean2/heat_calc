@@ -43,6 +43,78 @@ void NewtonCooling::getValueDeriv(const Index face, const Real t, const Real* so
 }
 
 //-----------------------------------------------------------------------------
+void NewtonCoolingFromAir::getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)
+{
+  auto& normals = m_surf->normals;
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    Real nx = normals[face][i][0];
+    Real ny = normals[face][i][1];
+    Real nz = normals[face][i][2];
+    Real mag     = std::sqrt(nx*nx + ny*ny + nz*nz);
+    Real delta_t = m_temp - sol_vals[i];
+    Real term    = m_heat_transfer_coeff * delta_t / mag;
+
+    flux_vals[i]                                      = nx * term;
+    flux_vals[i + m_surf->getNumQuadPtsPerFace()]     = ny * term;
+    flux_vals[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term;
+  }
+}
+
+
+void NewtonCoolingFromAir::getValueDeriv(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals_deriv)
+{
+  auto& normals = m_surf->normals;
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    Real nx = normals[face][i][0];
+    Real ny = normals[face][i][1];
+    Real nz = normals[face][i][2];
+    Real mag         = std::sqrt(nx*nx + ny*ny + nz*nz);
+    Real delta_t_dot = -1;
+    Real term        = m_heat_transfer_coeff * delta_t_dot / mag;
+
+    flux_vals_deriv[i]                                      = nx * term;
+    flux_vals_deriv[i + m_surf->getNumQuadPtsPerFace()]     = ny * term;
+    flux_vals_deriv[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term;
+  }
+}
+
+void NewtonCoolingFromAir::getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv)
+{
+  getValue(face, t, sol_vals, flux_vals);
+  getValueDeriv(face, t, sol_vals, flux_vals_deriv);
+  for (int i=0; i < 3*m_surf->getNumQuadPtsPerFace(); ++i)
+    flux_vals_deriv[i] *= -1;
+}
+
+void NewtonCoolingFromAir::getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar)
+{
+  auto& normals = m_surf->normals;
+  for (int i=0; i < m_surf->getNumQuadPtsPerFace(); ++i)
+  {
+    Real nx = normals[face][i][0];
+    Real ny = normals[face][i][1];
+    Real nz = normals[face][i][2];
+    Real mag     = std::sqrt(nx*nx + ny*ny + nz*nz);
+    //Real delta_t = m_temp - sol_vals[i];
+    //Real term    = m_heat_transfer_coeff * delta_t / mag;
+
+    //flux_vals[i]                                      = nx * term;
+    //flux_vals[i + m_surf->getNumQuadPtsPerFace()]     = ny * term;
+    //flux_vals[i + 2 * m_surf->getNumQuadPtsPerFace()] = nz * term;
+
+    Real term_bar = 0;
+    term_bar += nx * flux_vals_bar[i];
+    term_bar += ny * flux_vals_bar[i + m_surf->getNumQuadPtsPerFace()];
+    term_bar += nz * flux_vals_bar[i + 2 * m_surf->getNumQuadPtsPerFace()];
+
+    Real delta_t_bar = m_heat_transfer_coeff * term_bar / mag;
+    sol_vals_bar[i] = - delta_t_bar;
+  }
+}
+
+//-----------------------------------------------------------------------------
 // TarpBC
 
 void TarpBC::getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals)

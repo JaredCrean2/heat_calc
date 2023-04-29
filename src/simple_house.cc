@@ -270,11 +270,17 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
   //opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerResidual>(delta_t, 0);
 
   Real day = 24*60*60;
-  std::vector<timesolvers::TimestepControllerPiecewise::TimestepPoint> pts = { {0, 300}, {day, 300}, {2*day, 800},
+  //std::vector<timesolvers::TimestepControllerPiecewise::TimestepPoint> pts = { {0, 300}, {day, 300}, {2*day, 800},
+  //                                                                             //{3*day, 720}, {4*day, 2400}, {5*day, day}, 
+  //                                                                             //{6*day, 2*day},
+  //                                                                             {2*opts.t_end, 800}
+  //                                                                           };
+
+  std::vector<timesolvers::TimestepControllerPiecewise::TimestepPoint> pts = { {0, 300}, {day, 3600},
                                                                                //{3*day, 720}, {4*day, 2400}, {5*day, day}, 
-                                                                               //{6*day, 2*day},
-                                                                               {2*opts.t_end, 800}
-                                                                             };
+                                                                               {2*day, 7200}, {4*day, day},
+                                                                               {2*opts.t_end, day}
+                                                                             };                                                                             
 
   opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(pts);
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
@@ -290,6 +296,8 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
   matrix_opts->petsc_opts["ksp_rtol"] = "1e-50";
   matrix_opts->petsc_opts["ksp_monitor"] = "";
   opts.matrix_opts = matrix_opts;
+
+  opts.solve_auxiliary_equations_combined_system = true;
 
   return opts;
 }
@@ -369,7 +377,7 @@ int main(int argc, char* argv[])
 
     Real air_rho           = 1.007;
     Real air_cp            = 1006;
-    Real hvac_restore_time = 60 * 20;
+    //Real hvac_restore_time = 60 * 20;
     Real air_leakage_ach50 = 7;
     auto air_leakage = std::make_shared<Heat::AirLeakageModelPressure>(air_leakage_ach50, 4, generator.computeInteriorVolume(), air_cp, air_rho);
     auto air_ventilation = std::make_shared<Heat::AirLeakageModelPressure>(0, 4, generator.computeInteriorVolume(), air_cp, air_rho);
@@ -381,11 +389,12 @@ int main(int argc, char* argv[])
     auto window_model   = std::make_shared<Heat::WindowConductionModel>(window_r_value, window_area);
 
     // air properties from 6000 ft altitude
-    Real interior_air_min_temp = 295; //293.15;
-    Real interior_air_max_temp = 295; // 297.039;
+    //Real interior_air_min_temp = 295; //293.15;
+    //Real interior_air_max_temp = 295; // 297.039;
     //Real initial_air_temp = (interior_air_min_temp + interior_air_max_temp) / 2;
     Real initial_air_temp = environment_interface->getEnvironmentData(0).air_temp;
-    auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
+    auto hvac_model = std::make_shared<Heat::HVACModelConstant>(0);
+    //auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
     //auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
 
 

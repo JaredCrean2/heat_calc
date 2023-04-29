@@ -5,6 +5,7 @@ namespace Heat {
 void AuxiliaryEquationsSolar::computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs)
 {
   Real interior_temp = u_aux_vec->getVector(1)[0];
+  std::cout << "interior_temp = " << interior_temp << std::endl;
   rhs[0] = m_air_temp->computeNetFlux(u_vec, interior_temp, t);
 }
 
@@ -98,7 +99,8 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int ibloc
   Real t_interior = u_aux_vec->getVector(1)[0];
   auto u_bar = makeDiscVector(m_heat_eqn.getDiscretization());  //TODO: cache this
   u_bar->set(0);
-  m_air_temp->computeNetFlux_rev(u_vec, t_interior, t, u_bar, 1);
+  Real flux_bar = 1;
+  m_air_temp->computeNetFlux_rev(u_vec, t_interior, t, u_bar, flux_bar);
 
   if (!u_bar->isVectorCurrent())
     u_bar->syncArrayToVector();
@@ -106,6 +108,8 @@ void AuxiliaryEquationsSolar::computeAuxiliaryJacobianOffDiagonalBlock(int ibloc
   auto& u_bar_vec = u_bar->getVector();
   std::vector<Real> vals(u_bar_vec.begin(), u_bar_vec.end());
   std::vector<DofInt> dofs(u_bar_vec.size());
+  for (size_t i=0; i < dofs.size(); ++i)
+    dofs[i] = i;
 
   //TODO: are ghost dofs being double counted?
   mat->assembleValuesRow(0, dofs, vals);

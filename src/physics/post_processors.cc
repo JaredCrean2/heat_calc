@@ -6,7 +6,7 @@ namespace physics {
 Real integrateBoundaryFlux(NeumannBCPtr bc, DiscVectorPtr u, double t)
 {
   if (!u->isArrayCurrent())
-    u->syncArrayToVector();
+    u->syncVectorToArray();
 
   SurfDiscPtr surf = bc->getSurfDisc();
   ArrayType<Real, 1> u_quad(boost::extents[surf->getNumQuadPtsPerFace()]);

@@ -92,6 +92,17 @@ target_include_directories(simple_house PUBLIC
                           )
 target_link_libraries(simple_house PUBLIC heat_lib)
 
+add_executable(simple_house2 simple_house2.cc)
+
+target_include_directories(simple_house2 PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          "${PROJECT_SOURCE_DIR}/include"
+                          )
+target_link_libraries(simple_house2 PUBLIC heat_lib)
+
+
+
+
 add_executable(epw_extractor executables/epw_extractor.cc)
 
 target_include_directories(epw_extractor PUBLIC

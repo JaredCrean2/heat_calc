@@ -70,7 +70,6 @@ void CrankNicolsonAuxiliaryEquations::multiplyOffDiagonal(int iblock, int jblock
 
 void CrankNicolsonAuxiliaryEquations::setTnp1(DiscVectorPtr u_n, AuxiliaryEquationsStoragePtr u_aux_vec, Real t_np1)
 {
-  std::cout << "u_n = " << u_n << std::endl;
   m_tn   = m_tnp1;
   m_tnp1 = t_np1;
 

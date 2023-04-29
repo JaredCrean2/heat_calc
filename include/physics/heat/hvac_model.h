@@ -24,6 +24,35 @@ class HVACModel
     virtual void enforceTemperatureLimit_rev(Real interior_temp, Real& interior_temp_bar, Real load_flux, Real& load_flux_bar, Real hvac_flux_bar) = 0;
 };
 
+class HVACModelConstant : public HVACModel
+{
+  public:
+    explicit HVACModelConstant(Real flux=0) :
+      m_flux(flux)
+    {}
+    
+    // computes the HVAC flux.  Negative values denote cooling (decreasing interior air 
+    // temperature), positive values denote heating (increasing interior air temperature)
+    Real enforceTemperatureLimit(Real interior_temp, Real load_flux) override
+    {
+      return m_flux;
+    }
+
+    // compute derivative of HVAC flux wrt interior_temp
+    Real enforceTemperatureLimit_dot(Real interior_temp, Real interior_temp_dot, Real load_flux, Real load_flux_dot) override
+    {
+      return 0;
+    }
+
+    // reverse mode of enforceTemperatureLimit
+    void enforceTemperatureLimit_rev(Real interior_temp, Real& interior_temp_bar, Real load_flux, Real& load_flux_bar, Real hvac_flux_bar) override
+    {
+    }
+
+  private:
+    Real m_flux;
+};
+
 
 // simple on/off switch for HVAC
 class HVACModelSwitch : public HVACModel

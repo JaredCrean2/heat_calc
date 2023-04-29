@@ -12,6 +12,7 @@
 
 namespace Heat {
 
+
 class NewtonCooling : public NeumannBC
 {
   public:
@@ -67,6 +68,31 @@ class AirWindSkyNeumannBC : public NeumannBC
 
   private:
     std::string m_name;
+};
+
+class NewtonCoolingFromAir : public AirWindSkyNeumannBC
+{
+  public:
+    NewtonCoolingFromAir(SurfDiscPtr surf, Real heat_transfer_coeff) :
+      AirWindSkyNeumannBC(surf, true, "newton_cooling"),
+      m_heat_transfer_coeff(heat_transfer_coeff)
+    {}
+
+    virtual void setAirTemperature(Real temp) override { m_temp = temp;}
+
+    virtual Real getAirTemperature() const override { return m_temp; }  
+
+    void getValue(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals) override;
+
+    void getValueDeriv(const Index face, const Real t, const Real* sol_vals,  Real* flux_vals_deriv) override;
+
+    void getValuedTair(const Index face, const Real t, const Real* sol_vals, Real* flux_vals, Real* flux_vals_deriv) override;
+
+    void getValue_rev(const Index face, const Real t, const Real* sol_vals, Real* sol_vals_bar, const Real* flux_vals_bar) override;
+
+  private:
+    Real m_heat_transfer_coeff; // Units W/(m^2 K)
+    Real m_temp = std::numeric_limits<Real>::min();
 };
 
 

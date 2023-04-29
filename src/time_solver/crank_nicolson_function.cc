@@ -205,6 +205,7 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
     m_augmented_assembler->setAlpha(-0.5);
     aux_eqns->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_augmented_assembler);
 
+    m_augmented_assembler->startAssembly();
     m_augmented_assembler->finishAssembly();
   }
 

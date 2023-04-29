@@ -166,10 +166,11 @@ class AugmentedAssembler
           m_recv_dofs_rows[rank][i].resize(m_recv_counts_rows[m_num_augmented * rank + i]);
           m_recv_vals_rows[rank][i].resize(m_recv_counts_rows[m_num_augmented * rank + i]);
 
+
           MPI_Irecv(m_recv_dofs_rows[rank][i].data(), m_recv_dofs_rows[rank][i].size(), DofInt_MPI_DATATYPE, rank,
                     tag++, m_comm, &(m_recv_dofs_rows_reqs[rank][i]));
           MPI_Irecv(m_recv_vals_rows[rank][i].data(), m_recv_vals_rows[rank][i].size(), MPI_DOUBLE, rank,
-                    tag++, m_comm, &(m_recv_vals_rows_reqs[rank][i]));                                        
+                    tag++, m_comm, &(m_recv_vals_rows_reqs[rank][i]));
         }
       }
     }

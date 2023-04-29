@@ -129,7 +129,7 @@ void NewtonSolver::updateNonlinearSolution(ArrayType<Real, 1>& u_vec, AuxiliaryE
   }
 }
 
-void NewtonSolver::computeJacobians(const ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec)
+void NewtonSolver::computeJacobians(ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec)
 {
   //checkJacobianFiniteDifference(u, u_aux_vec);
   m_jac->zeroMatrix();
@@ -141,7 +141,6 @@ void NewtonSolver::computeJacobians(const ArrayType<Real, 1>& u, AuxiliaryEquati
 
   for (int iblock=1; iblock < m_func->getAuxiliaryEquations()->getNumBlocks(); ++iblock)
   {
-    std::cout << "computing jacobian for block " << iblock << std::endl;
     auto jac = m_aux_jacs->getMatrix(iblock);
     jac->zeroMatrix();
     m_func->getAuxiliaryEquations()->computeJacobian(iblock, u, u_aux_vec, jac);
@@ -178,14 +177,14 @@ void NewtonSolver::checkJacobianFiniteDifference(ArrayType<Real, 1>& u_vec, Auxi
   m_func->computeJacobian(u_vec, u_aux_vec, m_jac);
   m_jac->finishMatrixAssembly();
 
-  auto jac = m_aux_jacs->getMatrix(1);
-  jac->zeroMatrix();
-  aux_eqns->computeJacobian(1, u_vec, u_aux_vec, jac);
+  //auto jac = m_aux_jacs->getMatrix(1);
+  //jac->zeroMatrix();
+  //aux_eqns->computeJacobian(1, u_vec, u_aux_vec, jac);
 
 
   m_func->computeFunc(u_vec, u_aux_vec, false, b1_u);
   std::cout << "computing auxiliary equations rhs initially" << std::endl;
-  aux_eqns->computeRhs(1, u_vec, u_aux_vec, false, b1_T);
+  //aux_eqns->computeRhs(1, u_vec, u_aux_vec, false, b1_T);
   const int nvectors = 10;
   const Real eps = 1e-7;
   const Real tol = 1e-2;
@@ -199,14 +198,21 @@ void NewtonSolver::checkJacobianFiniteDifference(ArrayType<Real, 1>& u_vec, Auxi
     {
       x_u[i] = (i % nvectors) == v ? 1 : 0;
       u_vec[i] += x_u[i]*eps;
+
+      //if (i == x_u.shape()[0] - 1)
+      //{
+      //  x_u[i] = 1;
+      //  u_vec[i] += x_u[i]*eps;
+      //}
+
     }
 
     m_func->computeFunc(u_vec, u_aux_vec, false, b2_u);
-    aux_eqns->computeRhs(1, u_vec, u_aux_vec, false, b2_T);
+    //aux_eqns->computeRhs(1, u_vec, u_aux_vec, false, b2_T);
 
 
     m_jac->matVec(x_u, b3_u);
-    aux_eqns->multiplyOffDiagonal(1, 0, u_vec, u_aux_vec, x_u, b3_T);
+    //aux_eqns->multiplyOffDiagonal(1, 0, u_vec, u_aux_vec, x_u, b3_T);
 
     for (int i=0; i < x_u.shape()[0]; ++i)
     {
@@ -231,7 +237,7 @@ void NewtonSolver::checkJacobianFiniteDifference(ArrayType<Real, 1>& u_vec, Auxi
     for (int i=0; i < x_u.shape()[0]; ++i)
       u_vec[i] -= x_u[i]*eps;
   }
-
+/*
   // finite difference T
   std::cout << "\ndoing finite difference check of T" << std::endl;
   { 
@@ -270,6 +276,7 @@ void NewtonSolver::checkJacobianFiniteDifference(ArrayType<Real, 1>& u_vec, Auxi
     }
 
   }
+*/
 }
 
 Real NewtonSolver::gaussSeidelStep(const ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec)
@@ -381,7 +388,7 @@ Real NewtonSolver::updateLinearSolution(const ArrayType<Real, 1>& delta_u_tmp, A
 }
 
 //TODO: DEBUGGING
-void NewtonSolver::computeLinearResidual(const ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec)
+void NewtonSolver::computeLinearResidual(ArrayType<Real, 1>& u_vec, AuxiliaryEquationsStoragePtr u_aux_vec)
 {
   auto aux_eqns = m_func->getAuxiliaryEquations();
   ArrayType<Real, 1> residual(boost::extents[u_vec.shape()[0]]), 
