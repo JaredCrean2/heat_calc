@@ -46,67 +46,50 @@ void CrankNicolsonFunction::resetForNewSolve()
     m_fn->syncArrayToVector();
 }
 
-
-Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, AuxiliaryEquationsStoragePtr u_aux_np1,
-                                        bool compute_norm, ArrayType<Real, 1>& f_np1)
+void CrankNicolsonFunction::computePhysicsRhs(DiscVectorPtr u_disc_vec, AuxiliaryEquationsStoragePtr u_aux,
+                                              DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux)
 {
-  //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
-  assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
-
-  //std::cout << "evaluating CN function" << std::endl;
-  //TODO: cache these
-  bool am_i_last_rank = commRank(MPI_COMM_WORLD) == (commSize(MPI_COMM_WORLD) - 1);
-  auto aux_eqns = m_aux_eqns_combined_system ? m_physics_model->getAuxEquations() : nullptr;
-  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
-  auto f_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
-  AuxiliaryEquationsStoragePtr u_aux, f_aux;
-  if (m_aux_eqns_combined_system)
-  {
-    u_aux = makeAuxiliaryEquationsStorage(aux_eqns);
-    f_aux = makeAuxiliaryEquationsStorage(aux_eqns);
-    splitVector(u_np1, u_disc_vec, u_aux);
-  } else
-  {
-    copyToVector(u_np1, u_disc_vec);
-    u_aux = u_aux_np1;
-    //copyToVector(f_np1, f_disc_vec);
-  }
-
-
-  fill(f_np1, 0.0);  //TODO: unnecessary?
-  f_disc_vec->set(0);
   m_physics_model->computeRhs(u_disc_vec, u_aux, m_tnp1, f_disc_vec);
   if (!f_disc_vec->isVectorCurrent())
     f_disc_vec->syncArrayToVector();
 
   if (m_aux_eqns_combined_system)
+  {
+    auto aux_eqns = m_physics_model->getAuxEquations();
     for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
       aux_eqns->computeRhs(block, u_disc_vec, u_aux, m_tnp1, f_aux->getVector(block));
+  }
+}
 
-  copyFromVector(f_disc_vec, f_np1);  //TODO: unnecessary?
-
-  //if (!u_np1->isVectorCurrent())
-  //  u_np1->syncArrayToVector();
-
-  if (!m_un->isVectorCurrent())
-    m_un->syncArrayToVector();
-
+Real CrankNicolsonFunction::computeNorm(DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux)
+{
+  bool am_i_last_rank = commRank(MPI_COMM_WORLD) == (commSize(MPI_COMM_WORLD) - 1);
   Real physics_rhs_norm = 0;
-  if (compute_norm)
-  {
-    for (auto dof : m_owned_dof_to_local)
-      physics_rhs_norm += f_np1[dof] * f_np1[dof];
 
-    if (m_aux_eqns_combined_system && am_i_last_rank)
-    {
-      for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
-        for (auto& val : f_aux->getVector(block))
-          physics_rhs_norm += val*val;
-    }
+  if (!f_disc_vec->isVectorCurrent())
+    f_disc_vec->syncArrayToVector();
+
+  auto& f_vec = f_disc_vec->getVector();
+  for (auto dof : m_owned_dof_to_local)
+    physics_rhs_norm += f_vec[dof] * f_vec[dof];
+
+  if (m_aux_eqns_combined_system && am_i_last_rank)
+  {
+    auto aux_eqns = m_physics_model->getAuxEquations();
+    for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
+      for (auto& val : f_aux->getVector(block))
+        physics_rhs_norm += val*val;
   }
 
+  return physics_rhs_norm;
+}
+
+void CrankNicolsonFunction::computeTimeTerm(DiscVectorPtr u_disc_vec, AuxiliaryEquationsStoragePtr u_aux,
+                                            DiscVectorPtr Mdelta_u, AuxiliaryEquationsStoragePtr Mdelta_u_aux)
+{
+  auto aux_eqns = m_physics_model->getAuxEquations();
+
   // compute M * (u_np1 - u_n)
-  m_delta_u->set(0);  //TODO: unnecessary?
   auto& u_n_vec     = m_un->getVector();
   auto& u_np1_vec   = u_disc_vec->getVector();
   auto& delta_u_vec = m_delta_u->getVector();
@@ -124,16 +107,23 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
         delta_u_aux_vec[i] = u_np1_aux_vec[i] - u_n_aux_vec[i];
     }
 
-  m_physics_model->applyMassMatrix(m_delta_u, m_Mdelta_u);
-  if (!m_Mdelta_u->isVectorCurrent())
-    m_Mdelta_u->syncArrayToVector();
+  m_physics_model->applyMassMatrix(m_delta_u, Mdelta_u);
+  if (!Mdelta_u->isVectorCurrent())
+    Mdelta_u->syncArrayToVector();
 
   if (m_aux_eqns_combined_system)
     for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
-      aux_eqns->multiplyMassMatrix(block, m_tnp1, m_delta_u_aux->getVector(block), m_Mdelta_u_aux->getVector(block));
+      aux_eqns->multiplyMassMatrix(block, m_tnp1, m_delta_u_aux->getVector(block), Mdelta_u_aux->getVector(block));
+
+}
+
+void CrankNicolsonFunction::combineTerms(DiscVectorPtr Mdelta_u, AuxiliaryEquationsStoragePtr Mdelta_u_aux,
+                                         DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux)
+{
+  auto aux_eqns = m_physics_model->getAuxEquations();
 
   // compute f_np1 = M * (u_np1 - u_n) / delta_t - 0.5 * f(u_n, t_n) - 0.5 * f(u_np1, t_np1)
-  auto& Mdelta_u_vec  = m_Mdelta_u->getVector();
+  auto& Mdelta_u_vec  = Mdelta_u->getVector();
   auto& f_np1_vec     = f_disc_vec->getVector();
   auto& f_n_vec       = m_fn->getVector();
   Real delta_t_inv    = 1.0/(m_tnp1 - m_tn);
@@ -147,12 +137,52 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
   if (m_aux_eqns_combined_system)
     for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
     {
-      auto& Mdelta_u_vec = m_Mdelta_u_aux->getVector(block);
+      auto& Mdelta_u_vec = Mdelta_u_aux->getVector(block);
       auto& f_np1_vec    = f_aux->getVector(block);
       auto& f_n_vec      = m_fn_aux->getVector(block);
       for (int i=0; i < aux_eqns->getBlockSize(block); ++i)
         f_np1_vec[i] = delta_t_inv * Mdelta_u_vec[i] - 0.5 * f_np1_vec[i] - 0.5*f_n_vec[i];
-    }
+    }  
+}
+
+Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, AuxiliaryEquationsStoragePtr u_aux_np1,
+                                        bool compute_norm, ArrayType<Real, 1>& f_np1)
+{
+  //TODO: add flag for when u_np1 == un, avoid computing M * (u_np1 - u_n) on first iteration
+  assertAlways(m_tnp1 - m_tn > 1e-12, "delta_t must be > 1e-12");
+
+  //std::cout << "evaluating CN function" << std::endl;
+  //TODO: cache these
+  //bool am_i_last_rank = commRank(MPI_COMM_WORLD) == (commSize(MPI_COMM_WORLD) - 1);
+  auto aux_eqns = m_aux_eqns_combined_system ? m_physics_model->getAuxEquations() : nullptr;
+  auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  auto f_disc_vec = makeDiscVector(m_physics_model->getDiscretization());
+  AuxiliaryEquationsStoragePtr u_aux, f_aux;
+  if (m_aux_eqns_combined_system)
+  {
+    u_aux = makeAuxiliaryEquationsStorage(aux_eqns);
+    f_aux = makeAuxiliaryEquationsStorage(aux_eqns);
+    splitVector(u_np1, u_disc_vec, u_aux);
+  } else
+  {
+    copyToVector(u_np1, u_disc_vec);
+    u_aux = u_aux_np1;
+  }
+
+  computePhysicsRhs(u_disc_vec, u_aux, f_disc_vec, f_aux);
+
+  if (!m_un->isVectorCurrent())
+    m_un->syncArrayToVector();
+
+  Real physics_rhs_norm = 0;
+  if (compute_norm)
+  {
+    physics_rhs_norm = computeNorm(f_disc_vec, f_aux);
+  }
+
+  computeTimeTerm(u_disc_vec, u_aux, m_Mdelta_u, m_Mdelta_u_aux);
+
+  combineTerms(m_Mdelta_u, m_Mdelta_u_aux, f_disc_vec, f_aux);
 
   if (m_aux_eqns_combined_system)
     combineVector(f_disc_vec, f_aux, f_np1);
@@ -162,14 +192,8 @@ Real CrankNicolsonFunction::computeFunc(const ArrayType<Real, 1>& u_np1, Auxilia
   Real norm = 0;
   if (compute_norm)
   {
-    //TODO: not sure this is the right norm to use
-    for (auto dof : m_owned_dof_to_local)
-      norm += f_np1[dof] * f_np1[dof];
+    norm = computeNorm(f_disc_vec, f_aux);
 
-    if (m_aux_eqns_combined_system)
-      for (int block=1; block < aux_eqns->getNumBlocks(); ++block)
-        for (auto& val : f_aux->getVector(block))
-          norm += val*val;
     
     std::array<Real, 2> norms_local = {norm, physics_rhs_norm}, norms_global;
     MPI_Allreduce(norms_local.data(), norms_global.data(), 2, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);

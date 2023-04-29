@@ -35,6 +35,18 @@ class CrankNicolsonFunction : public NewtonFunction
     Real getLastPhysicsRhsNorm() { return m_last_physics_rhs_norm; }
 
   private:
+
+    void computePhysicsRhs(DiscVectorPtr u_disc_vec, AuxiliaryEquationsStoragePtr u_aux,
+                           DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux);
+
+    Real computeNorm(DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux);
+
+    void computeTimeTerm(DiscVectorPtr u_disc_vec, AuxiliaryEquationsStoragePtr u_aux,
+                        DiscVectorPtr Mdelta_u, AuxiliaryEquationsStoragePtr Mdelta_u_aux);
+
+    void combineTerms(DiscVectorPtr Mdelta_u, AuxiliaryEquationsStoragePtr Mdelta_u_aux,
+                      DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux);
+
     //void splitSolutionVector(const ArrayType<Real, 1>& combined_vec, ArrayType<Real, 1>& sol_vec,
     //                         AuxiliaryEquationsStoragePtr sol_aux);
 //
