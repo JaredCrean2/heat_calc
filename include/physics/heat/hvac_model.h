@@ -465,6 +465,76 @@ class HVACModelDoubleSpline : public HVACModel
 };
 */
 
+class HVACModelTempOnly : public HVACModel
+{
+  public:
+    HVACModelTempOnly(Real temp_lower, Real temp_upper, Real rho_cp, Real air_volume, Real hvac_restore_time, int poly_degree) :
+      //m_hvac_restore_time(hvac_restore_time),
+      m_temp_lower(temp_lower),
+      m_temp_upper(temp_upper),
+      m_poly_degree(poly_degree),
+      m_A1(0),
+      m_A2(0)
+    {
+      assertAlways(poly_degree >= 1, "HVACModelTempOnly polynomial degree must be >= 1");
+      assertAlways(std::abs(temp_upper - temp_lower) > 1e-3, "temperature range must be > 1e-3");
+      assertAlways(temp_upper >= temp_lower, "upper temperature must be greater than lower temperature");
+      Real temp_range_term = std::pow((temp_upper - temp_lower)/2, poly_degree-1);
+      m_A1 = rho_cp*air_volume/(hvac_restore_time * temp_range_term);
+      m_A2 = (poly_degree % 2 == 0) ? m_A1 : -m_A1;
+    }
+    
+    // computes the HVAC flux.  Negative values denote cooling (decreasing interior air 
+    // temperature), positive values denote heating (increasing interior air temperature)
+    Real enforceTemperatureLimit(Real interior_temp, Real load_flux) override
+    {
+      Real t_avg   = (m_temp_upper + m_temp_lower)/2;
+      Real delta_t = interior_temp - t_avg;
+      if (interior_temp >= t_avg)
+        return -m_A1 * std::pow(delta_t, m_poly_degree);
+      else  // interior_temp < t_avg
+        return m_A2 * std::pow(delta_t, m_poly_degree);
+    }
+
+    // compute derivative of HVAC flux wrt interior_temp
+    Real enforceTemperatureLimit_dot(Real interior_temp, Real interior_temp_dot, Real load_flux, Real load_flux_dot) override
+    {
+      Real t_avg       = (m_temp_upper + m_temp_lower)/2;
+      Real delta_t     = interior_temp - t_avg;
+      Real delta_t_dot = interior_temp_dot;
+      if (interior_temp >= t_avg)
+        return -m_poly_degree * m_A1 * std::pow(delta_t, m_poly_degree - 1) * delta_t_dot;
+      else  // interior_temp < t_avg
+        return m_poly_degree * m_A2 * std::pow(delta_t, m_poly_degree - 1) * delta_t_dot;      
+    }
+
+    // reverse mode of enforceTemperatureLimit
+    void enforceTemperatureLimit_rev(Real interior_temp, Real& interior_temp_bar, Real load_flux, 
+                                     Real& load_flux_bar, Real hvac_flux_bar) override
+    {
+      Real t_avg   = (m_temp_upper + m_temp_lower)/2;
+      Real delta_t = interior_temp - t_avg;
+
+      Real delta_t_bar;
+      if (interior_temp >= t_avg)
+        delta_t_bar = -m_poly_degree * m_A1 * std::pow(delta_t, m_poly_degree - 1) * hvac_flux_bar;
+      else  // interior_temp < t_avg
+        delta_t_bar = m_poly_degree * m_A2 * std::pow(delta_t, m_poly_degree - 1) * hvac_flux_bar;
+
+      interior_temp_bar = delta_t_bar;
+    }
+
+  private:
+    //Real m_hvac_restore_time;
+    Real m_temp_lower;
+    Real m_temp_upper;
+    Real m_poly_degree;
+    //Real m_rho_cp;
+    //Real m_air_volume;
+    Real m_A1;
+    Real m_A2;
+};
+
 }  // namespace
 
 #endif

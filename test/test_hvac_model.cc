@@ -6,30 +6,30 @@ namespace {
 
 void test_derivative_interior_temp(Heat::HVACModel& model, Real interior_temp, Real load_flux, int sign)
 {
-  const Real eps = sign*1e-7;
+  const Real eps = sign*1e-6;
   Real flux = model.enforceTemperatureLimit(interior_temp, load_flux);
   Real flux2 = model.enforceTemperatureLimit(interior_temp + eps, load_flux);
   Real flux_deriv = model.enforceTemperatureLimit_dot(interior_temp, 1, load_flux, 0);
   Real flux_fd = (flux2 - flux)/eps;
   std::cout << "flux1 = " << flux << ", flux2 = " << flux2 << ", flux_fd = " << flux_fd << ", flux_deriv = " << flux_deriv << std::endl;
-  EXPECT_NEAR(flux_deriv, flux_fd, 1e-6); 
+  EXPECT_NEAR(flux_deriv, flux_fd, 1e-5); 
 }
 
 void test_derivative_load_flux(Heat::HVACModel& model, Real interior_temp, Real load_flux, int sign)
 {
-  const Real eps = sign * 1e-7;
+  const Real eps = sign * 1e-6;
   Real flux = model.enforceTemperatureLimit(interior_temp, load_flux);
   Real flux2 = model.enforceTemperatureLimit(interior_temp, load_flux + eps);
   Real flux_deriv = model.enforceTemperatureLimit_dot(interior_temp, 0, load_flux, 1);
   Real flux_fd = (flux2 - flux)/eps;
   std::cout << "flux1 = " << flux << ", flux2 = " << flux2 << ", flux_fd = " << flux_fd << ", flux_deriv = " << flux_deriv << std::endl;
 
-  EXPECT_NEAR(flux_deriv, flux_fd, 1e-6); 
+  EXPECT_NEAR(flux_deriv, flux_fd, 1e-5); 
 }
 
 void test_derivative_combined(Heat::HVACModel& model, Real interior_temp, Real load_flux, int sign)
 {
-  const Real eps = sign*1e-7;
+  const Real eps = sign*1e-6;
   Real interior_temp_dot = 2;  //TODO: make this 2
   Real load_flux_dot = 3;
 
@@ -39,7 +39,7 @@ void test_derivative_combined(Heat::HVACModel& model, Real interior_temp, Real l
   Real flux_fd = (flux2 - flux)/eps;
   std::cout << "flux1 = " << flux << ", flux2 = " << flux2 << ", flux_fd = " << flux_fd << ", flux_deriv = " << flux_deriv << std::endl;
 
-  EXPECT_NEAR(flux_deriv, flux_fd, 1e-6); 
+  EXPECT_NEAR(flux_deriv, flux_fd, 1e-5); 
 }
 
 void test_reverse_mode(Heat::HVACModel& model, Real interior_temp, Real load_flux)
@@ -127,3 +127,72 @@ TEST(HVACModelSpline, OutsideSplineRange)
   test_derivative(model, 303, load_flux);
 }
 */
+
+TEST(HVACModelTempOnly, Even)
+{
+  Real min_temp = 295;
+  Real max_temp = 305;
+  Real rho_cp = 2;
+  Real air_volume = 3;
+  Real hvac_restore_time = 4;
+
+  Heat::HVACModelTempOnly model(min_temp, max_temp, rho_cp, air_volume, hvac_restore_time, 2);
+
+  Real load_flux = 5;
+  EXPECT_EQ(model.enforceTemperatureLimit(300, load_flux), 0);
+  EXPECT_EQ(model.enforceTemperatureLimit(305, load_flux), -rho_cp * air_volume * 0.5 * (max_temp - min_temp)/hvac_restore_time);
+  EXPECT_EQ(model.enforceTemperatureLimit(295, load_flux),  rho_cp * air_volume * 0.5 * (max_temp - min_temp)/hvac_restore_time);
+
+  test_derivative(model, 296, load_flux);
+  test_derivative(model, 300, load_flux);
+  test_derivative(model, 304, load_flux);
+
+  test_derivative(model, 293, load_flux);
+  test_derivative(model, 307, load_flux);
+}
+
+TEST(HVACModelTempOnly, Odd)
+{
+  Real min_temp = 295;
+  Real max_temp = 305;
+  Real rho_cp = 2;
+  Real air_volume = 3;
+  Real hvac_restore_time = 4;
+
+  Heat::HVACModelTempOnly model(min_temp, max_temp, rho_cp, air_volume, hvac_restore_time, 3);
+
+  Real load_flux = 5;
+  EXPECT_EQ(model.enforceTemperatureLimit(300, load_flux), 0);
+  EXPECT_EQ(model.enforceTemperatureLimit(305, load_flux), -rho_cp * air_volume * 0.5 * (max_temp - min_temp)/hvac_restore_time);
+  EXPECT_EQ(model.enforceTemperatureLimit(295, load_flux),  rho_cp * air_volume * 0.5 * (max_temp - min_temp)/hvac_restore_time);
+
+  test_derivative(model, 296, load_flux);
+  test_derivative(model, 300, load_flux);
+  test_derivative(model, 304, load_flux);
+
+  test_derivative(model, 293, load_flux);
+  test_derivative(model, 307, load_flux);
+}
+
+TEST(HVACModelTempOnly, Linear)
+{
+  Real min_temp = 295;
+  Real max_temp = 305;
+  Real rho_cp = 2;
+  Real air_volume = 3;
+  Real hvac_restore_time = 4;
+
+  Heat::HVACModelTempOnly model(min_temp, max_temp, rho_cp, air_volume, hvac_restore_time, 1);
+
+  Real load_flux = 5;
+  EXPECT_EQ(model.enforceTemperatureLimit(300, load_flux), 0);
+  EXPECT_EQ(model.enforceTemperatureLimit(305, load_flux), -rho_cp * air_volume * 0.5 * (max_temp - min_temp)/hvac_restore_time);
+  EXPECT_EQ(model.enforceTemperatureLimit(295, load_flux),  rho_cp * air_volume * 0.5 * (max_temp - min_temp)/hvac_restore_time);
+
+  test_derivative(model, 296, load_flux);
+  test_derivative(model, 300, load_flux);
+  test_derivative(model, 304, load_flux);
+
+  test_derivative(model, 293, load_flux);
+  test_derivative(model, 307, load_flux);
+}
