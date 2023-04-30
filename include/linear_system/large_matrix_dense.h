@@ -5,6 +5,7 @@
 #include "bla_wrapper.h"
 #include "linear_system/sparsity_pattern_dense.h"
 
+#include <memory>
 #include <ostream>
 
 namespace linear_system {
@@ -20,6 +21,11 @@ class LargeMatrixDense : public LargeMatrix
 
     const Real& operator()(int i, int j) const { return m_matrix[getIdx(i, j)]; }
 
+    std::shared_ptr<LargeMatrix> clone() override
+    {
+      return std::make_shared<LargeMatrixDense>(getMLocal(), getNLocal(), m_opts);
+    }
+
     void printToStdout();
 
   protected:
@@ -32,6 +38,13 @@ class LargeMatrixDense : public LargeMatrix
     void solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x) override;
 
     void matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
+
+    void axpy_impl(Real alpha, std::shared_ptr<LargeMatrix> x) override
+    {
+      auto x_dense = std::dynamic_pointer_cast<LargeMatrixDense>(x);
+      for (int i=0; i < getMLocal()*getNLocal(); ++i)
+        m_matrix[i] += x_dense->m_matrix[i]*alpha;    
+    }    
 
 
   private:

@@ -6,19 +6,6 @@
 
 namespace timesolvers {
 
-void checkTimeStepperOpts(const TimeStepperOpts& opts, bool check_implicit)
-{
-  assertAlways(opts.t_end > opts.t_start, "t_end must be > t_start");
-  if (check_implicit)
-  {
-    assertAlways(opts.mat_type != linear_system::LargeMatrixType::Unknown, "Matrix type cannot be unknown");
-    assertAlways(!!opts.matrix_opts, "matrix_opts must be defined");
-    assertAlways(opts.nonlinear_abs_tol > 0 || opts.nonlinear_rel_tol > 0, "Either nonlinear_abs_tol or nonlinear_rel_tol must be > 0");
-    assertAlways(opts.nonlinear_itermax > 0, "nonlinear_itermax must be > 0");
-  }
-}
-
-
 CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u,
                              AuxiliaryEquationsStoragePtr u_aux_vec, 
                              TimeStepperOpts opts) :
@@ -40,7 +27,7 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
     sparsity = std::make_shared<linear_system::SparsityPatternAugmented>(sparsity, num_augmented, MPI_COMM_WORLD);
   }
   m_matrix      = largeMatrixFactory(opts.mat_type, opts.matrix_opts, sparsity);
-  m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start, opts.solve_auxiliary_equations_combined_system);
+  m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start, opts);
   m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix);
 }
 

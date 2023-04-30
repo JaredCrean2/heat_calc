@@ -98,10 +98,11 @@ class CNPhysicsModel : public PhysicsModel
       }
     }
 
-    virtual void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler)
+    virtual void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler,
+                                 JacobianTerms terms=JacobianTerms::All)
     {
       if (m_solve_type == SPACETIME)
-        m_heat->computeJacobian(u, u_aux, t, assembler);
+        m_heat->computeJacobian(u, u_aux, t, assembler, terms);
     }
 
     virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)
@@ -357,7 +358,7 @@ TEST_F(CNTester, PolynomialExactness)
 TEST_F(CNTester, JacobianFD)
 {
   SERIAL_ONLY();
-
+  timesolvers::TimeStepperOpts opts;
   Real kappa = 1;
   int degree_space = 2, degree_time = 2;
 
@@ -385,7 +386,7 @@ TEST_F(CNTester, JacobianFD)
                                                mat_opts, std::make_shared<linear_system::SparsityPatternDense>(num_dofs));
   const Real tn = 1.0;
   const Real delta_t = 0.5;
-  timesolvers::CrankNicolsonFunction cn_func(cn_model, mat, tn - delta_t);
+  timesolvers::CrankNicolsonFunction cn_func(cn_model, mat, tn - delta_t, opts);
 
   using Rng = std::mt19937;
   Rng rng;

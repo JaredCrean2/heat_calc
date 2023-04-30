@@ -2,10 +2,12 @@
 #define TIME_SOLVER_CRANK_NICOLSON_FUNCTION
 
 #include "linear_system/augmented_assembler.h"
+#include "linear_system/large_matrix.h"
 #include "physics/AuxiliaryEquations.h"
 #include "time_solver/crank_nicolson_aux_equations.h"
 #include "time_solver/newton.h"
 #include "physics/PhysicsModel.h"
+#include "time_solver/time_stepper_opts.h"
 
 namespace timesolvers {
 
@@ -15,7 +17,7 @@ class CrankNicolsonFunction : public NewtonFunction
 {
   public:
     CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physics_model, linear_system::LargeMatrixPtr mat,
-                          Real t0, bool aux_eqns_combined_system=false);
+                          Real t0, const TimeStepperOpts& opts);
 
     void resetForNewSolve() override ;
   
@@ -47,6 +49,9 @@ class CrankNicolsonFunction : public NewtonFunction
     void combineTerms(DiscVectorPtr Mdelta_u, AuxiliaryEquationsStoragePtr Mdelta_u_aux,
                       DiscVectorPtr f_disc_vec, AuxiliaryEquationsStoragePtr f_aux);
 
+    void precomputeLinearJacobian(linear_system::LargeMatrixPtr jac);
+
+
     //void splitSolutionVector(const ArrayType<Real, 1>& combined_vec, ArrayType<Real, 1>& sol_vec,
     //                         AuxiliaryEquationsStoragePtr sol_aux);
 //
@@ -58,8 +63,14 @@ class CrankNicolsonFunction : public NewtonFunction
     linear_system::AssemblerPtr m_assembler;
     linear_system::AugmentedAssemblerPtr m_augmented_assembler;
 
+    linear_system::LargeMatrixPtr m_mass_matrix;
+    linear_system::LargeMatrixPtr m_linear_stiffness_matrix;
+
+
     Real m_tn;
     bool m_aux_eqns_combined_system;
+    bool m_precompute_linear_jacobian;
+    bool m_is_first_jacobian = true;
     //TODO: how many of these need to be true DiscVectors? Some of them may only
     //      require the vector part
     DiscVectorPtr m_un;

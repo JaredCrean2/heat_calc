@@ -93,14 +93,34 @@ LargeMatrixPetsc::LargeMatrixPetsc(LargeMatrixOptsPetsc opts, std::shared_ptr<Sp
     PCFactorSetUseInPlace(m_pc, PETSC_TRUE);
 }
 
+LargeMatrixPetsc::LargeMatrixPetsc(std::shared_ptr<SparsityPattern> sparsity_pattern) :
+  LargeMatrix(sparsity_pattern->getNumOwnedDofs(), sparsity_pattern->getNumOwnedDofs(), sparsity_pattern)
+{}
+
+
 
 LargeMatrixPetsc::~LargeMatrixPetsc()
 {
-  VecDestroy(&m_x);
-  VecDestroy(&m_b);
-  MatDestroy(&m_A);
-  KSPDestroy(&m_ksp);
+  if (m_x)
+    VecDestroy(&m_x);
+
+  if (m_b)
+    VecDestroy(&m_b);
+
+  if (m_b)
+    MatDestroy(&m_A);
+
+  if (m_ksp)
+    KSPDestroy(&m_ksp);
   // KSP manages the PC, no need to destroy it explicitly
+}
+
+std::shared_ptr<LargeMatrix> LargeMatrixPetsc::clone()
+{
+  auto copy = std::make_shared<LargeMatrixPetsc>(getSparsityPattern());
+  MatDuplicate(m_A, MAT_SHARE_NONZERO_PATTERN, &(copy->m_A));
+
+  return copy;
 }
 
 void LargeMatrixPetsc::finishMatrixAssembly_impl()
@@ -159,6 +179,13 @@ void LargeMatrixPetsc::matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 
   MatMult(m_A, m_x, m_b);
   copyVec(m_b, b, false);
 }
+
+void LargeMatrixPetsc::axpy_impl(Real alpha, std::shared_ptr<LargeMatrix> x)
+{
+  auto x_petsc = std::dynamic_pointer_cast<LargeMatrixPetsc>(x);
+  assert(x_petsc);
+  MatAXPY(m_A, alpha, x_petsc->m_A, SAME_NONZERO_PATTERN);
+}  
 
 
 void LargeMatrixPetsc::copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out, bool set_ghosts)
@@ -237,6 +264,12 @@ void setPetscOptions(const LargeMatrixOptsPetsc& opts)
     std::string full_key = std::string("-") + opts.opts_prefix + p.first;
     PetscOptionsSetValue(NULL, full_key.c_str(), p.second.c_str());
   }
+}
+
+void setPetscGlobalOption(const std::string& key, const std::string& val)
+{
+  std::string full_key = std::string("-") + key;
+  PetscOptionsSetValue(NULL, full_key.c_str(), val.c_str());
 }
 
 }

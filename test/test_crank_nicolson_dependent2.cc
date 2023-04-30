@@ -172,7 +172,8 @@ class PhysicsModelTest : public PhysicsModel
       rhs->markVectorModified();
     }
 
-    void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler) override
+    void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler,
+                         JacobianTerms terms=JacobianTerms::All) override
     {
       // nothing to do: d rhs/du = 0
     }

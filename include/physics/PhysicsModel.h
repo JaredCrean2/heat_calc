@@ -11,7 +11,12 @@
 #include "AuxiliaryEquations.h"
 #include "post_processor_manager.h"
 
-
+enum class JacobianTerms
+{
+  Linear,
+  Nonlinear,
+  All
+};
 
 // Evaluates a discretization for the given equation
 // Produces linear systems K u = f, where K is the left-hand side
@@ -34,7 +39,8 @@ class PhysicsModel
     // on exit, rhs has the residual in array form
     virtual void computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs) = 0;
 
-    virtual void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler) = 0;
+    virtual void computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler,
+                                 JacobianTerms terms=JacobianTerms::All) = 0;
 
     virtual void applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out) = 0;
 

@@ -2,6 +2,7 @@
 #include "discretization/disc_vector.h"
 #include "linear_system/assembler.h"
 #include "linear_system/augmented_assembler.h"
+#include "linear_system/large_matrix.h"
 #include "linear_system/large_matrix_dense.h"
 #include "mesh/mesh.h"
 #include "physics/AuxiliaryEquations.h"
@@ -9,14 +10,15 @@
 namespace timesolvers {
 
 CrankNicolsonFunction::CrankNicolsonFunction(std::shared_ptr<PhysicsModel> physics_model, linear_system::LargeMatrixPtr mat,
-                                             Real t0, bool aux_eqns_combined_system) :
+                                             Real t0, const TimeStepperOpts& opts) :
   m_physics_model(physics_model),
-  m_aux_eqns(std::make_shared<CrankNicolsonAuxiliaryEquations>(physics_model, t0, !aux_eqns_combined_system)),
+  m_aux_eqns(std::make_shared<CrankNicolsonAuxiliaryEquations>(physics_model, t0, !opts.solve_auxiliary_equations_combined_system)),
   m_assembler(std::make_shared<linear_system::Assembler>(physics_model->getDiscretization(), mat)),
   m_augmented_assembler(std::make_shared<linear_system::AugmentedAssembler>(physics_model->getDiscretization(), mat, 
                                                         getNumAuxiliaryVariables(physics_model->getAuxEquations()))),
   m_tn(t0),
-  m_aux_eqns_combined_system(aux_eqns_combined_system),
+  m_aux_eqns_combined_system(opts.solve_auxiliary_equations_combined_system),
+  m_precompute_linear_jacobian(opts.precompute_linear_jacobian),
   m_un(makeDiscVector(physics_model->getDiscretization())),
   m_u_aux_n(makeAuxiliaryEquationsStorage(physics_model->getAuxEquations())),
   m_fn(makeDiscVector(physics_model->getDiscretization())),
@@ -211,6 +213,11 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
   auto u_disc_vec = makeDiscVector(m_physics_model->getDiscretization());  //TODO
   AuxiliaryEquationsStoragePtr u_aux      = makeAuxiliaryEquationsStorage(aux_eqns);
 
+  if (m_precompute_linear_jacobian && !m_is_first_jacobian && !m_mass_matrix)
+    precomputeLinearJacobian(jac);
+
+  bool use_precomputed_jacobian = m_precompute_linear_jacobian && !m_is_first_jacobian;
+
   if (m_aux_eqns_combined_system)
   {
     u_aux = makeAuxiliaryEquationsStorage(aux_eqns);    
@@ -221,8 +228,21 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
     u_aux = u_aux_vec;
   }
 
-  m_assembler->setAlpha(-0.5);
-  m_physics_model->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_assembler);
+  if (use_precomputed_jacobian)
+  {
+    jac->axpy(1.0/(m_tnp1 - m_tn), m_mass_matrix);
+    jac->axpy(-0.5, m_linear_stiffness_matrix);
+  }
+
+  if (use_precomputed_jacobian)
+  {
+    m_assembler->setAlpha(-0.5);
+    m_physics_model->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_assembler, JacobianTerms::Nonlinear);
+  } else
+  {
+    m_assembler->setAlpha(-0.5);
+    m_physics_model->computeJacobian(u_disc_vec, u_aux, m_tnp1, m_assembler);
+  }
 
   if (m_aux_eqns_combined_system)
   {
@@ -234,8 +254,11 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
   }
 
 
-  m_assembler->setAlpha(1.0/(m_tnp1 - m_tn));
-  m_physics_model->computeMassMatrix(m_assembler);
+  if (!use_precomputed_jacobian)
+  {
+    m_assembler->setAlpha(1.0/(m_tnp1 - m_tn));
+    m_physics_model->computeMassMatrix(m_assembler);
+  }
 
   if (m_aux_eqns_combined_system)
   {
@@ -267,6 +290,7 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
 
   m_assembler->setAlpha(1);
   m_augmented_assembler->setAlpha(1);
+  m_is_first_jacobian = false;
 }
 
 void CrankNicolsonFunction::setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEquationsStoragePtr u_aux_n, Real t_np1)
@@ -284,7 +308,23 @@ void CrankNicolsonFunction::setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEqua
   }
 
   m_aux_eqns->setTnp1(m_un, u_aux_n, t_np1);
-}                         
+} 
 
+void CrankNicolsonFunction::precomputeLinearJacobian(linear_system::LargeMatrixPtr jac)
+{
+  std::cout << "precomputing matrices" << std::endl;
+  m_mass_matrix = jac->clone();
+  m_linear_stiffness_matrix = jac->clone();
+
+  auto assembler_mass = std::make_shared<linear_system::Assembler>(m_physics_model->getDiscretization(), m_mass_matrix);
+  m_physics_model->computeMassMatrix(assembler_mass);
+  
+  auto assembler_jac = std::make_shared<linear_system::Assembler>(m_physics_model->getDiscretization(), m_linear_stiffness_matrix);
+  // values in m_un and m_u_aux_n are irrelevent because we are only computing the linear part of the Jacobian
+  m_physics_model->computeJacobian(m_un, m_u_aux_n, 0.0, assembler_jac, JacobianTerms::Linear);
+
+  m_mass_matrix->finishMatrixAssembly();
+  m_linear_stiffness_matrix->finishMatrixAssembly();
+}
 
 }

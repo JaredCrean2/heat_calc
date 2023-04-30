@@ -1,6 +1,7 @@
 #ifndef PHYSICS_HEAT_HEAT_EQN_SOLAR_H
 #define PHYSICS_HEAT_HEAT_EQN_SOLAR_H
 
+#include "physics/PhysicsModel.h"
 #include "physics/heat/HeatEquation.h"
 
 namespace Heat {
@@ -37,10 +38,11 @@ class HeatEquationSolar : public HeatEquation
       HeatEquation::computeRhs(u, u_aux, t, rhs);
     }
         
-    void computeJacobian(DiscVectorPtr u,  AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler) override
+    void computeJacobian(DiscVectorPtr u,  AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler,
+                         JacobianTerms terms=JacobianTerms::All) override
     {
       setTimeParameters(t, u_aux->getVector(1)[0]);
-      HeatEquation::computeJacobian(u, u_aux, t, assembler);
+      HeatEquation::computeJacobian(u, u_aux, t, assembler, terms);
     }
 
     // compute Jacobian-vector product dR/dT, where T is the air temperature

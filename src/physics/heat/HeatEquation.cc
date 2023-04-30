@@ -4,6 +4,7 @@
 #include "discretization/dof_numbering.h"
 #include "discretization/volume_discretization.h"
 #include "error_handling.h"
+#include "physics/PhysicsModel.h"
 #include "physics/heat/basis_vals.h"
 #include "physics/heat/helper_funcs.h"
 #include "physics/heat/interior_temperature_update.h"
@@ -68,17 +69,22 @@ void HeatEquation::computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_au
 }
 
 
-void HeatEquation::computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler)
+void HeatEquation::computeJacobian(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, linear_system::AssemblerPtr assembler,
+                                   JacobianTerms terms)
 {
   if (!u->isArrayCurrent())
     u->syncVectorToArray();
 
   applyDirichletValues(*this, t, u);
 
-  computeVolumeJacobian(*this, u, assembler);
+  if (terms == JacobianTerms::Linear || terms == JacobianTerms::All)
+    computeVolumeJacobian(*this, u, assembler);
 
-  // typical Neumann and source terms don't contribute to the Jacobian
-  computeNeumannBCJacobian(*this, u, t, assembler);
+  if (terms == JacobianTerms::Nonlinear || terms == JacobianTerms::All)
+  {
+    // typical Neumann and source terms don't contribute to the Jacobian
+    computeNeumannBCJacobian(*this, u, t, assembler);
+  }
 }
 
 void HeatEquation::applyMassMatrix(DiscVectorPtr vec_in, DiscVectorPtr vec_out)

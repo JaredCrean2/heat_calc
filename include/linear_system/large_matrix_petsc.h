@@ -22,7 +22,12 @@ struct LargeMatrixOptsPetsc : public LargeMatrixOpts
   std::map<std::string, std::string> petsc_opts;  // options themselves (keys should *not* include opts_preifx)
 };
 
+
 void setPetscOptions(const LargeMatrixOptsPetsc& opts);
+
+// sets an option in the Petsc global options database.  key should *not* have the
+// hyphen prefix.
+void setPetscGlobalOption(const std::string& key, const std::string& val);
 
 
 class LargeMatrixPetsc : public LargeMatrix
@@ -32,10 +37,14 @@ class LargeMatrixPetsc : public LargeMatrix
 
     ~LargeMatrixPetsc();
 
+    std::shared_ptr<LargeMatrix> clone() override;
+
     void printToStdout()
     {
       MatView(m_A, PETSC_VIEWER_STDOUT_WORLD);
-    }    
+    }  
+
+    LargeMatrixPetsc(std::shared_ptr<SparsityPattern> sparsity_pattern);
 
   protected:
 
@@ -63,6 +72,8 @@ class LargeMatrixPetsc : public LargeMatrix
 
     void matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) override;
 
+    void axpy_impl(Real alpha, std::shared_ptr<LargeMatrix> x) override;  
+
   private:
 
     void copyVec(const ArrayType<Real, 1>& vec_in, Vec vec_out, bool set_ghosts);
@@ -70,11 +81,11 @@ class LargeMatrixPetsc : public LargeMatrix
     void copyVec(const Vec vec_in, ArrayType<Real, 1>& vec_out, bool set_ghosts);
 
     LargeMatrixOptsPetsc m_opts;
-    Vec m_x;
-    Vec m_b;
-    Mat m_A;
-    KSP m_ksp;
-    PC m_pc;
+    Vec m_x = nullptr;
+    Vec m_b = nullptr;
+    Mat m_A = nullptr;
+    KSP m_ksp = nullptr;
+    PC m_pc = nullptr;
     bool m_new_matrix_values = true;
     std::vector<PetscInt> m_owned_dof_to_local;
     std::vector<PetscInt> m_ghost_dofs_to_local;

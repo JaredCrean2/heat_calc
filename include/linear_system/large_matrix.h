@@ -34,6 +34,8 @@ class LargeMatrix
 
     LargeMatrix& operator=(const LargeMatrix&) = delete;
 
+    virtual std::shared_ptr<LargeMatrix> clone() = 0;
+
     DofInt getMLocal() const { return m_mlocal; }
 
     DofInt getNLocal() const { return m_nlocal; }
@@ -107,6 +109,13 @@ class LargeMatrix
       matVec_impl(x, b);
     }
 
+    void axpy(Real alpha, std::shared_ptr<LargeMatrix> x)
+    {
+      m_is_factored = false;
+      axpy_impl(alpha, x);
+    }
+
+
   protected:
 
     bool getIsFactored() const { return m_is_factored; }
@@ -125,6 +134,9 @@ class LargeMatrix
     virtual void solve_impl(const ArrayType<Real, 1>& b, ArrayType<Real, 1>& x) = 0;
 
     virtual void matVec_impl(const ArrayType<Real, 1>& x, ArrayType<Real, 1>& b) = 0;
+
+    virtual void axpy_impl(Real alpha, std::shared_ptr<LargeMatrix> x) = 0;
+
 
   private:
     DofInt m_mlocal;
