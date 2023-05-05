@@ -66,11 +66,13 @@ inline void computedNdx(const BasisVals& basis_vals, const ArrayType<Real, 4>& d
     {
       basis_vals.getDerivs(i, k, dNi_dxi);  // TODO: BasisVals uses a compressed representation, which makes
                                             //       this look like an indexed load
-      #pragma clang loop vectorize(enable)
+      //#pragma clang loop vectorize(enable)
+      #pragma clang loop unroll(full)
       for (Int d1=0; d1 < 3; ++d1)
       {
         //Real dN_dx_d1 = 0;
-        #pragma clang loop vectorize(enable)
+        //#pragma clang loop vectorize(enable)
+        #pragma clang loop unroll(full)
         for (Int d2=0; d2 < 3; ++d2)
           dN_dx[i][k][d1] += dxidx[el][k][d2][d1] * dNi_dxi[d2];
           //dN_dx_d1 += dxidx[el][k][d2][d1] * dNi_dxi[d2];  // TODO: store dxidx transpose to make this better
