@@ -13,6 +13,9 @@ class VolumeDiscretization
     explicit VolumeDiscretization(const Mesh::VolumeGroup& vol_group,
                                   const Quadrature& quad);
     ArrayType<Real, 4> dxidx;  // num elements x numQuadPtsPerElement x 3 x 3
+    ArrayType<Real, 4> dxidx_reversed;  // num elements x 3 x 3 numQuadPtsPerElement
+                                        // final 3 dimensions are x by xi by numQuadPtsPerElement
+
     ArrayType<Real, 2> detJ; // determinant of dxi/dx, num elements x numQuadPtsPerFace
     ArrayType<Real, 2> detJInv; // determinant of dx/dxi (= 1/detJ)
     const Mesh::VolumeGroup& vol_group;
@@ -84,7 +87,7 @@ void VolumeDiscretization::getVolumeQuadCoords(const Index el, Array2D& quad_coo
   }
 }
 
-void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx); 
+void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx, ArrayType<Real, 4>& dxidx_reversed); 
 
 void computeDetJ(const VolumeDiscretization& vol_disc, ArrayType<Real, 2>& detJ, ArrayType<Real, 2>& detJInv);
 

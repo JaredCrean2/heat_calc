@@ -6,6 +6,7 @@ BasisVals::BasisVals(const Mesh::TensorProductMapper& tp_mapper_in,
                      const Mesh::TensorProductMapper& tp_mapper_out) :
   m_vals(lagrange_memoizer.getValues(tp_mapper_in.getXi(), tp_mapper_out.getXi())),
   m_derivs(lagrange_memoizer.getDerivs(tp_mapper_in.getXi(), tp_mapper_out.getXi())),
+  m_derivs_dfirst(3 * tp_mapper_in.getNodemap().num_elements() * tp_mapper_out.getNodemap().num_elements()),
   m_rev_nodemap_in(boost::extents[tp_mapper_in.getNodemap().num_elements()][3]),
   m_rev_nodemap_out(boost::extents[tp_mapper_out.getNodemap().num_elements()][3])
 {
@@ -24,9 +25,13 @@ BasisVals::BasisVals(const Mesh::TensorProductMapper& tp_mapper_in,
       std::array<Real, 3> derivs;
       getDerivsTP(i, j, derivs.data());
       for (int d=0; d < 3; ++d)
+      {
         m_derivs_flat[i * 3 * m_pts_out_flat + 3 * j + d] = derivs[d];
-    }
 
+        int idx = d * m_pts_in_flat * m_pts_out_flat + i * m_pts_out_flat + j;
+        m_derivs_dfirst[idx] = derivs[d];
+      }
+    }
 }
 
 

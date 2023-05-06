@@ -31,6 +31,14 @@ class BasisVals
         derivs[d] = m_derivs_flat[idx + d];
     }
 
+    Real getDerivDfirst(int d, int sol_pt, int quad_pt) const
+    {
+      int idx = d * m_pts_in_flat * m_pts_out_flat + sol_pt * m_pts_out_flat + quad_pt;
+      return m_derivs_dfirst[idx];
+    }
+
+    const std::vector<Real>& getDerivDfirst() const { return m_derivs_dfirst; }
+
     const ArrayType<LocalIndex, 2>& getRevNodemapIn() const { return m_rev_nodemap_in; }
 
     const ArrayType<LocalIndex, 2>& getRevNodemapOut() const { return m_rev_nodemap_out; }
@@ -63,6 +71,7 @@ class BasisVals
     LagrangeMemoizer::RetType m_derivs;
     std::vector<Real> m_vals_flat;
     std::vector<Real> m_derivs_flat;
+    std::vector<Real> m_derivs_dfirst;  // 3 x numSolPtsPerElements x numQuadPtsPerElement
     int m_pts_in_flat;
     int m_pts_out_flat;
     ArrayType<LocalIndex, 2> m_rev_nodemap_in;  // maps linear index to tensor product triplet;

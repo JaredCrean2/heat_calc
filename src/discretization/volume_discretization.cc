@@ -32,14 +32,16 @@ VolumeDiscretization::VolumeDiscretization(const Mesh::VolumeGroup& vol_group, c
                                                            vol_group.getTPMapperSol().getNodemap(),
                                                            tp_mapper_quad.getNodemap());
   
-  computeDxidx(*this, dxidx);
+  computeDxidx(*this, dxidx, dxidx_reversed);
   computeDetJ(*this, detJ, detJInv);
 }
 
-void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx)
+void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxidx, ArrayType<Real, 4>& dxidx_reversed)
 {
   using range = boost::multi_array_types::index_range;
   dxidx.resize(boost::extents[vol_disc.getNumElems()][vol_disc.getNumQuadPtsPerElement()][3][3]);
+  dxidx_reversed.resize(boost::extents[vol_disc.getNumElems()][3][3][vol_disc.getNumQuadPtsPerElement()]);
+
 
   ArrayType<Real, 3> dxdxi_i(boost::extents[vol_disc.getNumQuadPtsPerElement()][3][3]);
 
@@ -57,6 +59,10 @@ void computeDxidx(const VolumeDiscretization& vol_disc, ArrayType<Real, 4>& dxid
       auto dxdxi_j = dxdxi_i[boost::indices[j][range()][range()]];
       auto dxidx_j = dxidx[boost::indices[i][j][range()][range()]];
       computeInverse3x3(dxdxi_j, dxidx_j);
+
+      for (int d1=0; d1 < 3; ++d1)
+        for (int d2=0; d2 < 3; ++d2)
+          dxidx_reversed[i][d2][d1][j] = dxidx_j[d1][d2];
     }
   }
 

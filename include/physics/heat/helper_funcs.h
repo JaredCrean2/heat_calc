@@ -81,6 +81,45 @@ inline void computedNdx(const BasisVals& basis_vals, const ArrayType<Real, 4>& d
     }
 }
 
+
+// dxidx is numEls x 3 x 3 x numQuadPtsPerElement (where the first 3 is the x coordinate and the second is the xi)
+// dN_dx is 3 x numSolPtsPerElement x numQuadPtsPerElement
+inline void computedNdx_vectorized(const BasisVals& basis_vals, const ArrayType<Real, 4>& dxidx_reversed, int el, ArrayType<Real, 3>& dN_dx)
+{
+  using Int = size_t;
+  Int numQuadPtsPerElement = dxidx_reversed.shape()[3];
+  Int numSolPtsPerElement = dN_dx.shape()[1];
+  assert(dN_dx.shape()[1] == numQuadPtsPerElement);
+  assert(dN_dx.shape()[0] == 3);
+
+  Real* BOOST_RESTRICT dN_dx_ptr = &(dN_dx[0][0][0]);
+  const Real* BOOST_RESTRICT dxidx_reversed_ptr = &(dxidx_reversed[el][0][0][0]);
+  const Real* BOOST_RESTRICT dN_dxi_ptr = basis_vals.getDerivDfirst().data();
+  for (Int d1=0; d1 < 3; ++d1)
+  {
+    for (int i=0; i < numSolPtsPerElement; ++i)
+      for (int k=0; k < numQuadPtsPerElement; ++k) 
+        dN_dx_ptr[d1 * numSolPtsPerElement * numQuadPtsPerElement + i * numQuadPtsPerElement + k ] = 0;
+
+    for (Int d2=0; d2 < 3; ++d2)
+    {
+      for (Int i=0; i < numSolPtsPerElement; ++i)
+      {
+        Int dxidx_idx = d1 * 3 * numQuadPtsPerElement + d2*numQuadPtsPerElement;
+        Int basis_vals_idx = d2 * numSolPtsPerElement * numQuadPtsPerElement + i * numQuadPtsPerElement;
+        Int dN_dx_idx = d1 * numSolPtsPerElement * numQuadPtsPerElement + i * numQuadPtsPerElement;
+
+        //#pragma clang loop vectorize(enable)
+        #pragma clang loop vectorize_width(4) interleave_count(4)
+        for (Int k=0; k < numQuadPtsPerElement; ++k)
+        {
+          dN_dx_ptr[dN_dx_idx + k] += dxidx_reversed_ptr[dxidx_idx + k] * dN_dxi_ptr[basis_vals_idx + k];
+        }
+      }    
+    }
+  }
+}
+
 }
 
 #endif 
