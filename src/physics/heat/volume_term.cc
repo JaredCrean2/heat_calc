@@ -138,7 +138,7 @@ void computeVolumeTerm2(const VolDiscPtr vol_disc, const VolumeGroupParams& para
 void computeVolumeTerm3(const VolDiscPtr vol_disc, const VolumeGroupParams& params,
                         const ArrayType<Real, 2>& u_arr, ArrayType<Real, 2>& rhs_arr)
 {
-  auto& dxidx = vol_disc->dxidx;
+  //auto& dxidx = vol_disc->dxidx;
   auto& dxidx_reversed = vol_disc->dxidx_reversed;
   //auto& detJ  = vol_disc->detJ;
   auto& detJInv  = vol_disc->detJInv;
@@ -146,8 +146,8 @@ void computeVolumeTerm3(const VolDiscPtr vol_disc, const VolumeGroupParams& para
   auto& tp_mapper_sol = vol_disc->vol_group.getTPMapperSol();
   Mesh::TensorProductMapper tp_mapper_quad(vol_disc->quad.getPoints());
   BasisVals basis_vals(tp_mapper_sol, tp_mapper_quad);
-  ArrayType<Real, 3> dN_dx(boost::extents[3][vol_disc->getNumSolPtsPerElement()][vol_disc->getNumQuadPtsPerElement()]);
-  ArrayType<Real, 2> du_dx(boost::extents[3][vol_disc->getNumQuadPtsPerElement()]);
+  ArrayType<Real, 2> dN_dx(boost::extents[vol_disc->getNumSolPtsPerElement()][vol_disc->getNumQuadPtsPerElement()]);
+  ArrayType<Real, 1> du_dx(boost::extents[vol_disc->getNumQuadPtsPerElement()]);
   std::vector<Real> weights(vol_disc->getNumQuadPtsPerElement());
 
   Real* BOOST_RESTRICT weights_ptr = weights.data();
@@ -162,46 +162,45 @@ void computeVolumeTerm3(const VolDiscPtr vol_disc, const VolumeGroupParams& para
   
   int numSolPtsPerElement = vol_disc->getNumSolPtsPerElement();
   int numQuadPtsPerElement = vol_disc->getNumQuadPtsPerElement();
-  Real* BOOST_RESTRICT du_dx_ptr = &(du_dx[0][0]);
-  Real* BOOST_RESTRICT dN_dx_ptr = &(dN_dx[0][0][0]);
+  Real* BOOST_RESTRICT du_dx_ptr = &(du_dx[0]);
+  Real* BOOST_RESTRICT dN_dx_ptr = &(dN_dx[0][0]);
   const Real* BOOST_RESTRICT u_arr_ptr = &(u_arr[0][0]);
   const Real* BOOST_RESTRICT detJInv_ptr = &(detJInv[0][0]);
   Real* BOOST_RESTRICT rhs_arr_ptr = &(rhs_arr[0][0]);
   for (int el=0; el < vol_disc->getNumElems(); ++el)
   {
-    for (int i=0; i < 3 * numQuadPtsPerElement; ++i)
-      du_dx_ptr[i] = 0;
-    //zeroMatrix(du_dx);
-    computedNdx_vectorized(basis_vals, dxidx_reversed, el, dN_dx);
-
     //TODO: is there a tensor-product form of this?
-    //TODO: maybe merge the d loops?
     for (int d=0; d < 3; ++d)
+    {
+
+      for (int i=0; i < numQuadPtsPerElement; ++i)
+        du_dx_ptr[i] = 0;
+      //zeroMatrix(du_dx);
+      computedNdx_vectorized(basis_vals, numSolPtsPerElement, numQuadPtsPerElement, d, dxidx_reversed, el, dN_dx);
+
       for (int i=0; i < numSolPtsPerElement; ++i)
       {
-        int du_dx_idx = d * numQuadPtsPerElement;
-        int dN_dx_idx = d * numSolPtsPerElement * numQuadPtsPerElement + i * numQuadPtsPerElement;
+        int dN_dx_idx = i * numQuadPtsPerElement;
         Real u_val    = u_arr_ptr[el * numSolPtsPerElement + i];
         for (int k=0; k < numQuadPtsPerElement; ++k)
-          du_dx_ptr[du_dx_idx + k] += dN_dx_ptr[dN_dx_idx + k] * u_val;
+          du_dx_ptr[k] += dN_dx_ptr[dN_dx_idx + k] * u_val;
           //du_dx[d][k] += dN_dx[d][i][k] * u_arr[el][i];
       }
 
-    for (int d=0; d < 3; ++d) 
       for (int i=0; i < numSolPtsPerElement; ++i)
       {
-        int dN_dx_idx   = d * numSolPtsPerElement * numQuadPtsPerElement + i * numQuadPtsPerElement;
-        int du_dx_idx   = d * numQuadPtsPerElement;
+        int dN_dx_idx   = i * numQuadPtsPerElement;
         int detJInv_idx = el * numQuadPtsPerElement;
         Real val = 0;
         for (int k=0; k < numQuadPtsPerElement; ++k)
         {
-          val -= weights_ptr[k] * dN_dx_ptr[dN_dx_idx + k] * du_dx_ptr[du_dx_idx + k] * detJInv_ptr[detJInv_idx + k];
+          val -= weights_ptr[k] * dN_dx_ptr[dN_dx_idx + k] * du_dx_ptr[k] * detJInv_ptr[detJInv_idx + k];
           //val -= weights[k] * dN_dx[d][i][k] * du_dx[d][k] * detJInv[el][k];
         }
         rhs_arr_ptr[el * numSolPtsPerElement + i] += alpha * val;
         //rhs_arr[el][i] += alpha * val;
       }
+    }
   }
 }
 
