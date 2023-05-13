@@ -195,7 +195,7 @@ void GeometryGenerator::createMeshCG()
     bc_groups.emplace_back(std::string("exterior") + std::to_string(i) );
 
   for (int i=0; i < 6; ++i)
-    bc_groups.emplace_back(std::string("interior") + std::to_string(i) );    
+    bc_groups.emplace_back(std::string("interior") + std::to_string(i) );
 
   bc_groups.emplace_back(std::string("lawn"));
 
@@ -235,7 +235,7 @@ void GeometryGenerator::createMeshCG()
                                                               m_xrange[1] - m_num_underground_thicknesses, j, k)));
     }   
 
-  //bc_groups[0].setIsDirichlet(true);
+  bc_groups[0].setIsDirichlet(true);
 
   bc_groups[0+6].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0,  0, -1, 5)), 
                                 Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0,  0, -1)));

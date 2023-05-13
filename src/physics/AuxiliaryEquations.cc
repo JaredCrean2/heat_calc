@@ -3,6 +3,7 @@
 void splitVector(const ArrayType<Real, 1>& combined_vec, DiscVectorPtr sol_vec,
                  AuxiliaryEquationsStoragePtr sol_aux)
 {
+  std::cout << "splitting vector" << std::endl;
   if (!sol_vec->isVectorCurrent())
     sol_vec->set(0);
 
@@ -11,6 +12,7 @@ void splitVector(const ArrayType<Real, 1>& combined_vec, DiscVectorPtr sol_vec,
   for (int i=0; i < sol_vec_vec.shape()[0]; ++i)
     sol_vec_vec[i] = combined_vec[dof++];
 
+  std::cout << "assigned to dofs 0 - " << dof << std::endl;
   for (int block=1; block < sol_aux->getNumBlocks(); ++block)
   {
     auto& vec = sol_aux->getVector(block);

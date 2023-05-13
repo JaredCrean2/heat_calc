@@ -1,4 +1,5 @@
 #include "physics/heat/dirichlet_bc.h"
+#include "discretization/DirichletBC.h"
 #include "physics/heat/basis_vals.h"
 
 namespace Heat {
@@ -6,7 +7,11 @@ namespace Heat {
 void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorPtr u)
 {
   for (auto bc : physics.getDirichletBCs())
+  {
     applyDirichletValues(bc, t, u);
+  }
+
+  updateDependentDirichletValues(u);
 }
 
 void computeUnsteadyDirichletBC(const HeatEquation& physics, const Real t, DiscVectorPtr rhs)

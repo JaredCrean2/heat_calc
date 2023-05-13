@@ -1,12 +1,20 @@
 #include "gtest/gtest.h"
+#include "discretization/DirichletBC_defs.h"
 #include "test_helper.h"
 #include "mesh_helper.h"
 #include "discretization/disc_vector.h"
+#include "discretization/DirichletBC.h"
 
 
 namespace {
-  class DiscVectorTester : public ::testing::Test,
-                           public StandardDiscSetup
+
+Real func(const Real x, const Real y, const Real z)
+{
+  return x + 2*y + 3*z;
+}
+
+class DiscVectorTester : public ::testing::Test,
+                         public StandardDiscSetup
 {
   protected:
     DiscVectorTester()
@@ -18,10 +26,26 @@ namespace {
     DiscVectorPtr disc_vec;
 };
 
-Real func(const Real x, const Real y, const Real z)
+class DiscVectorDirichletTester : public ::testing::Test,
+                                  public StandardDiscSetupMulti
 {
-  return x + 2*y + 3*z;
-}
+  protected:
+    DiscVectorDirichletTester()
+    {
+      std::vector<bool> is_dirichlet(11, false);
+      is_dirichlet[0] = true;
+
+      setup(3, 1, getStandardMeshSpecs(), is_dirichlet); // setup(3, 3, getStandardMeshSpec(), is_dirichlet);
+      disc_vec = makeDiscVector(disc);
+
+      auto f = [](Real x, Real y, Real z, Real t) { return func(x, y, z); };
+      m_bc = makeDirichletBCMMS(surf_discs[0], f);
+    }
+
+    DiscVectorPtr disc_vec;
+    DirichletBCPtr m_bc;
+};
+
 
 }  // namespace
 
@@ -173,6 +197,43 @@ TEST_F(DiscVectorTester, syncVectorToArray)
 
       EXPECT_EQ(arr[i][j], val_ex);        
     }
+}
+
+TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
+{  
+  auto dof_numbering = disc->getDofNumbering();
+  //auto& coords = disc->getVolDisc(0)->vol_group.coords;
+
+  disc_vec->setFunc(func);
+  for (int vol_block=0; vol_block < 2; ++vol_block)
+  {
+    auto& dofs = dof_numbering->getDofs(vol_block);
+    auto& arr = disc_vec->getArray(vol_block);
+    
+    for (unsigned int i=0; i < dofs.shape()[0]; ++i)
+      for (unsigned int j=0; j < dofs.shape()[1]; ++j)
+        arr[i][j] = 0;
+  }
+
+  disc_vec->markVectorModified();
+  disc_vec->syncVectorToArray();
+  applyDirichletValues(m_bc, 0, disc_vec);
+  updateDependentDirichletValues(disc_vec);
+
+  for (int vol_block=0; vol_block < 2; ++vol_block)
+  {
+    auto& dofs = dof_numbering->getDofs(vol_block);
+    auto& arr = disc_vec->getArray(vol_block);
+    auto& coords = disc->getVolDisc(vol_block)->vol_group.coords;
+
+    for (unsigned int i=0; i < dofs.shape()[0]; ++i)
+      for (unsigned int j=0; j < dofs.shape()[1]; ++j)
+      {
+        Real val_ex = func(coords[i][j][0], coords[i][j][1], coords[i][j][2]);
+        EXPECT_EQ(arr[i][j], val_ex);        
+      }
+  }
+
 }
 
 TEST_F(DiscVectorTester, AssignmentOperator)
