@@ -10,8 +10,8 @@ NewtonSolver::NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr
   m_func(func),
   m_jac(jac),
   m_aux_jacs(func->getAuxiliaryEquations()->getJacobians()),
-  m_f(boost::extents[jac->getNLocal()]),
-  m_delta_u(boost::extents[jac->getNLocal()]),
+  m_f(boost::extents[jac->getSparsityPattern()->getNumLocalDofs()] /*boost::extents[jac->getNLocal()]*/),
+  m_delta_u(boost::extents[jac->getSparsityPattern()->getNumLocalDofs()] /*boost::extents[jac->getNLocal()]*/),
   m_aux_delta_u(func->getAuxiliaryEquations()->createStorage()),
   m_aux_rhs(func->getAuxiliaryEquations()->createStorage())
 {

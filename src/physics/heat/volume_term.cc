@@ -11,28 +11,14 @@ void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorP
 
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
   {
-    std::cout << "\ndoing block " << i << std::endl;
-
     auto vol_disc = disc->getVolDisc(i);
     auto& params  = physics.getVolumeGroupParams(i);
     auto& u_arr   = u->getArray(i);
     auto& rhs_arr = rhs->getArray(i);
 
-
-    ArrayType<Real, 2> sol_coords(boost::extents[vol_disc->getNumSolPtsPerElement()][3]);
-
-    const auto& dof_nums = disc->getDofNumbering()->getDofs(i);
-    for (int el=0; el < u_arr.shape()[0]; ++el)
-    {
-      std::cout << "element " << el << "solution = " << std::endl;
-      for (int i=0; i < u_arr.shape()[1]; ++i)
-        std::cout << "  node " << i << " = " << u_arr[el][i] << " is dof " << dof_nums[el][i] << std::endl;
-    }
-
     //computeVolumeTerm(vol_disc, params, u_arr, rhs_arr);
     //computeVolumeTerm2(vol_disc, params, u_arr, rhs_arr);
     computeVolumeTerm3(vol_disc, params, u_arr, rhs_arr);
-
   }
 
   rhs->markArrayModified();
