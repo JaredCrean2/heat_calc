@@ -428,7 +428,7 @@ void MeshCG::getDirichletUpdateMap(std::vector<NodeTriplet>& src_nodes, std::vec
         {
           Index start_idx = dest_nodes.size();
           Index end_idx = start_idx;
-          m_apf_data.m->getAdjacent(verts[j], 2, els);
+          m_apf_data.m->getAdjacent(verts[j], 3, els);
 
           for (size_t k=0; k < els.getSize(); ++k)
           {
@@ -457,12 +457,12 @@ NodeTriplet MeshCG::getNodeTriplet(apf::MeshEntity* el, apf::MeshEntity* vert)
   apf::Downward el_verts;
   int n_other_verts = m_apf_data.m->getDownward(el, 0, el_verts);
   for (int v=0; v < n_other_verts; ++v)
-    if (el_verts[v] == vert)  //TODO: check that other_el is on a different geometric entity
+    if (el_verts[v] == vert)
     {
       int vol_group = apf::getNumber(m_apf_data.vol_groups, el, 0, 0);
       int elnum = apf::getNumber(m_apf_data.el_nums, el, 0, 0);
       int elnum_group = m_elnums_global_to_local[elnum];
-      int local_node = m_ref_el_sol->getREEntityIndex(3, v);
+      int local_node = m_ref_el_sol->getREEntityIndex(0, v);
 
       return NodeTriplet{vol_group, elnum_group, local_node};
     }

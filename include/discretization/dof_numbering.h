@@ -67,14 +67,14 @@ class DofNumbering
       return m_num_owned_dofs;
     }
 
-    int getNumDirichletNodeSections() const { return m_dest_node_ranges.size() - 1;}
+    int getNumDirichletNodeSections() const { return m_dest_dirichlet_node_ranges.size() - 1;}
 
     Mesh::NodeTriplet getSrcDirichletNode(int section) const { return m_src_dirichlet_nodes[section]; }
 
     void getDestDirichletNodes(int section, std::vector<Mesh::NodeTriplet>& dest_nodes)
     {
-      int start_idx = m_dest_node_ranges[section];
-      int end_idx = m_dest_node_ranges[section+1];
+      int start_idx = m_dest_dirichlet_node_ranges[section];
+      int end_idx = m_dest_dirichlet_node_ranges[section+1];
       dest_nodes.resize(end_idx - start_idx);
       for (int i=start_idx; i < end_idx; ++i)
         dest_nodes[i - start_idx] = m_dest_dirichlet_nodes[i];
@@ -87,7 +87,7 @@ class DofNumbering
     std::vector<ArrayType<Index, 2>> m_dof_nums;
     std::vector<std::vector<ElementNode>> m_dirichlet_node_nums;  //TODO: unused?
     std::vector<Mesh::NodeTriplet> m_src_dirichlet_nodes;
-    std::vector<Index> m_dest_node_ranges;
+    std::vector<Index> m_dest_dirichlet_node_ranges;
     std::vector<Mesh::NodeTriplet> m_dest_dirichlet_nodes;
     int m_num_local_dofs;
     int m_num_owned_dofs;

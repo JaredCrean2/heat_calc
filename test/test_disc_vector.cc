@@ -33,13 +33,13 @@ class DiscVectorDirichletTester : public ::testing::Test,
     DiscVectorDirichletTester()
     {
       std::vector<bool> is_dirichlet(11, false);
-      is_dirichlet[0] = true;
+      is_dirichlet[1] = true;
 
       setup(3, 1, getStandardMeshSpecs(), is_dirichlet); // setup(3, 3, getStandardMeshSpec(), is_dirichlet);
       disc_vec = makeDiscVector(disc);
 
       auto f = [](Real x, Real y, Real z, Real t) { return func(x, y, z); };
-      m_bc = makeDirichletBCMMS(surf_discs[0], f);
+      m_bc = makeDirichletBCMMS(surf_discs[1], f);
     }
 
     DiscVectorPtr disc_vec;
@@ -222,6 +222,7 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
 
   for (int vol_block=0; vol_block < 2; ++vol_block)
   {
+    std::cout << "\nvol_block " << vol_block << std::endl;
     auto& dofs = dof_numbering->getDofs(vol_block);
     auto& arr = disc_vec->getArray(vol_block);
     auto& coords = disc->getVolDisc(vol_block)->vol_group.coords;
@@ -229,6 +230,12 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
     for (unsigned int i=0; i < dofs.shape()[0]; ++i)
       for (unsigned int j=0; j < dofs.shape()[1]; ++j)
       {
+        auto& dofs = dof_numbering->getDofs(vol_block);
+
+        if (!dof_numbering->isDofActive(dofs[i][j]))
+        {
+          std::cout << "non-active dof at " << coords[i][j][0] << ", " << coords[i][j][1] << ", " << coords[i][j][2] << std::endl;
+        }
         Real val_ex = func(coords[i][j][0], coords[i][j][1], coords[i][j][2]);
         EXPECT_EQ(arr[i][j], val_ex);        
       }

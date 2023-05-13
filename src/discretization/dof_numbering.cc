@@ -8,6 +8,8 @@ m_num_owned_dofs(mesh->getNumOwnedDofs())
 {
   for (int i=0; i < mesh->getNumVolumeGroups(); ++i)
     setDofs(mesh, i);
+
+  mesh->getDirichletUpdateMap(m_src_dirichlet_nodes, m_dest_dirichlet_nodes, m_dest_dirichlet_node_ranges);
 }
 
 void DofNumbering::setDofs(std::shared_ptr<Mesh::MeshCG> mesh, int vol_idx)

@@ -23,6 +23,7 @@ void applyDirichletValues(DirichletBCPtr bc, const Real t, DiscVectorPtr disc_ve
 
 void updateDependentDirichletValues(DiscVectorPtr disc_vec)
 {
+  //std::cout << "\nupdating dependent dirichlet values" << std::endl;
   auto dof_numbering = disc_vec->getDisc()->getDofNumbering();
 
   std::vector<Mesh::NodeTriplet> dest_nodes;
@@ -34,6 +35,7 @@ void updateDependentDirichletValues(DiscVectorPtr disc_vec)
     Real src_val = disc_vec->getArray(src_node.vol_group)[src_node.el][src_node.node];
     for (auto& dest_node : dest_nodes)
     {
+      //std::cout << "writing to " << dest_node.vol_group << ", " << dest_node.el << ", " << dest_node.node << std::endl;
       disc_vec->getArray(dest_node.vol_group)[dest_node.el][dest_node.node] = src_val;
     }
   }

@@ -11,11 +11,20 @@ void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorP
 
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
   {
+    //std::cout << "volume block " << i << std::endl;
     auto vol_disc = disc->getVolDisc(i);
     auto& params  = physics.getVolumeGroupParams(i);
     auto& u_arr   = u->getArray(i);
     auto& rhs_arr = rhs->getArray(i);
 
+    //auto& coords = vol_disc->vol_group.coords;
+    //for (size_t i=0; i < u_arr.shape()[0]; ++i)
+    //  for (size_t j=0; j < u_arr.shape()[1]; ++j)
+    //  {
+    //    std::cout << "u(" << i << ", " << j << ") = " << u_arr[i][j]  << " at " << coords[i][j][0] 
+    //              << ", " << coords[i][j][1] << ", " << coords[i][j][2]<< std::endl;
+    //  }                  
+     
     //computeVolumeTerm(vol_disc, params, u_arr, rhs_arr);
     //computeVolumeTerm2(vol_disc, params, u_arr, rhs_arr);
     computeVolumeTerm3(vol_disc, params, u_arr, rhs_arr);
