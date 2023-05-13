@@ -199,12 +199,18 @@ void GeometryGenerator::createMeshCG()
 
   bc_groups.emplace_back(std::string("lawn"));
 
-  // exterior faces        
+  // exterior faces  
+
+  for (int i=m_xrange[0]; i <= m_xrange[1]; ++i)
+    for (int j=m_yrange[0]; j <= m_yrange[1]; ++j)
+    {
+      bc_groups[0].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, j, m_zrange[0], 0)),
+                                  Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,  j, m_zrange[0])));  
+    }
+
   for (int i=m_xrange[0] + m_num_underground_thicknesses; i <= (m_xrange[1] - m_num_underground_thicknesses); ++i)
     for (int j=m_yrange[0] + m_num_underground_thicknesses; j <= (m_yrange[1] - m_num_underground_thicknesses); ++j)
     {
-      bc_groups[0].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, j, m_zrange[0], 0)),
-                                  Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,  j, m_zrange[0])));
       bc_groups[5].addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(i, j, m_zrange[1], 5)),
                                   Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(i,  j, m_zrange[1])));
     }
@@ -268,17 +274,17 @@ void GeometryGenerator::createMeshCG()
   // bottom of foundation
   other_groups.emplace_back("foundation_bottom");
   other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -1, 0)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -1)));
+                                     Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -1)));
 
   // bottom of foundation insulation
   other_groups.emplace_back("foundation_insulation_bottom");
   other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -2, 0)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -2)));
+                                     Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -2)));
 
-  // bottom of foundation
-  other_groups.emplace_back("ground_bottom");
+  // bottom of ground
+  other_groups.emplace_back("ground_bottom_beneath_foundation");
   other_groups.back().addModelEntity(Mesh::ModelEntitySpec(2, m_generator->getSurfaceGeometricId(0, 0, -3, 0)),
-                                      Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -3)));     
+                                     Mesh::ModelEntitySpec(3, m_generator->getVolumeGeometricId(0, 0, -3)));     
 
   m_surface_directions = {0, 1, 2, 1, 2, 0,
                           0, 1, 2, 1, 2, 0};        
