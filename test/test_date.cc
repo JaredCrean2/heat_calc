@@ -23,6 +23,33 @@ TEST(Date, OperatorInquality)
   EXPECT_TRUE(lhs != rhs);  
 }
 
+TEST(Date, ComparisonOperators)
+{
+  Date lhs{1, 2, 3}, rhs{1, 2, 4};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs);
+
+  rhs = {1, 4, 3};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs);
+
+  rhs = {4, 2, 3};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs); 
+
+  rhs = {1, 2, 3};
+  EXPECT_FALSE(lhs <  rhs);  EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <=  rhs);  EXPECT_TRUE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_FALSE(rhs > lhs);
+  EXPECT_TRUE(lhs >=  rhs);  EXPECT_TRUE(rhs >= lhs);
+}
+
 TEST(Date, Parsing)
 {
   Date date_ex{1, 2, 2020};
@@ -55,6 +82,29 @@ TEST(Time, OperatorInequality)
   EXPECT_TRUE(lhs != rhs);  
 }
 
+
+TEST(Time, ComparisonOperators)
+{
+  Time lhs = {2, 15}, rhs = {2, 16};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs); 
+
+  rhs = {3, 15};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs);
+
+  rhs = {2, 15};
+  EXPECT_FALSE(lhs <  rhs);  EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <=  rhs);  EXPECT_TRUE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_FALSE(rhs > lhs);
+  EXPECT_TRUE(lhs >=  rhs);  EXPECT_TRUE(rhs >= lhs);   
+}
+
+
 TEST(Time, Parsing)
 {
   Time time_ex{2, 0};
@@ -80,5 +130,28 @@ TEST(DateTime, Parsing)
   Time time_default{0, 0};
   EXPECT_ANY_THROW(parseDateTime("1/2/2020-2", time_default));
   EXPECT_ANY_THROW(parseDateTime("1/2/2020-2222", time_default));
-
 }
+
+TEST(DateTime, ComparisonOperators)
+{
+  DateTime lhs{Date{1, 2, 3}, Time{2, 15}};
+  DateTime rhs{Date{1, 2, 3}, Time{2, 16}};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs);
+
+  lhs = {Date{1, 2, 3}, Time{2, 15}};
+  rhs = {Date{1, 2, 4}, Time{2, 15}};
+  EXPECT_TRUE(lhs <  rhs);   EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <= rhs);   EXPECT_FALSE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_TRUE(rhs > lhs);
+  EXPECT_FALSE(lhs >= rhs);  EXPECT_TRUE(rhs >= lhs);
+
+  lhs = {Date{1, 2, 3}, Time{2, 15}};
+  rhs = {Date{1, 2, 3}, Time{2, 15}};
+  EXPECT_FALSE(lhs <  rhs);  EXPECT_FALSE(rhs < lhs);
+  EXPECT_TRUE(lhs <=  rhs);  EXPECT_TRUE(rhs <= lhs);
+  EXPECT_FALSE(lhs >  rhs);  EXPECT_FALSE(rhs > lhs);
+  EXPECT_TRUE(lhs >=  rhs);  EXPECT_TRUE(rhs >= lhs);
+}  

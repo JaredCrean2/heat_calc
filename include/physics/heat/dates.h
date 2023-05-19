@@ -25,6 +25,33 @@ inline bool operator!=(const Date& lhs, const Date& rhs)
   return !(lhs == rhs);
 }
 
+inline bool operator<(const Date& lhs, const Date& rhs)
+{
+  if (lhs.year != rhs.year)
+    return lhs.year < rhs.year;
+  else if (lhs.month != rhs.month)
+    return lhs.month < rhs.month;
+  else if (lhs.day != rhs.day)
+    return lhs.day < rhs.day;
+  else
+    return false;
+}
+
+inline bool operator>(const Date& lhs, const Date& rhs)
+{
+  return rhs < lhs;
+}
+
+inline bool operator<=(const Date& lhs, const Date& rhs)
+{
+  return !(lhs > rhs);
+}
+
+inline bool operator>=(const Date& lhs, const Date& rhs)
+{
+  return !(lhs < rhs);
+}
+
 inline std::ostream& operator<<(std::ostream& os, const Date& date)
 {
   os << date.month << "/" << date.day << "/" << date.year;
@@ -58,8 +85,33 @@ inline std::ostream& operator<<(std::ostream& os, const Time& date)
     minute_str = "0" + std::to_string(date.minute);
   else
     minute_str = std::to_string(date.minute);
-    
+
   return os << date.hour << ":" << minute_str;
+}
+
+inline bool operator<(const Time& lhs, const Time& rhs)
+{
+  if (lhs.hour != rhs.hour)
+    return lhs.hour < rhs.hour;
+  else if (lhs.minute != rhs.minute)
+    return lhs.minute < rhs.minute;
+  else
+    return false;
+}
+
+inline bool operator>(const Time& lhs, const Time& rhs)
+{
+  return rhs < lhs;
+}
+
+inline bool operator<=(const Time& lhs, const Time& rhs)
+{
+  return !(lhs > rhs);
+}
+
+inline bool operator>=(const Time& lhs, const Time& rhs)
+{
+  return !(lhs < rhs);
 }
 
 
@@ -101,6 +153,30 @@ inline std::ostream& operator<<(std::ostream& os, const DateTime& date)
 
   return os;
 }
+
+inline bool operator<(const DateTime& lhs, const DateTime& rhs)
+{
+  if (lhs.date != rhs.date)
+    return lhs.date < rhs.date;
+  else
+    return lhs.time < rhs.time;
+}
+
+inline bool operator>(const DateTime& lhs, const DateTime& rhs)
+{
+  return rhs < lhs;
+}
+
+inline bool operator<=(const DateTime& lhs, const DateTime& rhs)
+{
+  return !(lhs > rhs);
+}
+
+inline bool operator>=(const DateTime& lhs, const DateTime& rhs)
+{
+  return !(lhs < rhs);
+}
+
 
 // parses a string month/year/date[-[H]H:[M]M]
 // time_default is used if the hour and minutes part of the string is absent
