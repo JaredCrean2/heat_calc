@@ -1,5 +1,5 @@
-#include "EpwExtractor.h"
-#include "WeatherFileHelper.h"
+#include "file/EpwExtractor.h"
+#include "file/WeatherFileHelper.h"
 
 
 std::vector<EPWDataPoint> EpwExtractor::extract(std::istream& is)

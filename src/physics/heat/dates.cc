@@ -1,5 +1,6 @@
 #include "physics/heat/dates.h"
 #include <iostream>
+#include "utils/string_utils.h"
 
 bool isLeapYear(int year)
 {
@@ -37,4 +38,86 @@ Real computeJulianDate(const Date& date, const Time& time, int time_zone)
   
   int julian_day_whole = computeJulianDate(date);
   return julian_day_whole + (hours - 12)/24.0 + time_zone;
+}
+
+
+Date parseDate(const std::string& date_str)
+{
+  std::vector<std::string> words = splitLine(date_str, "/");
+  if (words.size() != 3)
+    throw std::runtime_error("cannot parse " + date_str + " as a date, must be format month/day/year");
+
+  Parser parser;
+  int month = parser.get<int>(words[0]);
+  int day   = parser.get<int>(words[1]);
+  int year  = parser.get<int>(words[2]);
+
+  Date date{day, month, year};
+
+  validateDate(date);
+
+  return date;
+}
+
+void validateDate(const Date& date)
+{
+  if (date.month < 1 || date.month > 12)
+    throw std::runtime_error("month is out of range");
+
+  if (date.day < 1)
+    throw std::runtime_error("day is out of range");
+
+  if (date.year < 0)
+    throw std::runtime_error("year is out of range");
+}
+
+Time parseTime(const std::string time_str)
+{
+  std::vector<std::string> words = splitLine(time_str, ":");
+
+  if (words.size() != 2)
+    throw std::runtime_error("cannot parse " + time_str + " as a time, must be format HH:MM");
+
+  Parser parser;
+  int hour = parser.get<int>(words[0]);
+  int minute = parser.get<int>(words[1]);
+
+  Time time{hour, minute};
+
+  validateTime(time);
+
+  return time;
+}
+
+void validateTime(const Time& time)
+{
+  if (time.hour < 0 || time.hour > 23)
+    throw std::runtime_error("hour is out of range");
+
+  if (time.minute < 0 || time.minute > 59)
+    throw std::runtime_error("minute is out of range");
+}
+
+
+
+DateTime parseDateTime(const std::string& datetime, const Time& time_default)
+{
+  size_t dash_pos         = datetime.find('-');
+  bool have_time          = dash_pos != std::string::npos;
+  std::string date_string = datetime.substr(0, dash_pos);
+
+  Date date = parseDate(date_string);
+  Time time;
+  if (have_time)
+  {
+    if (datetime.size() <= dash_pos + 1)
+      throw std::runtime_error("found the - that separates the date and time, but the time string is malformed");
+
+    time = parseTime(datetime.substr(dash_pos+1, datetime.size()));
+  } else
+  {
+    time = time_default;
+  }
+
+  return DateTime{date, time};
 }

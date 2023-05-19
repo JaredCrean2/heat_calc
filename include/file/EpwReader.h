@@ -10,30 +10,8 @@
 #include <cassert>
 #include <array>
 #include <ostream>
+#include "utils/string_utils.h"
 
-std::vector<std::string> splitLine(const std::string& line, const std::string& delim);
-
-
-class Parser
-{
-  public:
-    template<typename T>
-    T get(const std::string& key)
-    {
-      T val;
-
-      // use the machinery in std::stringstream to do the parsing
-      ss.clear();
-      ss.str(key);
-      ss.seekg(0);
-      ss >> val;
-
-      return val;
-    }
-
-  private:
-    std::stringstream ss;
-};
 
 struct EPWDataPoint
 {

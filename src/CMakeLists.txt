@@ -1,17 +1,18 @@
 message("Processing source directory")
 
-set(src_files EpwReader.cc
-              EpwSegmenter.cc
-              EpwExtractor.cc
-              WeatherFileReader.cc
-              WeatherFileWriter.cc
-              WeatherFileHelper.cc
+set(src_files file/EpwReader.cc
+              file/EpwSegmenter.cc
+              file/EpwExtractor.cc
+              file/WeatherFileReader.cc
+              file/WeatherFileWriter.cc
+              file/WeatherFileHelper.cc
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
               utils/legendre.cc
               utils/error_handling.cc
               utils/initialization.cc
               utils/mpi_utils.cc
+              utils/string_utils.cc
               discretization/volume_discretization.cc 
               discretization/surface_discretization.cc
               discretization/discretization.cc

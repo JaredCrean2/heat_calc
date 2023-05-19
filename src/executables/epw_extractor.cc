@@ -1,5 +1,5 @@
-#include "EpwExtractor.h"
-#include "WeatherFileWriter.h"
+#include "file/EpwExtractor.h"
+#include "file/WeatherFileWriter.h"
 
 int main(int argc, char* argv[])
 {

@@ -1,10 +1,10 @@
 #ifndef ENVRIONMENT_INTERFACE_WEATHER_FILE_H
 #define ENVRIONMENT_INTERFACE_WEATHER_FILE_H
 
-#include "EpwReader.h"
+#include "file/EpwReader.h"
 #include "math.h"
 #include "physics/heat/environment_interface.h"
-#include "WeatherFileReader.h"
+#include "file/WeatherFileReader.h"
 
 #include <iostream>
 

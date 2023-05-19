@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "EpwExtractor.h"
+#include "file/EpwExtractor.h"
 
 TEST(EpwExtractor, Example)
 {

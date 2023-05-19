@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "EpwReader.h"
+#include "file/EpwReader.h"
 
 TEST(SplitLine, EmptyString)
 {

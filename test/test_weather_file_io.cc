@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
-#include "WeatherFileReader.h"
-#include "WeatherFileWriter.h"
+#include "file/WeatherFileReader.h"
+#include "file/WeatherFileWriter.h"
 
 namespace {
 void compareEPW(const EPWDataPoint& pt1, const EPWDataPoint& pt2)
