@@ -5,7 +5,7 @@
 #include "physics/heat/dates.h"
 
 
-WeatherCatParsedData parseData(int argc, char* argv[])
+WeatherCatParsedData parseWeatherCatData(int argc, char* argv[])
 {
   WeatherCatParsedData data;
   int idx=1;

@@ -7,6 +7,7 @@ set(src_files file/EpwReader.cc
               file/WeatherFileWriter.cc
               file/WeatherFileHelper.cc
               file/WeatherCat.cc
+              file/DataExtractor.cc
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
               utils/legendre.cc
@@ -124,6 +125,16 @@ target_include_directories(weather_cat PUBLIC
                           "${PROJECT_SOURCE_DIR}/include"
                           )
 target_link_libraries(weather_cat PUBLIC heat_lib)
+
+
+add_executable(data_extractor executables/data_extractor.cc)
+
+target_include_directories(data_extractor PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          "${PROJECT_SOURCE_DIR}/include"
+                          )
+target_link_libraries(data_extractor PUBLIC heat_lib)
+
 
 
 add_executable(memory_alloc memory_alloc.cc)

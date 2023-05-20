@@ -13,7 +13,7 @@
 int main(int argc, char* argv[])
 {
 
-  WeatherCatParsedData parsed_data = parseData(argc, argv);
+  WeatherCatParsedData parsed_data = parseWeatherCatData(argc, argv);
   WeatherCat cat(parsed_data);
   cat.catFiles();
 
