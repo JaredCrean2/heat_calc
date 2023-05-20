@@ -24,6 +24,7 @@ BUILDTYPE="Debug"
 # set PETSC_DIR and PETSC_ARCH to guide which Petsc installation CMake finds
 
 cmake \
+-D CMAKE_INSTALL_PREFIX="$HOME/install/heat_calc" \
 -D CMAKE_C_COMPILER=`which clang` \
 -D CMAKE_CXX_COMPILER=`which clang++` \
 -D MPI_C_COMPILER=`which mpicc` \

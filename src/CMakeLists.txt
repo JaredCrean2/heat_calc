@@ -139,6 +139,10 @@ target_link_libraries(data_extractor PUBLIC heat_lib)
 
 add_executable(memory_alloc memory_alloc.cc)
 
+
+set(install_exes simple_house simple_house2 epw_extractor weather_cat data_extractor memory_alloc)
+install(TARGETS ${install_exes} DESTINATION bin)
+
 #add_executable(gauss_seidel gauss_seidel.cc)
 #
 #target_include_directories(gauss_seidel PUBLIC
