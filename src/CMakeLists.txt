@@ -6,6 +6,7 @@ set(src_files file/EpwReader.cc
               file/WeatherFileReader.cc
               file/WeatherFileWriter.cc
               file/WeatherFileHelper.cc
+              file/WeatherCat.cc
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
               utils/legendre.cc
