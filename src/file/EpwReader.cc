@@ -118,7 +118,7 @@ EPWLocation EPWReader::readLocation()
   location.country    = words[3];
   location.latitude   = m_parser.get<double>(words[6]);
   location.longitude  = m_parser.get<double>(words[7]);
-  location.time_zone  = m_parser.get<int>(words[8]);
+  location.time_zone  = std::round(m_parser.get<double>(words[8]));
 
   return location;
 }

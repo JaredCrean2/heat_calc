@@ -1,4 +1,6 @@
 #ifndef HEAT_CALC_UTILS_STRING_UTILS
+#define HEAT_CALC_UTILS_STRING_UTILS
+
 
 #include <string>
 #include <vector>

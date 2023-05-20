@@ -116,6 +116,16 @@ target_include_directories(epw_extractor PUBLIC
                           )
 target_link_libraries(epw_extractor PUBLIC heat_lib)
 
+
+add_executable(weather_cat executables/wea_cat.cc)
+
+target_include_directories(weather_cat PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          "${PROJECT_SOURCE_DIR}/include"
+                          )
+target_link_libraries(weather_cat PUBLIC heat_lib)
+
+
 add_executable(memory_alloc memory_alloc.cc)
 
 #add_executable(gauss_seidel gauss_seidel.cc)
