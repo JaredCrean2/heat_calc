@@ -1,10 +1,20 @@
 #include "file/WeatherCat.h"
+#include "file/EpwReader.h"
+#include "file/WeatherFileReader.h"
+#include "file/WeatherFileWriter.h"
+#include "physics/heat/dates.h"
 
 
 WeatherCatParsedData parseData(int argc, char* argv[])
 {
   WeatherCatParsedData data;
   int idx=1;
+  if (idx >= argc)
+    throw std::runtime_error("first command line argument must be output filename");
+
+  data.output_filename = argv[idx];
+  idx++;
+
   while (idx < argc)
   {
     if (std::string(argv[idx]) != "--file")
@@ -37,6 +47,9 @@ WeatherCatParsedData parseData(int argc, char* argv[])
       data.date_ranges.emplace_back();
     }
   }
+
+  if (data.filenames.size() == 0)
+    throw std::runtime_error("command line arguments must contain at least 1 --file section");
 
   return data;
 }

@@ -91,3 +91,35 @@ TEST(Dates, FractionalDayTimeZone)
 
   EXPECT_EQ(computeJulianDate(date, {24, 30}, 2), computeJulianDate(date) + 12.5/24 + 2);
 }
+
+TEST(Dates, CalendarToJulian)
+{
+  
+  {
+    DateTime datetime_ex{Date{1, 1, 2020}, Time{12, 00}};
+    Real julian_date = computeJulianDate(datetime_ex.date, datetime_ex.time, 0);
+    DateTime datetime = computeDateTime(julian_date, 0);
+    EXPECT_EQ(datetime_ex, datetime);
+  }
+
+  {
+    DateTime datetime_ex{Date{1, 1, 2020}, Time{23, 00}};
+    Real julian_date = computeJulianDate(datetime_ex.date, datetime_ex.time, 0);
+    DateTime datetime = computeDateTime(julian_date, 0);
+    EXPECT_EQ(datetime_ex, datetime);
+  } 
+
+  {
+    DateTime datetime_ex{Date{1, 1, 2020}, Time{1, 00}};
+    Real julian_date = computeJulianDate(datetime_ex.date, datetime_ex.time, 0);
+    DateTime datetime = computeDateTime(julian_date, 0);
+    EXPECT_EQ(datetime_ex, datetime);
+  }  
+
+  {
+    DateTime datetime_ex{Date{1, 1, 2020}, Time{23, 05}};
+    Real julian_date = computeJulianDate(datetime_ex.date, datetime_ex.time, 0);
+    DateTime datetime = computeDateTime(julian_date, 0);
+    EXPECT_EQ(datetime_ex, datetime);
+  }    
+}

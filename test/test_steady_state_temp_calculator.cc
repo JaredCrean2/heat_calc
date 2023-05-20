@@ -25,7 +25,7 @@ TEST(SteadyStateTempCalc, AirOnly)
 
   Heat::SteadyStateTempCaluclator calc(env_interface, solar_position_calc, tarp_model, sky_model, solar_model);
   double val = calc.calculate(0, 2, 0.1);
-  EXPECT_EQ(val, edata.air_temp);
+  EXPECT_DOUBLE_EQ(val, edata.air_temp);
 }
 
 TEST(SteadyStateTempCalc, AirPlusSunOnly)

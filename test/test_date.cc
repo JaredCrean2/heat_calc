@@ -63,6 +63,34 @@ TEST(Date, Parsing)
   EXPECT_ANY_THROW(parseDate("1/2/-1"));
 }
 
+TEST(Date, Increment)
+{
+  Date date{1, 1, 2020}, date_ex{2, 1, 2020};
+  EXPECT_EQ(incrementDate(date), date_ex);
+
+  date = {31, 1, 2020},
+  date_ex = {1, 2, 2020};
+  EXPECT_EQ(incrementDate(date), date_ex);
+
+  date = {31, 12, 2020},
+  date_ex = {1, 1, 2021};
+  EXPECT_EQ(incrementDate(date), date_ex);  
+}
+
+TEST(Date, Decrement)
+{
+  Date date{2, 1, 2020}, date_ex{1, 1, 2020};
+  EXPECT_EQ(decrementDate(date), date_ex);  
+
+  date = {1, 2, 2020};
+  date_ex = {31, 1, 2020};
+  EXPECT_EQ(decrementDate(date), date_ex); 
+
+  date = {1, 1, 2020};
+  date_ex = {31, 12, 2019};
+  EXPECT_EQ(decrementDate(date), date_ex);    
+}
+
 
 TEST(Time, OperatorEquality)
 {

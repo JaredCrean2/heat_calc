@@ -2,6 +2,52 @@
 #include <iostream>
 #include "utils/string_utils.h"
 
+// note: month is in the range [1, 12]
+int getDaysPerMonth(int month, int year)
+{
+  int leap_year_offset = isLeapYear(year) ? 1 : 0;
+  std::array<int, 12> days_per_month{31, 28 + leap_year_offset, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};  
+
+  return days_per_month[month-1];
+}
+
+Date incrementDate(const Date& date)
+{
+
+  if (date.day < getDaysPerMonth(date.month, date.year))
+    return Date{date.day+1, date.month, date.year};
+  else
+  {
+    Date date_output{1, date.month+1, date.year};
+    if (date_output.month > 12)
+    {
+      date_output.year++;
+      date_output.month = 1;
+    }
+
+    return date_output;
+  }
+}
+
+Date decrementDate(const Date& date)
+{
+  if (date.day > 1)
+  {
+    return Date{date.day-1, date.month, date.year};
+  } else
+  {
+    int year = date.year;
+    int month = date.month - 1;
+    if (month < 1)
+    {
+      month = 12;
+      year--;
+    }
+    int day = getDaysPerMonth(month, year);
+    return Date{day, month, year};
+  }
+}
+
 bool isLeapYear(int year)
 {
   if ( !(year % 4 == 0) || ( year % 100 == 0 && (year % 400 != 0)))
@@ -13,12 +59,9 @@ bool isLeapYear(int year)
 // computes number of days since the beginning of the year
 int computeDayOfYear(const Date& date)
 {
-  int leap_year_offset = isLeapYear(date.year) ? 1 : 0;
-  std::array<int, 12> days_per_month{31, 28 + leap_year_offset, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
   int dy = 0;
-  for (int i=0; i < date.month-1; ++i)
-    dy += days_per_month[i];
+  for (int i=1; i < date.month; ++i)
+    dy += getDaysPerMonth(i, date.year); // days_per_month[i];
 
   return dy + date.day;  
 }
@@ -31,6 +74,23 @@ int computeJulianDate(const Date& date)
          - (3 * ( (date.year + 4900 + L) / 100 )) /4;
 }
 
+Date computeDateFromJulian(int julian_date)
+{
+  int J = julian_date + 68569;
+  int N = 4*J/146097;
+  int K = J - (146097*N + 3) / 4;
+  int year_prime = 4000*(K+1)/1461001;
+  int L = K - 1461*year_prime/4 + 31;
+  int month_prime = 80*L/2447;
+  int DM = L - 2447*month_prime/80;
+  int M = month_prime/11;
+  int MO = month_prime + 2 - 12*M;
+  int year = 100*(N-49) + year_prime + M;
+
+  return Date{DM, MO, year};
+}
+
+
 Real computeJulianDate(const Date& date, const Time& time, int time_zone)
 {
   // time in universal time zone is time in local zone  + time_zone
@@ -38,6 +98,43 @@ Real computeJulianDate(const Date& date, const Time& time, int time_zone)
   
   int julian_day_whole = computeJulianDate(date);
   return julian_day_whole + (hours - 12)/24.0 + time_zone;
+}
+
+DateTime computeDateTime(Real julian_date, int time_zone)
+{
+  int julian_day_whole = std::floor(julian_date);
+  Date date = computeDateFromJulian(julian_day_whole);
+
+  Real day_remainder = julian_date - julian_day_whole;
+  Real hours_remainder = day_remainder * 24;
+  int hours_since_noon = std::floor(hours_remainder);
+  int minutes = std::round(60*(hours_remainder - hours_since_noon));
+  int hours = hours_since_noon + 12;
+
+  if (minutes >= 60)
+  {
+    hours += minutes / 60;
+    minutes = minutes % 60;
+  }
+
+  if (hours > 23)
+  {
+    date = incrementDate(date);
+    hours -= 24;
+  }
+
+  hours += time_zone;
+  if (hours > 23)
+  {
+    date = incrementDate(date);
+    hours -= 24;
+  } else if (hours < 0)
+  {
+    date = decrementDate(date);
+    hours += 24;
+  }
+
+  return DateTime{date, Time{hours, minutes}};
 }
 
 

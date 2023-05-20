@@ -4,6 +4,12 @@
 #include <array>
 #include "ProjectDefs.h"
 
+#include <iostream>
+
+// note: month is in the range [1, 12]
+int getDaysPerMonth(int month, int year);
+
+// Note: 1 based values
 struct Date
 {
   int day;
@@ -59,6 +65,10 @@ inline std::ostream& operator<<(std::ostream& os, const Date& date)
 }
 
 void validateDate(const Date& date);
+
+Date incrementDate(const Date& date);
+
+Date decrementDate(const Date& date);
 
 
 struct Time
@@ -126,6 +136,8 @@ int computeDayOfYear(const Date& date);
 
 int computeJulianDate(const Date& date);
 
+Date computeDateFromJulian(int julian_date);
+
 // time_zone ex. Mountain time is GMT - 7, time zone is 7
 Real computeJulianDate(const Date& date, const Time& time, int time_zone);
 
@@ -157,9 +169,12 @@ inline std::ostream& operator<<(std::ostream& os, const DateTime& date)
 inline bool operator<(const DateTime& lhs, const DateTime& rhs)
 {
   if (lhs.date != rhs.date)
+  {
     return lhs.date < rhs.date;
-  else
+  } else
+  {
     return lhs.time < rhs.time;
+  }
 }
 
 inline bool operator>(const DateTime& lhs, const DateTime& rhs)
@@ -181,5 +196,7 @@ inline bool operator>=(const DateTime& lhs, const DateTime& rhs)
 // parses a string month/year/date[-[H]H:[M]M]
 // time_default is used if the hour and minutes part of the string is absent
 DateTime parseDateTime(const std::string& datetime, const Time& time_default);
+
+DateTime computeDateTime(Real julian_date, int time_zone);
 
 #endif
