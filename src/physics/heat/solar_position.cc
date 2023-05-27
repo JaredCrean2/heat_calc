@@ -26,16 +26,16 @@ AzimuthZenith computeAzimuthZenith_lowprecision(const Date& date, Real hour, int
   Real gamma = 2*PI*(day_of_year - 1 + day_fraction)/days_per_year;
 
   Real equation_of_time = 229.18*(0.000075 + 0.001868*std::cos(gamma) - 0.032077*std::sin(gamma) - 
-                          0.014615*std::cos(2*gamma) - 0.040849*std::sin(2*gamma));
+                          0.014615*std::cos(2*gamma) - 0.040849*std::sin(2*gamma));  // Units: minutes
 
   Real declination_angle = 0.006918 - 0.399912*std::cos(gamma) + 0.070257*std::sin(gamma) - 
                            0.006758*std::cos(2*gamma) + 0.000907*std::sin(2*gamma) - 
-                           0.002697*std::cos(3*gamma) + 0.00148*std::sin(3*gamma);
+                           0.002697*std::cos(3*gamma) + 0.00148*std::sin(3*gamma);  // Units: radians
 
   Real time_offset_minutes = equation_of_time + 4*radiansToDegrees(longitude) - 60*time_zone;
-  Real tst = hour*60 + time_offset_minutes;  // true solar time?
+  Real tst = hour*60 + time_offset_minutes;  // true solar time?, Units: minutes
 
-  Real hour_angle = degreesToRadians((tst/4) - 180);
+  Real hour_angle = degreesToRadians((tst/4) - 180);  // Units: radians
 
   Real cos_zenith = std::sin(latitude)*std::sin(declination_angle) + std::cos(latitude)*std::cos(declination_angle)*std::cos(hour_angle);
   Real sin_zenith = std::sin(std::acos(cos_zenith));
@@ -108,10 +108,7 @@ DirectionCosines computeDirectionCosines(const DecTimeDist& dec_time_dist, Real 
   Real sin_h = std::sin(hour_angle);
   Real cos_h = std::cos(hour_angle);
 
-  //Note: the negative sign in front of cosins.cs1 does not appear in the TARP
-  //      manual.  It appear the coordinate system in TARP has West as the +x
-  //      direction, rather than east.  The negative sign corrects the problem.
-  cosines.cs1 = -cos_delta * sin_h;
+  cosines.cs1 = cos_delta * sin_h;
   cosines.cs2 = sin_delta * cos_lambda - cos_delta * sin_lambda * cos_h;
   cosines.cs3 = sin_delta * sin_lambda + cos_delta * cos_lambda * cos_h;
 
@@ -129,9 +126,9 @@ AzimuthZenith computeAzimuthZenith(const DirectionCosines& cosines)
 }
 
 
-DirectionCosines computeDirectionCosines(int julian_day, Real time_hours, int time_zone, Real latitude, Real longitude)
+DirectionCosines computeDirectionCosines(int julian_date, Real time_hours, int time_zone, Real latitude, Real longitude)
 {
-  DecTimeDist dec_time_dist = computeDecTimeDist(julian_day);
+  DecTimeDist dec_time_dist = computeDecTimeDist(julian_date);
   Real hour_angle = computeHourAngle(time_hours, dec_time_dist, time_zone, longitude);
   return computeDirectionCosines(dec_time_dist, hour_angle, latitude);
 }

@@ -4,6 +4,7 @@
 #include "ProjectDefs.h"
 #include "solar_position.h"
 
+#include <iomanip>
 #include <iostream>
 
 namespace Heat {
@@ -43,12 +44,13 @@ class SolarPositionCalculatorNaval : public SolarPositionCalculator
     // time_zone is the integer identifying the time zone.
     //   Ex. Eastern time is GMT - 5.  time_zone is 5
    // longtiude and latitude are in radians, north and west are positive 
-    SolarPositionCalculatorNaval(Real julian_date_start, int time_zone, Real latitude, Real longitude) :
-    m_julian_date_start(julian_date_start),
+    SolarPositionCalculatorNaval(const Date& date, int time_zone, Real latitude, Real longitude) :
+    m_julian_date_start(computeJulianDate(date)),
       m_time_zone(time_zone),
       m_latitude(latitude),
       m_longitude(longitude)
-    {}
+    {
+    }    
 
     // t is in seconds from the starting time
     DirectionCosines computePosition(Real t_seconds) override
@@ -65,8 +67,9 @@ class SolarPositionCalculatorNaval : public SolarPositionCalculator
     {
       Real julian_date = m_julian_date_start + static_cast<Real>(t);
       int julian_date_whole = static_cast<int>(julian_date);
-      Real time_hours = 24*(julian_date_whole - julian_date);
-      return solar::computeDirectionCosines(julian_date_whole, time_hours, m_time_zone, m_latitude, m_longitude);
+      Real time_hours = 24*(julian_date - julian_date_whole);
+      auto dir = solar::computeDirectionCosines(julian_date, time_hours, m_time_zone, m_latitude, m_longitude);
+      return dir;
     }
 
     Real m_julian_date_start;

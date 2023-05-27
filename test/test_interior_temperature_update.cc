@@ -18,7 +18,7 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
 {
   protected:
     TemperatureUpdatorTester() :
-      solar_position_calc(std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0))
+      solar_position_calc(std::make_shared<Heat::SolarPositionCalculatorNaval>(Date{1, 1, 2000}, 0, 0, 0))
     {
       auto meshspec = Mesh::getMeshSpec(0, 2, 0, 2, 0, 2, 3, 3, 3);
       std::vector<bool> is_surf_dirichlet{false, false, false, false, false, false};

@@ -3,6 +3,7 @@
 
 #include "file/EpwReader.h"
 #include "math.h"
+#include "physics/heat/dates.h"
 #include "physics/heat/environment_interface.h"
 #include "file/WeatherFileReader.h"
 
@@ -27,6 +28,8 @@ class EnvironmentInterfaceWeatherFile : public EnvironmentInterface
     
     // t is in seconds since the starting time
     EnvironmentData getEnvironmentData(Real t) override;
+
+    Date getStartDate() const { return Date{m_data[0].day, m_data[0].month, m_data[0].year}; }
 
     Real getJulianDateStart() const { return getJulianDate(m_data[0]); }
 

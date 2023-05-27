@@ -40,7 +40,7 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
       Real ach50 = 0;
       Real expected_pressure = 5;
       Real interior_load = 0;
-      auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
+      auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(Date{1, 1, 2000}, 0, 0, 0);
 
       
       auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
@@ -68,7 +68,7 @@ class AuxiliaryEquationsSolarTester : public StandardDiscSetup, public ::testing
       Real ach50 = 0;
       Real expected_pressure = 5;
       Real interior_load = 0;
-      auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
+      auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(Date{1, 1, 2000}, 0, 0, 0);
       window_area = 0;
 
       auto env_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);

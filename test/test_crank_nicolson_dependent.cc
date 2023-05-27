@@ -97,7 +97,7 @@ class CNDependentTester : public StandardDiscSetup,
     }
 
     std::shared_ptr<Heat::HeatEquationSolar> heat_model;
-    std::shared_ptr<Heat::SolarPositionCalculatorNaval> solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
+    std::shared_ptr<Heat::SolarPositionCalculatorNaval> solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(Date{1, 1, 2000}, 0, 0, 0);
     DiscVectorPtr u_vec;
     AuxiliaryEquationsStoragePtr u_aux_vec;
 };

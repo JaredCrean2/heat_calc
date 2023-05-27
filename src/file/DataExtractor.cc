@@ -4,7 +4,7 @@ DataExtractorParsedData parseDataExtractor(int argc, char* argv[])
 {
   if (argc != 6)
   {
-    std::cerr << "Usage: " << argv[0] << "data_filename weather_filename.wea date_start date_end output_filename" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " data_filename weather_filename.wea date_start date_end output_filename" << std::endl;
     throw std::runtime_error("incorrect number of command line arguments");
   }
 

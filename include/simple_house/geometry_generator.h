@@ -75,7 +75,7 @@ class GeometryGenerator
 
     Real computeInteriorVolume();
 
-    int getSurfaceDirection(int surface);
+    int getSurfaceDirection(SurfaceName surface);
 
     Real computeInteriorSurfaceArea(int direction);
 

@@ -45,7 +45,7 @@ namespace {
                        std::shared_ptr<Heat::InteriorAirTemperatureUpdator> air_temp_updator)
       {
 
-        auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(0, 0, 0, 0);
+        auto solar_position_calc = std::make_shared<Heat::SolarPositionCalculatorNaval>(Date{1, 1, 2000}, 0, 0, 0);
 
         Heat::VolumeGroupParams params = Heat::VolumeGroupParams{0.04, 45, 2020};
         heat        = std::make_shared<Heat::HeatEquationSolar>(disc, solar_position_calc, environment_interface, air_temp_updator);

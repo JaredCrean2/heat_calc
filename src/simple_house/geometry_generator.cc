@@ -81,9 +81,9 @@ Real GeometryGenerator::computeInteriorVolume()
   return delta_x * delta_y * delta_z;
 }
 
-int GeometryGenerator::getSurfaceDirection(int surface)
+int GeometryGenerator::getSurfaceDirection(SurfaceName surface)
 {
-  return m_surface_directions.at(surface);
+  return m_surface_directions.at(static_cast<int>(surface));
 }
 
 Real GeometryGenerator::computeInteriorSurfaceArea(int direction)

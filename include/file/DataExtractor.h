@@ -46,12 +46,17 @@ class DataExtractor
       Date date{data0.day, data0.month, data0.year};
       Time time{data0.hour, data0.minute};
       m_date_at_time_zero = DateTime{date, time};
+
+      std::cout << "date at time 0 = " << m_date_at_time_zero << std::endl;
     }
 
     void extract_data()
     {
       std::ofstream of(m_parsed_data.output_filename);
       std::ifstream infile(m_parsed_data.data_filename);
+      if (!infile)
+        throw std::runtime_error(std::string("cannot open input data file ") + m_parsed_data.data_filename);
+
       std::string headerline, line;
       Parser parser;
 
@@ -65,6 +70,7 @@ class DataExtractor
         double time_seconds = parser.get<double>(words[1]);
         Real julian_date_line = julian_date_start + time_seconds/(60*60*24);
         DateTime date_line = computeDateTime(julian_date_line, 0);
+        //std::cout << "date_line = " << date_line << std::endl;
 
         if (m_parsed_data.date_range.is_in_range(date_line))
         {

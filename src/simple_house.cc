@@ -111,21 +111,21 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
                                     "north_exterior_wall_flux", "west_exterior_wall_flux", "roof_flux",
                                     };
 
-  for (int i=1; i <= 5; ++i)
+  for (int i=0; i <= 4; ++i)
   {
-    int surf_id = generator.getSurfaceId(surf_enums[i-1]);
+    int surf_id = generator.getSurfaceId(surf_enums[i]);
     auto surf = disc->getSurfDisc(surf_id);
-    int direction = generator.getSurfaceDirection(i);
+    int direction = generator.getSurfaceDirection(surf_enums[i]);
     Real surface_area = generator.computeExteriorSurfaceArea(direction);
     Real perimeter    = generator.computeExteriorPerimeter(direction);
     // absorptivity and emissivity values for stucco from: https://remdb.nrel.gov/measures.php?gId=12&ctId=216&scId=2374
     // absorptivity and emissivity values for asphalt singles from Medina "Effects of Single Absorptivity, 
     // radient barrier emissivity", International Journal of Energy Research, 2000, 24:665
-    Real emittance    = i < 5 ? 0.9 : 0.78;
-    Real absorptivity = i < 5 ? 0.75 : 0.78;
+    Real emittance    = i < 4 ? 0.9 : 0.78;
+    Real absorptivity = i < 4 ? 0.75 : 0.78;
     auto bc = createCombinedBC(surf, surface_area, perimeter, 0, emittance, absorptivity, true);
     heat_eqn->addNeumannBC(bc, true);
-    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i-1], bc, heat_eqn.get()));
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i], bc, heat_eqn.get()));
   } 
 
   createLawnBC(generator, heat_eqn);
@@ -199,7 +199,7 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
   for (int i=0; i <= 5; ++i)
   {
     auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
-    int direction = generator.getSurfaceDirection(i);
+    int direction = generator.getSurfaceDirection(surf_enums[i]);
     Real surface_area = generator.computeInteriorSurfaceArea(direction);
     Real perimeter    = generator.computeInteriorPerimeter(direction);
 
@@ -368,7 +368,7 @@ int main(int argc, char* argv[])
     auto environment_interface_variable = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>("abq.wea");
     auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(environment_interface_variable->getEnvironmentData(0));
 
-    auto solar_calc_variable = std::make_shared<Heat::SolarPositionCalculatorNaval>(environment_interface_variable->getJulianDateStart(), 7,
+    auto solar_calc_variable = std::make_shared<Heat::SolarPositionCalculatorNaval>(environment_interface_variable->getStartDate(), 7,
                                             Heat::solar::DMSToRadians(35, 6, 24.3576), 
                                             Heat::solar::DMSToRadians(106, 37, 45.0516));
 
