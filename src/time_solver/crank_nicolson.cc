@@ -54,7 +54,7 @@ void CrankNicolson::solve()
     t += delta_t;
 
     m_physics_model->runPostProcessors(iter, m_u, m_u_aux, t);
-    if (iter % 10 == 0)
+    if (iter % 72 == 0)
       m_physics_model->getDiscretization()->getMesh()->writeVtkFiles(std::string("mesh") + std::to_string(iter));
 
     m_opts.timestep_controller->recordLastIteration(m_func->getLastPhysicsRhsNorm());

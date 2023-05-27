@@ -392,12 +392,22 @@ SimpleHouseSpec createHouseSpec()
   return spec;
 }
 
+std::string parseWeatherFileName(int argc, char* argv[])
+{
+  if (argc != 2)
+    throw std::runtime_error(std::string("incorrect number of argument: usage ") + argv[0] + std::string(" filename.wea") );
+
+  return argv[1];
+}
+
 }
 
 using namespace simple_house;
 
 int main(int argc, char* argv[])
 {
+  std::string fname = parseWeatherFileName(argc, argv);
+
   PetscOptionsSetValue(NULL, "-on_error_abort", "");
   //linear_system::setPetscGlobalOption("log_view", "");
 
@@ -421,7 +431,7 @@ int main(int argc, char* argv[])
 
     //Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 250, 750, 0};
     //auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
-    auto environment_interface_variable = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>("abq.wea");
+    auto environment_interface_variable = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>(fname);
     auto environment_interface = environment_interface_variable;
     //auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(environment_interface_variable->getEnvironmentData(0));
 
