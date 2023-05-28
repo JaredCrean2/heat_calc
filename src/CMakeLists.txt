@@ -65,6 +65,7 @@ set(src_files file/EpwReader.cc
               time_solver/time_stepper_opts.cc
               simple_house/simple_house_spec.cc
               simple_house/geometry_generator.cc
+              simple_house/input_parsing.cc
               )
 
 add_subdirectory(mesh)
@@ -143,6 +144,13 @@ add_executable(memory_alloc memory_alloc.cc)
 
 set(install_exes simple_house simple_house2 epw_extractor weather_cat data_extractor memory_alloc)
 install(TARGETS ${install_exes} DESTINATION bin)
+
+add_custom_command(OUTPUT plot_simple_house
+                   COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                   "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/plot_simple_house.py"
+)
+
+install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/plot_simple_house.py" DESTINATION bin)
 
 #add_executable(gauss_seidel gauss_seidel.cc)
 #
