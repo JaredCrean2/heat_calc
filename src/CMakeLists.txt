@@ -8,6 +8,7 @@ set(src_files file/EpwReader.cc
               file/WeatherFileHelper.cc
               file/WeatherCat.cc
               file/DataExtractor.cc
+              file/input_parser.cc
               utils/lagrange_basis.cc 
               utils/quadrature.cc 
               utils/legendre.cc

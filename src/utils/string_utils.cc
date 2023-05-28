@@ -1,4 +1,5 @@
 #include "utils/string_utils.h"
+#include <algorithm>
 
 std::vector<std::string> splitLine(const std::string& line, const std::string& delim)
 {
@@ -36,4 +37,21 @@ std::vector<std::string> splitLine(const std::string& line, const std::string& d
   }
 
   return words;
+}
+
+// removes the leading and trailing whitespace from string.  Leaves any intermediate whitespace
+std::string trimWhiteSpace(const std::string& str)
+{
+  auto is_not_whitespace = [&](unsigned char c) { return !std::isspace(c); };
+  auto str_start = std::find_if(str.begin(), str.end(), is_not_whitespace);
+
+  if (str_start == str.end())
+    return "";
+
+  auto str_end  = std::find_if(str.rbegin(), str.rend(), is_not_whitespace);
+  size_t startidx = std::distance(str.begin(), str_start);
+  size_t idxend = str.size() - std::distance(str.rbegin(), str_end) - 1;
+  size_t len = idxend - startidx + 1;
+
+  return str.substr(startidx, len);
 }

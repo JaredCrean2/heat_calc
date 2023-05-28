@@ -10,6 +10,8 @@
 
 std::vector<std::string> splitLine(const std::string& line, const std::string& delim);
 
+// removes the leading and trailing whitespace from string.  Leaves any intermediate whitespace
+std::string trimWhiteSpace(const std::string& str);
 
 class Parser
 {
