@@ -79,9 +79,9 @@ const std::map<std::string, std::string>& getInputFileDefaults()
 
     // Values from https://open.library.okstate.edu/rainorshine/chapter/13-2-soil-thermal-properties/
     // Table 13-1, for a 2/3 1/3 mixture of clay and soil organic matter  
-    std::make_pair("house_ground_kappa",      "2.1"),
-    std::make_pair("house_ground_rho",      "2200"),
-    std::make_pair("house_ground_Cp",      "1144"),
+    std::make_pair("house_ground_kappa",  "2.1"),
+    std::make_pair("house_ground_rho",    "2200"),
+    std::make_pair("house_ground_Cp",     "1144"),
 
     std::make_pair("t_start", "0"),
     std::make_pair("t_end", "86400"),

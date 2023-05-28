@@ -1,6 +1,7 @@
 #include "file/input_parser.h"
 #include <cctype>
 #include <algorithm>
+#include <set>
 
 
 std::map<std::string, std::string> InputParser::parse(std::map<std::string, std::string> defaults)
@@ -10,6 +11,7 @@ std::map<std::string, std::string> InputParser::parse(std::map<std::string, std:
 
   std::string line;
 
+  std::set<std::string> seen_keys;
   while (std::getline(*m_infile, line))
   {
     line = trimComment(line);
@@ -17,10 +19,15 @@ std::map<std::string, std::string> InputParser::parse(std::map<std::string, std:
       continue;
 
     std::pair<std::string, std::string> keyval = parseKeyAndValue(line);
-    if (defaults.count(keyval.first) > 0)
+    if (seen_keys.count(keyval.first) > 0)
       throw std::runtime_error(std::string("duplicate key found on line: ") + line);
+    else
+      seen_keys.insert(keyval.first);
 
-    defaults.insert(keyval);
+    if (defaults.count(keyval.first) > 0)
+      defaults[keyval.first] = keyval.second;
+    else
+      defaults.insert(keyval);
   }
 
   return defaults;

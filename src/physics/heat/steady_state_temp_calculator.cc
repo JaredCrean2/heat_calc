@@ -31,7 +31,7 @@ double SteadyStateTempCaluclator::calculate(double t_start, double t_end, double
     if (i == 0)
       ground_temp = air_temp;
 
-    ground_temp = computeSteadyStateTemp(ground_temp, air_temp, 1e-12);
+    ground_temp = computeSteadyStateTemp(ground_temp, air_temp, 1e-11);
 
     temp_vals.push_back(ground_temp);
     t_vals.push_back(time);
