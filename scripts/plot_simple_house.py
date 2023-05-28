@@ -95,11 +95,14 @@ def convertFluxesToTons(data, col_names):
 
 
 def plotColumns(column_names, column_names_to_plot, data, xlabel, ylabel, fig, ax):
+  return plotColumnsWithLabels(column_names, column_names_to_plot, data, xlabel, ylabel, fig, ax, column_names_to_plot)
+
+def plotColumnsWithLabels(column_names, column_names_to_plot, data, xlabel, ylabel, fig, ax, labels):
 
   indices = getColumnIndicesFromName(column_names, column_names_to_plot)
   for i in range(1, len(indices)):
     print("plotting ", column_names_to_plot[i])
-    ax.plot(data[:, indices[0]], data[:, indices[i]], label=column_names_to_plot[i])
+    ax.plot(data[:, indices[0]], data[:, indices[i]], label=labels[i])
 
   ax.set_xlabel(xlabel)
   ax.set_ylabel(ylabel)
@@ -159,7 +162,13 @@ def computeTotalHVACFluxes(col_names, data):
   print("net heating flux = ", net_heating_flux/(1000*3600), " kWh, or ", net_heating_flux_btu, " mBTU")
   print("net cooling flux = ", net_cooling_flux/(1000*3600), " kWh, or ", net_cooling_flux_btu, " mBTU")
 
+def writeResults(column_names, data, filename):
+  header=""
+  for name in column_names:
+    header = header + name + " "
 
+  print("saving to ", filename)
+  np.savetxt(filename, data, header=header, comments='');
     
 
 
@@ -208,11 +217,13 @@ data, column_names = sumColumns(data, column_names, net_flux_names, "net_air_ven
 
 data, column_names = copyColumn(data, column_names, "interior_wall_flux", -1, "interior_wall_flux_neg")
 print("new column names = ", column_names)
-data, column_names = copyColumn(data, column_names, "floor_flux", -1, "floor_flux_neg");
+data, column_names = copyColumn(data, column_names, "floor_flux_cond", -1, "floor_flux_cond_neg");
 data, column_names = copyColumn(data, column_names, "ceiling_flux", -1, "ceiling_flux_neg");
 data, column_names = copyColumn(data, column_names, "interior_wall_flux", -1, "interior_wall_flux_neg");
 data, column_names = copyColumn(data, column_names, "net_air_ventilation", -1, "net_air_ventilation_neg")
 
+net_flux_names = ["interior_wall_flux_neg", "floor_flux_cond_neg", "ceiling_flux_neg", "interior_wall_flux_neg", "net_air_ventilation_neg", "window_conduction"];
+data, column_names = sumColumns(data, column_names, net_flux_names, "net_interior_load");
 
 
 
@@ -308,8 +319,13 @@ fig, axs = plt.subplots(2);
 fig.set_size_inches(8, 6)
 fig.subplots_adjust(left=0.15, bottom=0.1, right=0.9, top=0.9, wspace=0.4, hspace=0.6)
 
-column_names1 = ["time", "hvac_flux", "interior_wall_flux_neg", "ceiling_flux_neg", "floor_flux_neg", "net_air_ventilation_neg", "window_conduction"]
-plotColumns(column_names, column_names1, data, "time (s)", "flux (W)", fig, axs[0])
+column_names1 = ["time", "hvac_flux", "interior_wall_flux_neg", "ceiling_flux_neg", "floor_flux_cond_neg", "net_air_ventilation_neg", "window_conduction", "net_interior_load"]
+column_labels1 = ["time", "hvac", "wall", "ceiling", "floor", "air_exch", "window_cond", "net_load"]
+plotColumnsWithLabels(column_names, column_names1, data, "time (s)", "flux (W)", fig, axs[0], column_labels1)
+
+column_names1 = ["time", "interior_wall_flux_neg", "ceiling_flux_neg", "floor_flux_cond_neg", "net_air_ventilation_neg", "window_conduction"]
+column_labels1 = ["time", "wall", "ceiling", "floor", "air_exch", "window_cond"]
+plotColumnsWithLabels(column_names, column_names1, data, "time (s)", "flux (W)", fig, axs[1], column_labels1)
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
@@ -335,3 +351,5 @@ fig.suptitle("Simple House")
 fig.savefig("simple_house_imperial_results.png", dpi=600)
 
 computeTotalHVACFluxes(column_names, data)
+
+writeResults(column_names, data, fname + "_postprocessed");

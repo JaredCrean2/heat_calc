@@ -39,12 +39,12 @@ TEST(InputParser, ParseFile)
 TEST(InputParser, ParseValues)
 {
   ValueParser parser;
-  EXPECT_EQ(parser.parseScalarValue<double>("2.0"), 2.0);
-  EXPECT_EQ(parser.parseScalarValue<double>("2"), 2.0);
+  EXPECT_EQ(parser.parseScalar<double>("2.0"), 2.0);
+  EXPECT_EQ(parser.parseScalar<double>("2"), 2.0);
 
   std::vector<double> vals_ex{1, 2};
-  EXPECT_EQ(parser.parseArrayValue<double>("[1, 2]"), vals_ex);
+  EXPECT_EQ(parser.parseArray<double>("[1, 2]"), vals_ex);
 
   vals_ex = {1};
-  EXPECT_EQ(parser.parseArrayValue<double>("[1]"), vals_ex);
+  EXPECT_EQ(parser.parseArray<double>("[1]"), vals_ex);
 }

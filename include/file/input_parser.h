@@ -22,7 +22,7 @@ class InputParser
       m_infile(infile)
     {}
 
-    InputParser(std::string& fname) :
+    InputParser(const std::string& fname) :
       m_infile(std::make_shared<std::ifstream>(fname))
     {}
 
@@ -46,13 +46,13 @@ class ValueParser
   public:
 
     template <typename T>
-    T parseScalarValue(const std::string& val)
+    T parseScalar(const std::string& val)
     {
       return m_parser.get<T>(val);
     }
 
     template <typename T>
-    std::vector<T> parseArrayValue(const std::string& val)
+    std::vector<T> parseArray(const std::string& val)
     {
       if (val.front() != '[' || val.back() != ']')
         throw std::runtime_error(std::string("unable to parse string as array: ") + val);

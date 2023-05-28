@@ -24,14 +24,27 @@
 #include "physics/post_processor_scheduler.h"
 #include "simple_house/simple_house_spec.h"
 #include "time_solver/crank_nicolson.h"
+#include "time_solver/time_stepper_opts.h"
 #include "time_solver/timestep_controller_piecewise.h"
 #include "utils/initialization.h"
 #include "simple_house/geometry_generator.h"
+#include "file/input_parser.h"
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
+{
+  for (auto& val : vec)
+    os << val << ", ";
+
+  return os;
+}
 
 namespace simple_house {
 
 struct Params
 {
+  std::string weather_filename;
+
   // for exterior wall  + lawn Tarp BCs
   std::array<Real, 3> vertical_vector = {0, 0, 1};
   std::array<Real, 3> point_at_zero_altitude = {0, 0, -100};  
@@ -71,12 +84,356 @@ struct Params
 
   // for windows + floor radiation BC
   int floor_roughness_index = 0;
-  Real shgc = 0.9;
+  Real window_shgc = 0.9;
   Real floor_absorptivity = 0.65; // unfinished concrete 
   std::array<Real, 4> window_areas = {0.557418 * 2, 0.557418 * 2, 0.557418 * 2, 0.557418 * 2};  // 6 sq ft each window, 2 windows per wall
   Real window_area    = window_areas[0] + window_areas[1] + window_areas[2] + window_areas[3];
-  Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units                                
+  Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units   
+
+  SimpleHouseSpec simple_house_spec;
+  timesolvers::TimeStepperOpts time_stepper_opts;                        
 };
+
+const std::map<std::string, std::string> input_file_defaults =
+{
+  std::make_pair("met_terrain_index", "2"),
+  std::make_pair("meterological_altitude", "1836"),
+  std::make_pair("local_terrain_index", "2"),
+
+  std::make_pair("ext_wall_roughness_index", "0"),
+  std::make_pair("ext_wall_emittance", "0.9"),
+  std::make_pair("ext_wall_absorptivity", "0.75"),
+
+  std::make_pair("roof_roughness_index", "0"),
+  std::make_pair("roof_emittance", "0.78"),
+  std::make_pair("roof_absorptivity", "0.78"),
+
+  std::make_pair("lawn_roughness_index", "0"),
+  std::make_pair("lawn_emittance", "0.95"),
+  std::make_pair("lawn_absorptivity", "0.8"), 
+
+  std::make_pair("int_wall_roughness_index", "0"),
+
+  std::make_pair("air_rho", "1.007"),
+  std::make_pair("air_cp", "1006"),
+  std::make_pair("hvac_restore_time", "60"),
+  std::make_pair("interior_air_min_temp", "293.15"),
+  std::make_pair("interior_air_max_temp", "297.039"),
+  std::make_pair("air_leakage_ach50", "7"),
+
+  std::make_pair("floor_roughness_index", "0"),
+  std::make_pair("window_shgc", "0.9"),
+  std::make_pair("floor_absorptivity", "0.65"),
+  std::make_pair("window_areas", "[1.114836, 1.114836, 1.114836, 1.114836]"),
+  std::make_pair("window_r_value", "0.5283305514"),
+
+  std::make_pair("house_xlength", "9.23"),
+  std::make_pair("house_ylength", "15.38"),
+  std::make_pair("house_zlength", "2.46"),
+  std::make_pair("house_num_el_x", "5"),
+  std::make_pair("house_num_el_y", "8"),
+  std::make_pair("house_num_el_z", "4"),
+
+    // 3.5 inches of insulation
+  std::make_pair("house_horizontal_thicknesses", "[0.0897]"),
+  std::make_pair("house_horizontal_numels",      "[5]"),
+  std::make_pair("house_horizontal_kappas",      "[0.039]"),
+  std::make_pair("house_horizontal_rhos",        "[45]"),
+  std::make_pair("house_horizontal_Cps",         "[2020]"),
+
+  // 6 inches of insulation
+  std::make_pair("house_ceiling_thicknesses", "[0.1538]"),
+  std::make_pair("house_ceiling_numels",      "[5]"),
+  std::make_pair("house_ceiling_kappas",      "[0.039]"),
+  std::make_pair("house_ceiling_rhos",        "[45]"),
+  std::make_pair("house_ceiling_Cps",         "[2020]"),  
+
+  // 6 inches of concrete
+  std::make_pair("house_foundation_thicknesses", "[0.1538]"),
+  std::make_pair("house_foundation_numels",      "[5]"),
+  std::make_pair("house_foundation_kappas",      "[2.25]"),
+  std::make_pair("house_foundation_rhos",        "[2400]"),
+  std::make_pair("house_foundation_Cps",         "[880]"),  
+
+  std::make_pair("house_foundation_insulation_thicknesses", "[0.0897]"),
+  std::make_pair("house_foundation_insulation_numels",      "[5]"),
+  std::make_pair("house_foundation_insulation_kappas",      "[2.1]"),
+  std::make_pair("house_foundation_insulation_rhos",        "[2200]"),
+  std::make_pair("house_foundation_insulation_Cps",         "[1144]"), 
+
+  std::make_pair("house_ground_horizontal_thickness",  "5"),
+  std::make_pair("house_ground_horizontal_numel",      "10"),
+
+  std::make_pair("house_ground_depth",            "20"),
+  std::make_pair("house_ground_depth_numel",      "10"),
+
+  // Values from https://open.library.okstate.edu/rainorshine/chapter/13-2-soil-thermal-properties/
+  // Table 13-1, for a 2/3 1/3 mixture of clay and soil organic matter  
+  std::make_pair("house_ground_kappa",      "2.1"),
+  std::make_pair("house_ground_rho",      "2200"),
+  std::make_pair("house_ground_Cp",      "1144"),
+
+  std::make_pair("t_start", "0"),
+  std::make_pair("t_end", "86400"),
+  std::make_pair("timestep_values", "[300, 1800, 1800]"),
+  std::make_pair("timestep_points", "[0, 86400, 900000]"),
+  std::make_pair("nonlinear_abs_tol", "1e-9"),
+  std::make_pair("nonlinear_rel_tol", "1e-8"),
+  std::make_pair("nonlinear_itermax", "30"),
+  std::make_pair("linear_abs_tol", "1e-12"),
+  std::make_pair("linear_rel_tol", "1e-50"),
+};
+
+void checkInRange(double val, double val_min, double val_max, const std::string& msg)
+{
+  if (val < val_min || val > val_max)
+    throw std::runtime_error(msg + ", val = " + std::to_string(val) + " must be in range " + std::to_string(val_min) + ", " + std::to_string(val_max));
+}
+
+void  validateParams(const Params& params)
+{
+  double max = std::numeric_limits<double>::max();
+
+  if (params.weather_filename.size() == 0)
+    throw std::runtime_error("weather file must be provided");
+
+  checkInRange(params.ext_wall_emittance, 0, 1, "exterior wall emittance out of range");
+  checkInRange(params.ext_wall_absorptivity, 0, 1, "exterior wall absorptivity out of range");
+
+  checkInRange(params.roof_emittance, 0, 1, "roof emittance out of range");
+  checkInRange(params.roof_absorptivity, 0, 1, "roof absorptivity out of range");
+
+  checkInRange(params.lawn_emittance, 0, 1, "lawn emittance out of range");
+  checkInRange(params.lawn_absorptivity, 0, 1, "lawn absorptivity out of range");
+
+  checkInRange(params.air_rho, 0, max, "air rho out of range");
+  checkInRange(params.air_cp, 0, max, "air Cp out of range");
+  checkInRange(params.hvac_restore_time, 0, max, "hvac restore time out of range");
+  checkInRange(params.interior_air_min_temp, 0, max, "interior air min temp out of range");
+  checkInRange(params.interior_air_max_temp, params.interior_air_min_temp, max, "interior air max temp out of range");
+  checkInRange(params.interior_air_min_temp, 0, params.interior_air_max_temp, "interior air max temp out of range");
+  checkInRange(params.air_leakage_ach50, 0, max, "air leakage ach50 out of range");
+
+  checkInRange(params.window_shgc, 0, max, "window shgc out of range");
+  checkInRange(params.floor_absorptivity, 0, 1, "floor absorptivity out of range");
+  for (int i=0; i < 4; ++i)
+    checkInRange(params.window_areas[i], 0, max, "air rho out of range");
+
+  checkInRange(params.window_r_value, 0, max, "window r value out of range");
+}
+
+struct SimpleHouseSpecSection
+{
+  std::vector<double> thicknesses;
+  std::vector<int> numels;
+  std::vector<Heat::VolumeGroupParams> params;
+};
+
+SimpleHouseSpecSection parseSimpleHouseSection(const std::map<std::string, std::string>& input_vals, const std::string& prefix)
+{
+  ValueParser parser;
+  SimpleHouseSpecSection spec;
+
+  spec.thicknesses = parser.parseArray<double>(input_vals.at(prefix + "_thicknesses"));
+  spec.numels      = parser.parseArray<int>(input_vals.at(prefix + "_numels"));
+  std::vector<double> kappas      = parser.parseArray<double>(input_vals.at(prefix + "_kappas"));
+  std::vector<double> rhos        = parser.parseArray<double>(input_vals.at(prefix + "_rhos"));
+  std::vector<double> Cps         = parser.parseArray<double>(input_vals.at(prefix + "_Cps"));
+
+  size_t num_layers = spec.thicknesses.size();
+  assertAlways(spec.numels.size() == num_layers, prefix + "_numels length is incorrect");
+  assertAlways(kappas.size() == num_layers, "horizontal_kappas length is incorrect");
+  assertAlways(rhos.size() == num_layers, "horizontal_rhos length is incorrect");
+  assertAlways(Cps.size() == num_layers, "horizontal_Cps length is incorrect");
+
+  for (size_t i=0; i < num_layers; ++i)
+    spec.params.emplace_back(kappas[i], rhos[i], Cps[i]);
+
+  return spec;
+}
+
+
+SimpleHouseSpec parseSimpleHouseSpec(const std::map<std::string, std::string>& input_vals)
+{
+  ValueParser parser;
+  SimpleHouseSpec spec;
+  double xmax = parser.parseScalar<double>(input_vals.at("house_xlength"));
+  double ymax = parser.parseScalar<double>(input_vals.at("house_ylength"));
+  double zmax = parser.parseScalar<double>(input_vals.at("house_zlength"));
+
+  int numel_x = parser.parseScalar<int>(input_vals.at("house_num_el_x"));
+  int numel_y = parser.parseScalar<int>(input_vals.at("house_num_el_y"));
+  int numel_z = parser.parseScalar<int>(input_vals.at("house_num_el_z"));
+  spec.middle_block = Mesh::getMeshSpec(0, xmax, 0, ymax, 0, zmax, numel_x, numel_y, numel_z);
+
+  SimpleHouseSpecSection section_spec = parseSimpleHouseSection(input_vals, "house_horizontal");
+  spec.horizontal_thicknesses = section_spec.thicknesses;
+  spec.horizontal_numels = section_spec.numels;
+  spec.horizontal_params = section_spec.params;
+
+  section_spec = parseSimpleHouseSection(input_vals, "house_ceiling");
+  spec.ceiling_thicknesses = section_spec.thicknesses;
+  spec.ceiling_numels = section_spec.numels;
+  spec.ceiling_params = section_spec.params;
+
+  section_spec = parseSimpleHouseSection(input_vals, "house_foundation");
+  spec.foundation_thicknesses = section_spec.thicknesses;
+  spec.foundation_numels = section_spec.numels;
+  spec.foundation_params = section_spec.params;  
+
+  section_spec = parseSimpleHouseSection(input_vals, "house_foundation_insulation");
+  assertAlways(section_spec.numels.size() == 1, "Only 1 layer of foundation is allowed");
+  spec.foundation_insulation_thicknesses = section_spec.thicknesses;
+  spec.foundation_insulation_numels = section_spec.numels;
+  spec.foundation_insulation_params = section_spec.params[0];
+
+  spec.ground_horizontal_thickness = parser.parseScalar<double>(input_vals.at("house_ground_horizontal_thickness"));
+  spec.ground_horizontal_numel     = parser.parseScalar<int>(input_vals.at("house_ground_horizontal_numel"));
+
+  spec.ground_depth       = parser.parseScalar<double>(input_vals.at("house_ground_depth"));
+  spec.ground_depth_numel = parser.parseScalar<int>(input_vals.at("house_ground_depth_numel"));
+
+  double ground_kappa = parser.parseScalar<double>(input_vals.at("house_ground_kappa"));
+  double ground_rho = parser.parseScalar<double>(input_vals.at("house_ground_rho"));
+  double ground_Cp = parser.parseScalar<double>(input_vals.at("house_ground_Cp"));
+
+  spec.ground_params = Heat::VolumeGroupParams(ground_kappa, ground_rho, ground_Cp);
+
+  //auto spec2 = createSimpleHouseSpec();
+  return spec;
+}
+
+timesolvers::TimeStepperOpts parseTimesolverData(const std::map<std::string, std::string>& input_vals)
+{
+  ValueParser parser;
+  timesolvers::TimeStepperOpts opts;
+
+  opts.t_start = parser.parseScalar<double>(input_vals.at("t_start"));
+  opts.t_end   = parser.parseScalar<double>(input_vals.at("t_end"));
+  opts.nonlinear_abs_tol = parser.parseScalar<double>(input_vals.at("nonlinear_abs_tol"));
+  opts.nonlinear_rel_tol = parser.parseScalar<double>(input_vals.at("nonlinear_rel_tol"));
+  opts.nonlinear_itermax = parser.parseScalar<int>(input_vals.at("nonlinear_itermax"));
+
+  std::vector<double> timestep_vals = parser.parseArray<double>(input_vals.at("timestep_values"));
+  std::vector<double> timestep_points = parser.parseArray<double>(input_vals.at("timestep_points"));
+  assertAlways(timestep_vals.size() == timestep_points.size(), "number of timestep values and points must be the same");
+  std::vector<timesolvers::TimestepControllerPiecewise::TimestepPoint> timesteps;
+  for (size_t i=0; i < timestep_vals.size(); ++i)
+    timesteps.push_back({timestep_points[i], timestep_vals[i]});
+
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(timesteps);
+  opts.mat_type = linear_system::LargeMatrixType::Petsc;
+
+
+  auto matrix_opts = std::make_shared<linear_system::LargeMatrixOptsPetsc>();
+  matrix_opts->is_structurally_symmetric = true;
+  opts.solve_auxiliary_equations_combined_system = true;
+  opts.precompute_linear_jacobian = true;
+
+  matrix_opts->petsc_opts["ksp_atol"] = input_vals.at("linear_abs_tol");
+  matrix_opts->petsc_opts["ksp_rtol"] = input_vals.at("linear_rel_tol");
+  matrix_opts->petsc_opts["ksp_monitor"] = "";
+  opts.matrix_opts = matrix_opts;
+
+  opts.t_start = parser.parseScalar<double>(input_vals.at("t_start"));
+
+  return opts;
+}
+
+/*
+SimpleHouseSpec createHouseSpec()
+{
+  SimpleHouseSpec spec;
+
+  spec.middle_block = Mesh::getMeshSpec(0, 9.23, 0, 15.38, 0, 2.46, 5, 8, 4);
+
+    // 3.5 inches of insulation
+  spec.horizontal_thicknesses = {0.0897};
+  spec.horizontal_numels      = {5};
+  spec.horizontal_params      = { {0.039, 45, 2020} };
+
+  // 6 inches of insulation
+  spec.ceiling_thicknesses = {0.1538};
+  spec.ceiling_numels      = {5};
+  spec.ceiling_params      = { {0.039, 45, 2020} };
+
+  // 6 inches of concrete
+  spec.foundation_thicknesses = {0.1538};
+  spec.foundation_numels      = {5};
+  spec.foundation_params      = { {2.25, 2400, 880} };
+
+  spec.foundation_insulation_numels      = {5};
+  spec.foundation_insulation_thicknesses = {0.0897};
+  spec.foundation_insulation_params      = {2.1, 2200, 1144}; // {0.039, 45, 2020};
+
+  spec.ground_horizontal_numel     = 10;
+  spec.ground_horizontal_thickness = 5;
+  
+  spec.ground_depth_numel = 10;
+  spec.ground_depth       = 20;
+
+
+  // Values from https://open.library.okstate.edu/rainorshine/chapter/13-2-soil-thermal-properties/
+  // Table 13-1, for a 2/3 1/3 mixture of clay and soil organic matter
+  spec.ground_params = {2.1, 2200, 1144}; //TODO: get real values
+
+  return spec;
+}
+*/
+
+
+Params parseParams(const std::string& fname)
+{
+  InputParser input_parser(fname);
+  std::map<std::string, std::string> input_vals = input_parser.parse(input_file_defaults);
+
+  Params params;
+  ValueParser parser;
+
+  params.weather_filename         = input_vals.at("weather_filename");
+  params.met_terrain_index        = parser.parseScalar<int>(input_vals.at("met_terrain_index"));
+  params.meterological_altitude   = parser.parseScalar<int>(input_vals.at("meterological_altitude"));
+  params.local_terrain_index      = parser.parseScalar<int>(input_vals.at("local_terrain_index"));
+
+  params.ext_wall_roughness_index = parser.parseScalar<int>(input_vals.at(   "ext_wall_roughness_index"));
+  params.ext_wall_emittance       = parser.parseScalar<double>(input_vals.at("ext_wall_emittance"));
+  params.ext_wall_absorptivity    = parser.parseScalar<double>(input_vals.at("ext_wall_absorptivity"));
+
+  params.roof_roughness_index     = parser.parseScalar<int>(input_vals.at(   "roof_roughness_index"));
+  params.roof_emittance           = parser.parseScalar<double>(input_vals.at("roof_emittance"));
+  params.roof_absorptivity        = parser.parseScalar<double>(input_vals.at("roof_absorptivity"));
+
+  params.lawn_roughness_index     = parser.parseScalar<int>(input_vals.at(   "lawn_roughness_index"));
+  params.lawn_emittance           = parser.parseScalar<double>(input_vals.at("lawn_emittance"));
+  params.lawn_absorptivity        = parser.parseScalar<double>(input_vals.at("lawn_absorptivity"));
+
+  params.int_wall_roughness_index = parser.parseScalar<int>(input_vals.at("int_wall_roughness_index"));
+
+  params.air_rho                  = parser.parseScalar<double>(input_vals.at("air_rho"));
+  params.air_cp                   = parser.parseScalar<double>(input_vals.at("air_cp"));
+  params.hvac_restore_time        = parser.parseScalar<double>(input_vals.at("hvac_restore_time"));
+  params.interior_air_min_temp    = parser.parseScalar<double>(input_vals.at("interior_air_min_temp"));
+  params.interior_air_max_temp    = parser.parseScalar<double>(input_vals.at("interior_air_max_temp"));
+  params.air_leakage_ach50        = parser.parseScalar<double>(input_vals.at("air_leakage_ach50"));
+
+  params.floor_roughness_index     = parser.parseScalar<int>(input_vals.at(   "floor_roughness_index"));
+  params.window_shgc               = parser.parseScalar<double>(input_vals.at("window_shgc"));
+  params.floor_absorptivity        = parser.parseScalar<double>(input_vals.at("floor_absorptivity"));
+  std::vector<double> window_areas = parser.parseArray<double>(input_vals.at( "window_areas"));
+  if (window_areas.size() != 4)
+    throw std::runtime_error("the building has 4 walls, must have exactly 4 window areas");
+
+  params.window_areas              = {window_areas[0], window_areas[1], window_areas[2], window_areas[3]};
+  params.window_area               = window_areas[0] + window_areas[1] + window_areas[2] + window_areas[3];
+  params.window_r_value            = parser.parseScalar<double>(input_vals.at("window_r_value"));
+
+  params.simple_house_spec = parseSimpleHouseSpec(input_vals);
+  params.time_stepper_opts = parseTimesolverData(input_vals);
+
+  validateParams(params);
+
+  return params;
+}
 
 double computeBottomTemp(std::shared_ptr<Heat::EnvironmentInterface> env_interface,
                         std::shared_ptr<Heat::SolarPositionCalculator> solar_position_calc,
@@ -227,7 +584,7 @@ std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> makeFloorRadiationBCs(Ge
       case 3: {window_normal[0] = -1; break;}
     }
 
-    bcs[i] = std::make_shared<Heat::FloorRadiationBC>(surf, params.window_areas[i], window_normal, params.shgc,
+    bcs[i] = std::make_shared<Heat::FloorRadiationBC>(surf, params.window_areas[i], window_normal, params.window_shgc,
                                                       floor_area, params.floor_absorptivity, names[i]);
   }
 
@@ -311,6 +668,7 @@ void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared
   }
 }
 
+/*
 timesolvers::TimeStepperOpts getTimeStepperOpts()
 {
   timesolvers::TimeStepperOpts opts;
@@ -352,50 +710,12 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
 
   return opts;
 }
+*/
 
-SimpleHouseSpec createHouseSpec()
-{
-  SimpleHouseSpec spec;
-
-  spec.middle_block = Mesh::getMeshSpec(0, 9.23, 0, 15.38, 0, 2.46, 5, 8, 4);
-
-    // 3.5 inches of insulation
-  spec.horizontal_thicknesses = {0.0897};
-  spec.horizontal_numels      = {5};
-  spec.horizontal_params      = { {0.039, 45, 2020} };
-
-  // 6 inches of insulation
-  spec.ceiling_thicknesses = {0.1538};
-  spec.ceiling_numels      = {5};
-  spec.ceiling_params      = { {0.039, 45, 2020} };
-
-  // 6 inches of concrete
-  spec.foundation_thicknesses = {0.1538};
-  spec.foundation_numels      = {5};
-  spec.foundation_params      = { {2.25, 2400, 880} };
-
-  spec.foundation_insulation_numels      = {5};
-  spec.foundation_insulation_thicknesses = {0.0897};
-  spec.foundation_insulation_params      = {2.1, 2200, 1144}; // {0.039, 45, 2020};
-
-  spec.ground_horizontal_numel     = 10;
-  spec.ground_horizontal_thickness = 5;
-  
-  spec.ground_depth_numel = 10;
-  spec.ground_depth       = 20;
-
-
-  // Values from https://open.library.okstate.edu/rainorshine/chapter/13-2-soil-thermal-properties/
-  // Table 13-1, for a 2/3 1/3 mixture of clay and soil organic matter
-  spec.ground_params = {2.1, 2200, 1144}; //TODO: get real values
-
-  return spec;
-}
-
-std::string parseWeatherFileName(int argc, char* argv[])
+std::string parseInputFileName(int argc, char* argv[])
 {
   if (argc != 2)
-    throw std::runtime_error(std::string("incorrect number of argument: usage ") + argv[0] + std::string(" filename.wea") );
+    throw std::runtime_error(std::string("incorrect number of argument: usage ") + argv[0] + std::string(" input_file") );
 
   return argv[1];
 }
@@ -406,7 +726,7 @@ using namespace simple_house;
 
 int main(int argc, char* argv[])
 {
-  std::string fname = parseWeatherFileName(argc, argv);
+  std::string fname = parseInputFileName(argc, argv);
 
   PetscOptionsSetValue(NULL, "-on_error_abort", "");
   //linear_system::setPetscGlobalOption("log_view", "");
@@ -417,12 +737,12 @@ int main(int argc, char* argv[])
   double t_start_initialize = MPI_Wtime();
 
   {
-    Params params;
-    SimpleHouseSpec spec = createHouseSpec();
-    timesolvers::TimeStepperOpts opts = getTimeStepperOpts();
+    Params params = parseParams(fname);
+    //SimpleHouseSpec spec = createHouseSpec();
+    timesolvers::TimeStepperOpts& opts = params.time_stepper_opts; //getTimeStepperOpts();
 
 
-    GeometryGenerator generator(spec);
+    GeometryGenerator generator(params.simple_house_spec);
     std::shared_ptr<Mesh::MeshCG> mesh = generator.getMesh();
     std::cout << "total number of dofs = " << mesh->getNumTotalDofs() << std::endl;
     std::cout << "number of local dofs = " << mesh->getNumDofs() << std::endl;
@@ -431,7 +751,7 @@ int main(int argc, char* argv[])
 
     //Heat::EnvironmentData edata{305, 0, {1, 0, 0}, 250, 750, 0};
     //auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(edata);
-    auto environment_interface_variable = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>(fname);
+    auto environment_interface_variable = std::make_shared<Heat::EnvironmentInterfaceWeatherFile>(params.weather_filename);
     auto environment_interface = environment_interface_variable;
     //auto environment_interface = std::make_shared<Heat::EnvironmentInterfaceConstant>(environment_interface_variable->getEnvironmentData(0));
 

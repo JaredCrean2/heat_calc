@@ -5,6 +5,9 @@
 
 std::map<std::string, std::string> InputParser::parse(std::map<std::string, std::string> defaults)
 {
+  if (!(*m_infile))
+    throw std::runtime_error("unable to open file");
+
   std::string line;
 
   while (std::getline(*m_infile, line))
