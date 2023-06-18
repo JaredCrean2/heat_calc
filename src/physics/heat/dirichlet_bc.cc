@@ -11,7 +11,7 @@ void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorP
     applyDirichletValues(bc, t, u);
   }
 
-  updateDependentDirichletValues(u);
+  u->updateDependentDirichletValues();
 }
 
 void computeUnsteadyDirichletBC(const HeatEquation& physics, const Real t, DiscVectorPtr rhs)

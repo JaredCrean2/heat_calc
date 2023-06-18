@@ -2,6 +2,7 @@
 #define DISC_DOF_NUMBERING_H
 
 #include "discretization/volume_discretization.h"
+#include "mesh/dirichlet_update_map.h"
 #include "mesh/mesh.h"
 
 namespace Mesh {
@@ -67,18 +68,20 @@ class DofNumbering
       return m_num_owned_dofs;
     }
 
-    int getNumDirichletNodeSections() const { return m_dest_dirichlet_node_ranges.size() - 1;}
+    const std::shared_ptr<Mesh::DirichletUpdateMap> getDirichletUpdateMap() const { return m_dirichlet_update_map; }
 
-    Mesh::NodeTriplet getSrcDirichletNode(int section) const { return m_src_dirichlet_nodes[section]; }
+    //int getNumDirichletNodeSections() const { return m_dest_dirichlet_node_ranges.size() - 1;}
 
-    void getDestDirichletNodes(int section, std::vector<Mesh::NodeTriplet>& dest_nodes)
-    {
-      int start_idx = m_dest_dirichlet_node_ranges[section];
-      int end_idx = m_dest_dirichlet_node_ranges[section+1];
-      dest_nodes.resize(end_idx - start_idx);
-      for (int i=start_idx; i < end_idx; ++i)
-        dest_nodes[i - start_idx] = m_dest_dirichlet_nodes[i];
-    }
+    //Mesh::NodeTriplet getSrcDirichletNode(int section) const { return m_src_dirichlet_nodes[section]; }
+
+    //void getDestDirichletNodes(int section, std::vector<Mesh::NodeTriplet>& dest_nodes)
+    //{
+    //  int start_idx = m_dest_dirichlet_node_ranges[section];
+    //  int end_idx = m_dest_dirichlet_node_ranges[section+1];
+    //  dest_nodes.resize(end_idx - start_idx);
+    //  for (int i=start_idx; i < end_idx; ++i)
+    //    dest_nodes[i - start_idx] = m_dest_dirichlet_nodes[i];
+    //}
 
   private:
     
@@ -86,9 +89,10 @@ class DofNumbering
 
     std::vector<ArrayType<Index, 2>> m_dof_nums;
     std::vector<std::vector<ElementNode>> m_dirichlet_node_nums;  //TODO: unused?
-    std::vector<Mesh::NodeTriplet> m_src_dirichlet_nodes;
-    std::vector<Index> m_dest_dirichlet_node_ranges;
-    std::vector<Mesh::NodeTriplet> m_dest_dirichlet_nodes;
+    const std::shared_ptr<Mesh::DirichletUpdateMap> m_dirichlet_update_map;
+    //std::vector<Mesh::NodeTriplet> m_src_dirichlet_nodes;
+    //std::vector<Index> m_dest_dirichlet_node_ranges;
+    //std::vector<Mesh::NodeTriplet> m_dest_dirichlet_nodes;
     int m_num_local_dofs;
     int m_num_owned_dofs;
 

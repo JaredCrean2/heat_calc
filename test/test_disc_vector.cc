@@ -218,7 +218,7 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
   disc_vec->markVectorModified();
   disc_vec->syncVectorToArray();
   applyDirichletValues(m_bc, 0, disc_vec);
-  updateDependentDirichletValues(disc_vec);
+  disc_vec->updateDependentDirichletValues();
 
   for (int vol_block=0; vol_block < 2; ++vol_block)
   {

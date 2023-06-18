@@ -51,6 +51,8 @@ class DiscVector
 
     DofInt getNumDofs() const { return m_disc->getDofNumbering()->getNumLocalDofs(); }
 
+    void updateDependentDirichletValues();
+
     // sets both vector and array (including dirchlet values) to a
     // constant value
     void set(const Real val);

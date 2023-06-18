@@ -1,6 +1,7 @@
 #include "mesh/mesh.h"
 #include "memory.h"
 #include "mesh/apfMDSField.h"
+#include "mesh/dirichlet_update_map.h"
 #include "mesh/mesh_helper.h"
 #include "mesh/dof_numbering.h"
 #include "mesh/apfShapeHex.h"
@@ -51,6 +52,7 @@ MeshCG::MeshCG(apf::Mesh2* m,
   setApfData();
   createVolumeGroups();
   createFaceGroups();
+  m_dirichlet_update_map = std::make_shared<DirichletUpdateMap>(this, MPI_COMM_WORLD);
 }
 
 
@@ -403,71 +405,6 @@ void MeshCG::getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs)
 
     m_apf_data.m->end(it);
   }
-}
-
-void MeshCG::getDirichletUpdateMap(std::vector<NodeTriplet>& src_nodes, std::vector<NodeTriplet>& dest_nodes, std::vector<Index>& sections)
-{
-  apf::Adjacent els;
-  sections.push_back(0);
-  for (auto& face_group : m_all_faces)
-  {
-    if (face_group.getIsDirichlet())
-    {
-      for (int i=0; i < face_group.getNumFaces(); ++i)
-      {
-        auto& face_spec = face_group.faces[i];
-        apf::MeshEntity* el = m_elements[face_spec.el];
-
-        apf::Downward faces, verts;
-        m_apf_data.m->getDownward(el, 2, faces);
-        int nverts = m_apf_data.m->getDownward(faces[m_ref_el_coord->getApfEntity(2, face_spec.face)], 0, verts);
-
-        apf::ModelEntity* me = m_apf_data.m->toModel(el);
-
-        for (int j=0; j < nverts; ++j)
-        {
-          Index start_idx = dest_nodes.size();
-          Index end_idx = start_idx;
-          m_apf_data.m->getAdjacent(verts[j], 3, els);
-
-          for (size_t k=0; k < els.getSize(); ++k)
-          {
-            apf::MeshEntity* other_el = els[k];
-            if (m_apf_data.m->toModel(other_el) != me)
-            {
-              NodeTriplet node = getNodeTriplet(other_el, verts[j]);
-              dest_nodes.push_back(node);
-              end_idx++;
-            }
-          }
-
-          if (end_idx != start_idx)
-          {
-            sections.push_back(end_idx);
-            src_nodes.push_back(getNodeTriplet(el, verts[j]));
-          }
-        } 
-      }
-    }
-  }
-}
-
-NodeTriplet MeshCG::getNodeTriplet(apf::MeshEntity* el, apf::MeshEntity* vert)
-{
-  apf::Downward el_verts;
-  int n_other_verts = m_apf_data.m->getDownward(el, 0, el_verts);
-  for (int v=0; v < n_other_verts; ++v)
-    if (el_verts[v] == vert)
-    {
-      int vol_group = apf::getNumber(m_apf_data.vol_groups, el, 0, 0);
-      int elnum = apf::getNumber(m_apf_data.el_nums, el, 0, 0);
-      int elnum_group = m_elnums_global_to_local[elnum];
-      int local_node = m_ref_el_sol->getREEntityIndex(0, v);
-
-      return NodeTriplet{vol_group, elnum_group, local_node};
-    }
-
-  throw std::runtime_error("unable to find specified node");
 }
 
 

@@ -39,11 +39,6 @@ using DirichletBCPtr = std::shared_ptr<DirichletBC>;
 // sets the prescribed values in the array in disc_vec
 void applyDirichletValues(DirichletBCPtr bc, const Real t, DiscVectorPtr disc_vec);
 
-// copies values from the dirichlet nodes on the the block that has the dirichlet surface
-// to the same nodes on other blocks
-void updateDependentDirichletValues(DiscVectorPtr disc_vec);
-
-
 namespace impl {
 
 Real errorFunc(Real x, Real y, Real z, Real t);
