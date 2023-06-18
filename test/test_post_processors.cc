@@ -28,11 +28,11 @@ TEST_F(PostProcessorTester, SurfaceAverage)
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   u->set(2);
 
-  auto surf = disc->getSurfDisc(0);
+  auto surf = disc->getSurfDisc(1);
 
   auto f = [](double val) { return 2*val; };
 
-  auto postproc = physics::makePostProcessorSurfaceIntegralAverage(surf, "postprocessor", f);
+  auto postproc = physics::makePostProcessorSurfaceIntegralAverage(surf, "postprocessor", f, MPI_COMM_WORLD);
 
   EXPECT_EQ(postproc->numValues(), 1);
   EXPECT_EQ(postproc->getNames()[0], "postprocessor");
@@ -41,7 +41,6 @@ TEST_F(PostProcessorTester, SurfaceAverage)
 
 TEST_F(PostProcessorTester, BCFlux)
 {
-  SERIAL_ONLY();
   auto u = makeDiscVector(disc);
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   u->set(2);
@@ -51,7 +50,7 @@ TEST_F(PostProcessorTester, BCFlux)
   auto f = [](double x, double y, double z, double t) { return std::array<Real, 3>{0, -2, 0}; };
   auto bc = makeNeumannBCMMS(surf, f);
 
-  auto postproc = std::make_shared<physics::PostProcessorBCFlux>("postprocessor", bc);
+  auto postproc = std::make_shared<physics::PostProcessorBCFlux>("postprocessor", bc, MPI_COMM_WORLD);
 
 
   EXPECT_EQ(postproc->numValues(), 1);

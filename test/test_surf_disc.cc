@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "mesh/mesh_input.h"
 #include "test_helper.h"
 //#include "mesh/mesh.h"
 #include "mesh_helper.h"
@@ -219,5 +220,3 @@ TEST_F(SurfaceTester, integrateFaceVector)
     }
   }
 }
-
-

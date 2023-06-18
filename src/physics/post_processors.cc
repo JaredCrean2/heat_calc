@@ -1,9 +1,10 @@
 #include "physics/post_processors.h"
+#include "ProjectDefs.h"
 #include "physics/heat/bc_defs.h"
 
 namespace physics {
 
-Real integrateBoundaryFlux(NeumannBCPtr bc, DiscVectorPtr u, double t)
+Real integrateBoundaryFlux(NeumannBCPtr bc, DiscVectorPtr u, double t, MPI_Comm comm)
 {
   if (!u->isArrayCurrent())
     u->syncVectorToArray();
@@ -27,10 +28,13 @@ Real integrateBoundaryFlux(NeumannBCPtr bc, DiscVectorPtr u, double t)
       for (int d=0; d < 3; ++d)
         flux_vals_array[j][d] = flux_vals[j + surf->getNumQuadPtsPerFace() * d];
       
-    total_flux += integrateFaceVector(surf, i, flux_vals_array);
+    total_flux += surf->getFaceWeight(i) * integrateFaceVector(surf, i, flux_vals_array);
   }
 
-  return total_flux;
+  Real val_global;
+  MPI_Allreduce(&total_flux, &val_global, 1, REAL_MPI_DATATYPE, MPI_SUM, comm);
+
+  return val_global;
 }
 
 //-----------------------------------------------------------------------------
@@ -38,7 +42,7 @@ Real integrateBoundaryFlux(NeumannBCPtr bc, DiscVectorPtr u, double t)
 
 std::vector<double> PostProcessorBCFlux::getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t)
 {
-  return {integrateBoundaryFlux(m_bc, u, t) };
+  return {integrateBoundaryFlux(m_bc, u, t, m_comm) };
 }
 
 //-----------------------------------------------------------------------------
@@ -76,7 +80,7 @@ std::vector<double> PostProcessorCombinedAirWindSkyBCFlux::getValues(DiscVectorP
   Real val_sum = 0.0;
   for (int i=0; i < m_bc->getNumBCs(); ++i)
   {
-    vals.push_back(integrateBoundaryFlux(m_bc->getBC(i), u, t));
+    vals.push_back(integrateBoundaryFlux(m_bc->getBC(i), u, t, m_comm));
     val_sum += vals.back();
   }
 
