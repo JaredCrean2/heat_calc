@@ -13,7 +13,7 @@ namespace physics {
 class PostProcessorManager
 {
   public:
-    PostProcessorManager(std::shared_ptr<PostProcessorScheduler> scheduler, const std::string& fname, int flush_interval=1);
+    PostProcessorManager(std::shared_ptr<PostProcessorScheduler> scheduler, const std::string& fname, MPI_Comm comm, int flush_interval=1);
 
     void addPostProcessor(PostProcessorPtr postproc);
 
@@ -38,6 +38,8 @@ class PostProcessorManager
     std::vector<PostProcessorPtr> m_postprocessors;
     std::ofstream m_file;
     int m_flush_interval;
+    MPI_Comm m_comm;
+    bool m_am_i_root;
     State m_state = State::Initializing;
 };
 

@@ -5,13 +5,18 @@
 
 namespace physics {
 
-PostProcessorManager::PostProcessorManager(std::shared_ptr<PostProcessorScheduler> scheduler, const std::string& fname, int flush_interval) :
+PostProcessorManager::PostProcessorManager(std::shared_ptr<PostProcessorScheduler> scheduler, const std::string& fname, MPI_Comm comm, int flush_interval) :
   m_scheduler(scheduler),
-  m_flush_interval(flush_interval)
+  m_flush_interval(flush_interval),
+  m_comm(comm),
+  m_am_i_root(commRank(comm) == 0)
 {
-  m_file.open(fname);
-  m_file << std::setprecision(16);
-  m_file << "timestep time";
+  if (m_am_i_root)
+  {
+    m_file.open(fname);
+    m_file << std::setprecision(16);
+    m_file << "timestep time";
+  }
 }
 
 
@@ -59,7 +64,8 @@ void PostProcessorManager::close()
 
 void PostProcessorManager::writePostProcessorNames(PostProcessorPtr postproc)
 {
-  for (auto& name : postproc->getNames())
-    m_file << " " << name;
+  if (m_am_i_root)
+    for (auto& name : postproc->getNames())
+      m_file << " " << name;
 }
 }

@@ -26,7 +26,7 @@ class PostProcessorManagerTester : public ::testing::Test
 {
   protected:
     PostProcessorManagerTester() :
-      manager(std::make_shared<physics::PostProcessorScheduleFixedInterval>(3), "post_processor_test.txt")
+      manager(std::make_shared<physics::PostProcessorScheduleFixedInterval>(3), "post_processor_test.txt", MPI_COMM_WORLD)
     {
       manager.addPostProcessor(std::make_shared<PostProcessorConstant>(1));
       manager.addPostProcessor(std::make_shared<PostProcessorConstant>(2));      
@@ -50,11 +50,10 @@ std::vector<std::string> split(const std::string& str, char delim)
 
 TEST_F(PostProcessorManagerTester, Header)
 {
-  SERIAL_ONLY();
-
   DiscVectorPtr u = nullptr;
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   manager.runPostProcessors(0, u, u_aux, 0.0);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   std::ifstream file;
   file.open("post_processor_test.txt");
@@ -64,25 +63,25 @@ TEST_F(PostProcessorManagerTester, Header)
   {
     std::string name;
     file >> name;
-    std::cout << "name = " << name << std::endl;
     EXPECT_EQ(name, expected_names[i]);
   }
 
   char next_char;
   file.get(next_char);
   EXPECT_EQ(next_char, '\n');
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 
 TEST_F(PostProcessorManagerTester, Values)
-{
-  SERIAL_ONLY();
-  
+{  
   DiscVectorPtr u = nullptr;
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   double delta_t = 0.1;
   for (int i=0; i < 7; ++i)
     manager.runPostProcessors(i, u, u_aux, i*delta_t);
   manager.close();
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   std::ifstream file;
   file.open("post_processor_test.txt");
@@ -116,4 +115,5 @@ TEST_F(PostProcessorManagerTester, Values)
   EXPECT_NEAR(std::stod(strings[3]), 2.0, 1e-13);
 
   EXPECT_FALSE(std::getline(file, line));
+  MPI_Barrier(MPI_COMM_WORLD);
 }
