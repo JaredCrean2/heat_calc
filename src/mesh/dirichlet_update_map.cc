@@ -173,6 +173,8 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
   }
   m_apf_data.m->end(it);
 
+  exchanger.startCommunication();
+
   auto unpacker = [&](int rank, const std::vector<MeshEntityStatus>& buf)
   {
     for (const auto& entity_status : buf)
@@ -315,6 +317,7 @@ void DirichletUpdateMap::getArrayNodes(apf::MeshEntity* vert, std::vector<ArrayN
 
 DirichletUpdateMap::ArrayNode DirichletUpdateMap::getArrayNode(apf::MeshEntity* el, apf::MeshEntity* vert)
 {
+
   DofInt dof_num = apf::getNumber(m_apf_data.dof_nums, vert, 0, 0);
   
   int el_num = apf::getNumber(m_apf_data.el_nums, el, 0, 0);

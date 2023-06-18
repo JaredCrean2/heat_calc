@@ -131,7 +131,6 @@ const ArrayType<Real, 2>& DiscVector::getArray(const Index idx) const
 
 void DiscVector::updateDependentDirichletValues()
 {
-  std::cout << "updating dependent dirichlet values" << std::endl;
   using ArrayNode = Mesh::DirichletUpdateMap::ArrayNode;
 
   auto dirichlet_update_map = getDisc()->getDofNumbering()->getDirichletUpdateMap();
@@ -143,12 +142,8 @@ void DiscVector::updateDependentDirichletValues()
     ArrayNode src_node = dirichlet_update_map->getLocalNodes(i, dest_nodes);
 
     double val_src = getArray(src_node.block)[src_node.el][src_node.localnode];
-    std::cout << "copying node " << src_node.block << ", " << src_node.el << ", " << src_node.localnode << ", val = " << val_src << std::endl;
     for (auto& dest_node : dest_nodes)
-    {
-      std::cout << "  dest = " << src_node.block << ", " << src_node.el << ", " << src_node.localnode << std::endl;
       getArray(dest_node.block)[dest_node.el][dest_node.localnode] = val_src;
-    }
   }
 
   MPI_Comm comm = MPI_COMM_WORLD;

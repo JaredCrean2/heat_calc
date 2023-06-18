@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "physics/post_processor_manager.h"
 #include <vector>
+#include "test_helper.h"
 
 namespace {
 
@@ -49,6 +50,8 @@ std::vector<std::string> split(const std::string& str, char delim)
 
 TEST_F(PostProcessorManagerTester, Header)
 {
+  SERIAL_ONLY();
+
   DiscVectorPtr u = nullptr;
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   manager.runPostProcessors(0, u, u_aux, 0.0);
@@ -72,6 +75,8 @@ TEST_F(PostProcessorManagerTester, Header)
 
 TEST_F(PostProcessorManagerTester, Values)
 {
+  SERIAL_ONLY();
+  
   DiscVectorPtr u = nullptr;
   AuxiliaryEquationsStoragePtr u_aux = nullptr;
   double delta_t = 0.1;

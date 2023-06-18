@@ -3,6 +3,7 @@
 
 #include "mpi.h"
 #include "mpi_utils.h"
+#include <iostream>
 #include <vector>
 
 template <typename T>
@@ -32,7 +33,7 @@ class ParallelExchange
         if (m_recv_bufs[i].size() > 0)
           MPI_Irecv(m_recv_bufs[i].data(), m_recv_bufs[i].size() * sizeof(T), MPI_BYTE, i, m_tag, m_comm, &(m_recv_reqs[i]));
 
-      for (size_t i=0; i < m_send_bufs[i].size(); ++i)
+      for (size_t i=0; i < m_send_bufs.size(); ++i)
         if (m_send_bufs[i].size() > 0)
           MPI_Isend(m_send_bufs[i].data(), m_send_bufs[i].size() * sizeof(T), MPI_BYTE, i, m_tag, m_comm, &(m_send_reqs[i]));
     }
@@ -48,8 +49,8 @@ class ParallelExchange
       for (int i=0; i < numRecvs; ++i)
       {
         int rank;
-        MPI_Waitany(m_recv_reqs.size(), m_recv_reqs.data(), &rank, MPI_STATUS_IGNORE);
-        func(rank, m_recv_bufs[i]);
+        MPI_Waitany(m_recv_reqs.size(), m_recv_reqs.data(), &rank, MPI_STATUSES_IGNORE);
+        func(rank, m_recv_bufs[rank]);
       }
 
       MPI_Waitall(m_send_reqs.size(), m_send_reqs.data(), MPI_STATUSES_IGNORE);

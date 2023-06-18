@@ -3,6 +3,7 @@
 #include "file/WeatherFileReader.h"
 #include "file/WeatherFileWriter.h"
 #include "arguments_setup.h"
+#include "test_helper.h"
 
 namespace {
 void compareEPW(const EPWDataPoint& pt1, const EPWDataPoint& pt2)
@@ -26,6 +27,7 @@ void compareEPW(const EPWDataPoint& pt1, const EPWDataPoint& pt2)
 
 TEST(WeatherCat, CommandLineArgs)
 {
+  SERIAL_ONLY();
   CommandLineArguments args({"outputfile", "--file", "file1.wea"});
 
   WeatherCatParsedData data = parseWeatherCatData(args.getArgc(), args.getArgv());
@@ -94,6 +96,8 @@ TEST(WeatherCat, CommandLineArgs)
 
 TEST(WeatherCat, CatFiles)
 {
+  SERIAL_ONLY();
+
   EPWDataPoint pt1;
   pt1.year = 2000;
   pt1.month = 2;
@@ -181,6 +185,8 @@ TEST(WeatherCat, CatFiles)
 
 TEST(WeatherCat, CatFilesWithJump)
 {
+  SERIAL_ONLY();
+
   EPWDataPoint pt1;
   pt1.year = 2000;
   pt1.month = 2;
@@ -272,6 +278,8 @@ TEST(WeatherCat, CatFilesWithJump)
 
 TEST(WeatherCat, CatFilesWithDateRange)
 {
+  SERIAL_ONLY();
+  
   EPWDataPoint pt1;
   pt1.year = 2000;
   pt1.month = 2;

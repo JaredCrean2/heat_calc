@@ -8,7 +8,6 @@
 #include "mesh/apfMDSField.h"
 #include "mesh/mesh_input.h"
 #include "utils/mpi_utils.h"
-#include "utils/parallel_exchange.h"
 
 namespace Mesh {
 
@@ -31,6 +30,7 @@ class DirichletUpdateMap
     // returns the src nodes and populates dest_nodes with the destinations
     ArrayNode getLocalNodes(int idx, std::vector<ArrayNode>& dest_nodes)
     {
+      dest_nodes.clear();
       for (int i=m_local_dest_node_ptrs[idx]; i < m_local_dest_node_ptrs[idx+1]; ++i)
         dest_nodes.push_back(m_local_dest_nodes[i]);
 
@@ -80,7 +80,7 @@ class DirichletUpdateMap
 
     void createSendAndRecvLists(std::shared_ptr<ModelEntityField> min_dirichlet_surface);
 
-    void unpackRecvEntities(ParallelExchange<apf::MeshEntity*>& exchanger);
+    //void unpackRecvEntities(ParallelExchange<apf::MeshEntity*>& exchanger);
 
     void getLocalDirichletUpdateMap();
 
