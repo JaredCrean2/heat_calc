@@ -8,7 +8,6 @@ namespace physics {
 PostProcessorManager::PostProcessorManager(std::shared_ptr<PostProcessorScheduler> scheduler, const std::string& fname, MPI_Comm comm, int flush_interval) :
   m_scheduler(scheduler),
   m_flush_interval(flush_interval),
-  m_comm(comm),
   m_am_i_root(commRank(comm) == 0)
 {
   if (m_am_i_root)

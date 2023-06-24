@@ -98,7 +98,7 @@ void createLawnBC(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquati
   auto bc = createCombinedBC(surf, surface_area, perimeter, params.lawn_roughness_index, 
                              params.lawn_emittance, params.lawn_absorptivity, true);
   heat_eqn->addNeumannBC(bc, true);
-  postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>("lawn_flux", bc, heat_eqn.get()));
+  postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>("lawn_flux", bc, heat_eqn.get(), MPI_COMM_WORLD));
 }
 
 void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, Real bottom_temp, const Params& params)
@@ -137,7 +137,7 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     int roughness_index = i < 4 ? params.ext_wall_roughness_index : params.roof_roughness_index;
     auto bc = createCombinedBC(surf, surface_area, perimeter, roughness_index, emittance, absorptivity, true);
     heat_eqn->addNeumannBC(bc, true);
-    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i], bc, heat_eqn.get()));
+    postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i], bc, heat_eqn.get(), MPI_COMM_WORLD));
   } 
 
   createLawnBC(generator, heat_eqn, params);
@@ -160,13 +160,13 @@ void setExteriorWallTempPostProcessors(GeometryGenerator& generator, std::shared
   {
     int surf_id = generator.getSurfaceId(surf_enums[i]);
     auto surf = disc->getSurfDisc(surf_id);
-    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f, MPI_COMM_WORLD));
 
     if (i >= 1 && i <= 4)
       wall_surfaces.push_back(surf);
   }
 
-  postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "exterior_wall_temp", f));
+  postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "exterior_wall_temp", f, MPI_COMM_WORLD));
 }
 
 std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> makeFloorRadiationBCs(GeometryGenerator& generator, DiscPtr disc,
@@ -226,11 +226,11 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
 
       auto bc_combined = std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(bcs);
       heat_eqn->addNeumannBC(bc_combined, false);
-      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i], bc_combined, heat_eqn.get()));
+      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorCombinedAirWindSkyBCFlux>(names[i], bc_combined, heat_eqn.get(), MPI_COMM_WORLD));
     } else
     {
       heat_eqn->addNeumannBC(bc, false);
-      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i], bc, heat_eqn.get()));
+      postprocessors->addPostProcessor(std::make_shared<physics::PostProcessorAirWindSkyBCFlux>(names[i], bc, heat_eqn.get(), MPI_COMM_WORLD));
     }
   }  
 }
@@ -250,13 +250,13 @@ void setInteriorWallTempPostProcessors(GeometryGenerator& generator, std::shared
   for (int i=0; i <= 5; ++i)
   {
     auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
-    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f, MPI_COMM_WORLD));
 
     if (i >= 1 && i <= 4)
       wall_surfaces.push_back(surf);
   }
 
-  postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "interior_wall_temp", f));
+  postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(wall_surfaces, "interior_wall_temp", f, MPI_COMM_WORLD));
 }
 
 void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared_ptr<Heat::HeatEquationSolar> heat_eqn)
@@ -270,7 +270,7 @@ void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared
   for (int i=0; i <= 2; ++i)
   {
     auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
-    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f));
+    postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f, MPI_COMM_WORLD));
   }
 }
 
@@ -393,7 +393,7 @@ int main(int argc, char* argv[])
     u_aux->getVector(1)[0] = initial_air_temp;
 
     auto postprocessor_scheduler = std::make_shared<physics::PostProcessorScheduleFixedInterval>(1);
-    auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt");
+    auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt", MPI_COMM_WORLD);
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorInterior>(heat_eqn->getAuxEquationsSolar(), air_updator));
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorEnvironmentData>(heat_eqn.get()));
     heat_eqn->setPostProcessors(postprocessors);

@@ -38,7 +38,6 @@ class PostProcessorManager
     std::vector<PostProcessorPtr> m_postprocessors;
     std::ofstream m_file;
     int m_flush_interval;
-    MPI_Comm m_comm;
     bool m_am_i_root;
     State m_state = State::Initializing;
 };

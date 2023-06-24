@@ -77,9 +77,9 @@ PostProcessorPtr makePostProcessorSurfaceIntegralAverage(SurfDiscPtr surf, const
 }
 
 template <typename T>
-PostProcessorPtr makePostProcessorSurfaceIntegralAverage(const std::vector<SurfDiscPtr>& surfs, const std::string& name, T func)
+PostProcessorPtr makePostProcessorSurfaceIntegralAverage(const std::vector<SurfDiscPtr>& surfs, const std::string& name, T func, MPI_Comm comm)
 {
-  return std::make_shared<PostProcessorSurfaceIntegralAverage<T>>(surfs, name, func);
+  return std::make_shared<PostProcessorSurfaceIntegralAverage<T>>(surfs, name, func, comm);
 }
 
 

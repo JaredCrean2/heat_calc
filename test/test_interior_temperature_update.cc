@@ -36,20 +36,36 @@ class TemperatureUpdatorTester : public StandardDiscSetup, public ::testing::Tes
       if (!sol_vec_bar->isVectorCurrent())
         sol_vec_bar->syncArrayToVector();
 
-      
+
+      int num_local_dofs = sol_vec->getVector().shape()[0];
+      int global_dofs_upper_bound;
+      MPI_Scan(&num_local_dofs, &global_dofs_upper_bound, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      int global_dofs_lower_bound = global_dofs_upper_bound - num_local_dofs;
+
+      int num_global_dofs;
+      MPI_Allreduce(&num_local_dofs, &num_global_dofs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            
       auto& sol_vec_vec = sol_vec->getVector();
-      for (int i=0; i < sol_vec_vec.shape()[0]; ++i)
+      for (int i=0; i < num_global_dofs; ++i)
       {
-        sol_vec_vec[i] += eps;
-        sol_vec->markVectorModified();
+        bool perturb_local = i >= global_dofs_lower_bound && i < global_dofs_upper_bound;
+        int i_local = i - global_dofs_lower_bound;
+        if (perturb_local)
+        {
+          sol_vec_vec[i_local] += eps;
+          sol_vec->markVectorModified();
+        }
 
         Real flux1 = air_updator->computeNetFlux(sol_vec, air_temp, 0.0);
 
-        sol_vec_vec[i] -= eps;
-        sol_vec->markVectorModified();
+        if (perturb_local)
+        {
+          sol_vec_vec[i_local] -= eps;
+          sol_vec->markVectorModified();
 
-        Real val_fd = (flux1 - flux0)/eps;
-        EXPECT_NEAR(sol_vec_bar->getVector()[i], 2*val_fd, 1e-5);
+          Real val_fd = (flux1 - flux0)/eps;
+          EXPECT_NEAR(sol_vec_bar->getVector()[i_local], 2*val_fd, 1e-5);
+        }
       }  
     }
 
@@ -73,7 +89,6 @@ void test_forward_derivative(std::shared_ptr<Heat::InteriorAirTemperatureUpdator
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5.0;
   Real min_temp = 0;
@@ -111,7 +126,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad)
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5.0;
   Real min_temp = 300;
@@ -150,7 +164,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_UpperLimit)
 
 TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 298;
@@ -190,7 +203,6 @@ TEST_F(TemperatureUpdatorTester, ConstantInteriorLoad_LowerLimit)
 
 TEST_F(TemperatureUpdatorTester, AirLeakage)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 0;
@@ -231,7 +243,6 @@ TEST_F(TemperatureUpdatorTester, AirLeakage)
 
 TEST_F(TemperatureUpdatorTester, Ventilation)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 0;
@@ -272,7 +283,6 @@ TEST_F(TemperatureUpdatorTester, Ventilation)
 
 TEST_F(TemperatureUpdatorTester, WindowConduction)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{320, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = 0;
@@ -313,7 +323,6 @@ TEST_F(TemperatureUpdatorTester, WindowConduction)
 
 TEST_F(TemperatureUpdatorTester, WallConduction)
 {
-  SERIAL_ONLY();
   Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
   Real hvac_restore_time = 5;
   Real min_temp = -10000;

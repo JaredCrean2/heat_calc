@@ -292,4 +292,3 @@ void copyFromVector(const DiscVectorPtr vec_in, ArrayType<Real, 1>& vec_out)
   for (int i=0; i < vec_in_vec.shape()[0]; ++i)
     vec_out[i] = vec_in_vec[i];
 }
-

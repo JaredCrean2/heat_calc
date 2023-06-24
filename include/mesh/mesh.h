@@ -148,12 +148,6 @@ class MeshCG
 
     void getLocalToGlobalDofs(std::vector<DofInt>& local_to_global_dofs);
 
-    // gives info on how to update the Dirichlet nodes in the array representation.  Uses a CSR-ish format:
-    // src_nodes[i] gives the ith src node, sections[i] to sections[i+1]-1 gives the range of indices in
-    // dest_nodes the value should be copied to
-    //void getDirichletUpdateMap(std::vector<NodeTriplet>& src_nodes, std::vector<NodeTriplet>& dest_nodes,
-    //                           std::vector<Index>& sections);
-
     const std::shared_ptr<DirichletUpdateMap> getDirichletUpdateMap() const { return m_dirichlet_update_map; }
 
     FieldDataManager& getFieldDataManager() { return m_field_data_manager; }
