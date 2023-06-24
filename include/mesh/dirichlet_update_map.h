@@ -90,6 +90,8 @@ class DirichletUpdateMap
 
     ArrayNode getArrayNode(apf::MeshEntity* el, apf::MeshEntity* vert);
 
+    bool isSharedOrGhost(apf::MeshEntity* e);
+
 
     MeshCG* m_mesh;
     const ApfData& m_apf_data;

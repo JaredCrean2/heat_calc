@@ -32,15 +32,23 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
   while ( (e = m_apf_data.m->iterate(it)) )
   {
     std::cout << "e = " << e << ", is_dirichlet = " << bool(apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0))
-              << ", isShared = " << m_apf_data.m->isShared(e) << std::endl;
+              << ", isShared = " << m_apf_data.m->isShared(e) 
+              << ", isGhost = " << m_apf_data.m->isGhost(e) 
+              << ", isGhosted = " << m_apf_data.m->isGhosted(e) << std::endl;
 
-    if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && m_apf_data.m->isShared(e))
+    if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && isSharedOrGhost(e))
     {
       SurfaceModelEntity surf = getMinDirichletSurface(e);
       (*min_dirichlet_surface)(e, 0, 0) = surf;
 
       remotes.clear();
       m_apf_data.m->getRemotes(e, remotes);
+
+      apf::Copies ghosts;
+      m_apf_data.m->getGhosts(e, remotes);
+      //std::cout << "number of ghosts = " << ghosts.size() << std::endl;
+      //for (auto& p : ghosts)
+      //  std::cout << "ghost rank " << p.first << ", entity " << p.second << std::endl;
 
       for (auto& p : remotes)
       {
@@ -163,12 +171,13 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
   apf::MeshEntity* e;
   while ( (e = m_apf_data.m->iterate(it)) ) 
   {
-    //TODO: how does isShared interact with ghosting?
-    if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && m_apf_data.m->isShared(e))
-    {      
+    if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && isSharedOrGhost(e))
+    {
+      remotes.clear();      
       bool is_local = (*min_dirichlet_surface)(e, 0, 0).rank == myrank;
       bool have_local_source = hasLocalDirichletSurface(e);
       m_apf_data.m->getRemotes(e, remotes);
+      m_apf_data.m->getGhosts(e, remotes);
 
       if (is_local)
       {
@@ -348,6 +357,11 @@ DirichletUpdateMap::ArrayNode DirichletUpdateMap::getArrayNode(apf::MeshEntity* 
       return ArrayNode{vol_group_num, el_num_local, i};
 
   throw std::runtime_error("unable to find array node for given vert"); 
+}
+
+bool DirichletUpdateMap::isSharedOrGhost(apf::MeshEntity* e)
+{
+  return m_apf_data.m->isShared(e) || m_apf_data.m->isGhosted(e) || m_apf_data.m->isGhost(e);
 }
 
 
