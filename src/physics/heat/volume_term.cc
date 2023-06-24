@@ -17,6 +17,9 @@ void computeVolumeTerm(const HeatEquation& physics, DiscVectorPtr u, DiscVectorP
     auto& u_arr   = u->getArray(i);
     auto& rhs_arr = rhs->getArray(i);
 
+    if (vol_disc->getNumElems() == 0)
+      continue;
+
     //auto& coords = vol_disc->vol_group.coords;
     //for (size_t i=0; i < u_arr.shape()[0]; ++i)
     //  for (size_t j=0; j < u_arr.shape()[1]; ++j)

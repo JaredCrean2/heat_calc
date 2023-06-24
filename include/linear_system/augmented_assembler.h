@@ -22,6 +22,10 @@ class AugmentedAssembler
       m_vals_rows(num_augmented),
       m_dofs_rows_reqs(num_augmented),
       m_vals_rows_reqs(num_augmented),
+      //m_recv_dofs_rows(m_am_i_last_rank ? commSize(m_comm) : 0),
+      //m_recv_vals_rows(m_am_i_last_rank ? commSize(m_comm) : 0),
+      //m_recv_dofs_rows_reqs(m_am_i_last_rank ? commSize(m_comm) : 0),
+      //m_recv_vals_rows_reqs(m_am_i_last_rank ? commSize(m_comm) : 0)
       m_recv_dofs_rows(commSize(m_comm)),
       m_recv_vals_rows(commSize(m_comm)),
       m_recv_dofs_rows_reqs(commSize(m_comm)),
@@ -29,16 +33,19 @@ class AugmentedAssembler
     {
       disc->getMesh()->getLocalToGlobalDofs(m_local_dof_to_global); 
 
-      for (int i=0; i < commSize(m_comm); ++i)
+      //if (m_am_i_last_rank)
       {
-        m_recv_dofs_rows[i].resize(num_augmented);
-        m_recv_vals_rows[i].resize(num_augmented);
-        m_recv_dofs_rows_reqs[i].resize(num_augmented);
-        m_recv_vals_rows_reqs[i].resize(num_augmented);
-      }
+        for (int i=0; i < commSize(m_comm); ++i)
+        {
+          m_recv_dofs_rows[i].resize(num_augmented);
+          m_recv_vals_rows[i].resize(num_augmented);
+          m_recv_dofs_rows_reqs[i].resize(num_augmented);
+          m_recv_vals_rows_reqs[i].resize(num_augmented);
+        }
 
-      if (m_am_i_last_rank)
-        m_recv_counts_rows.resize(commSize(m_comm)*num_augmented);
+        if (m_am_i_last_rank)
+          m_recv_counts_rows.resize(commSize(m_comm)*num_augmented);
+      }
 
       DofInt max_mesh_dof_local = *(std::max_element(m_local_dof_to_global.begin(), m_local_dof_to_global.end()));
       MPI_Allreduce(&max_mesh_dof_local, &m_num_mesh_dofs, 1, DofInt_MPI_DATATYPE, MPI_MAX, MPI_COMM_WORLD);
@@ -106,6 +113,8 @@ class AugmentedAssembler
 
     void startAssembly()
     {
+      std::cout << "\nstarting assembling" << std::endl;
+      std::cout << "myrank = " << commRank(m_comm) << " / " << commSize(m_comm) << std::endl;
       getRecvCounts();
       startSends();
       startRecvs();
@@ -113,6 +122,8 @@ class AugmentedAssembler
 
     void finishAssembly()
     {
+      std::cout << "\finishing assembling" << std::endl;
+
       finishRecvs();
       finishSends();
       for (auto& buf : m_dofs_rows)
@@ -160,15 +171,18 @@ class AugmentedAssembler
       for (int rank=0; rank < comm_size; ++rank)
       {
         int tag = m_start_tag;
+        std::cout << "rank = " << rank << std::endl;
 
         for (int i=0; i < m_num_augmented; ++i)
         {
+          std::cout << "  i = " << i << ", number of values = " << m_recv_dofs_rows[rank][i].size() << std::endl;
           m_recv_dofs_rows[rank][i].resize(m_recv_counts_rows[m_num_augmented * rank + i]);
           m_recv_vals_rows[rank][i].resize(m_recv_counts_rows[m_num_augmented * rank + i]);
 
 
           MPI_Irecv(m_recv_dofs_rows[rank][i].data(), m_recv_dofs_rows[rank][i].size(), DofInt_MPI_DATATYPE, rank,
                     tag++, m_comm, &(m_recv_dofs_rows_reqs[rank][i]));
+          std::cout << "  recv_req = " << m_recv_dofs_rows_reqs[rank][i] << std::endl;
           MPI_Irecv(m_recv_vals_rows[rank][i].data(), m_recv_vals_rows[rank][i].size(), MPI_DOUBLE, rank,
                     tag++, m_comm, &(m_recv_vals_rows_reqs[rank][i]));
         }
@@ -177,6 +191,9 @@ class AugmentedAssembler
 
     void finishRecvs()
     {
+      //if (!m_am_i_last_rank)
+      //  return;
+
       int comm_size = commSize(m_comm);
 
       for (int rank=0; rank < comm_size; ++rank)

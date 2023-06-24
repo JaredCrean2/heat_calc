@@ -28,17 +28,24 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
   apf::Copies remotes;
   apf::MeshIterator* it = m_apf_data.m->begin(0);
   apf::MeshEntity* e;
+  std::cout << std::boolalpha;
   while ( (e = m_apf_data.m->iterate(it)) )
   {
+    std::cout << "e = " << e << ", is_dirichlet = " << bool(apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0))
+              << ", isShared = " << m_apf_data.m->isShared(e) << std::endl;
+
     if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && m_apf_data.m->isShared(e))
     {
       SurfaceModelEntity surf = getMinDirichletSurface(e);
       (*min_dirichlet_surface)(e, 0, 0) = surf;
+
+      remotes.clear();
       m_apf_data.m->getRemotes(e, remotes);
 
       for (auto& p : remotes)
       {
         surf.vert = p.second;
+        std::cout << "sending entity " << e << " to rank " << p.first << ", entity " << p.second << std::endl;
         exchanger.getSendBuf(p.first).push_back(surf);
         exchanger.getRecvBuf(p.first).emplace_back();
       }
@@ -46,13 +53,22 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
   }
   m_apf_data.m->end(it);
 
+  for (int rank=0; rank < commSize(MPI_COMM_WORLD); ++rank)
+    std::cout << "rank " << rank << " send buf size = " << exchanger.getSendBuf(rank).size() << std::endl;
+
+  for (int rank=0; rank < commSize(MPI_COMM_WORLD); ++rank)
+    std::cout << "rank " << rank << " recv buf size = " << exchanger.getRecvBuf(rank).size() << std::endl;
   exchanger.startCommunication();
 
   auto unpacker = [&](int rank, const std::vector<SurfaceModelEntity>& buf)
   {
+    std::cout << "receiving from rank " << rank << std::endl;
+    int idx = 0;
     for (const auto& remote_entity : buf)
     {
+      std::cout << "idx " << idx << std::endl;
       apf::MeshEntity* vert = remote_entity.vert;
+      std::cout << "vert = " << vert << std::endl;
       SurfaceModelEntity& local_entity = (*min_dirichlet_surface)(vert, 0, 0);
       if  (remote_entity < local_entity)
       {
@@ -60,6 +76,8 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
         local_entity.model_entity_dim = remote_entity.model_entity_dim;
         local_entity.model_entity_tag = remote_entity.model_entity_tag;
       }
+
+      idx++;
     }
   };
 

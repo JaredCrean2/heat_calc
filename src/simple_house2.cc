@@ -129,8 +129,8 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
     Real surface_area = generator.computeExteriorSurfaceArea(direction);
     Real perimeter    = generator.computeExteriorPerimeter(direction);
 
-    std::cout << "exterior surface " << i << " with name " << names[i] << " has outward normal "
-              << surf->normals[0][0][0] << ", " << surf->normals[0][0][1] << ", " << surf->normals[0][0][2] << std::endl;
+    //std::cout << "exterior surface " << i << " with name " << names[i] << " has outward normal "
+    //          << surf->normals[0][0][0] << ", " << surf->normals[0][0][1] << ", " << surf->normals[0][0][2] << std::endl;
 
     Real emittance    = i < 4 ? params.ext_wall_emittance    : params.roof_emittance;
     Real absorptivity = i < 4 ? params.ext_wall_absorptivity : params.roof_absorptivity;
@@ -352,6 +352,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<Mesh::MeshCG> mesh = generator.getMesh();
     std::cout << "total number of dofs = " << mesh->getNumTotalDofs() << std::endl;
     std::cout << "number of local dofs = " << mesh->getNumDofs() << std::endl;
+    mesh->writeVtkFiles("mesh_initial");
     DiscPtr disc = std::make_shared<Discretization>(mesh, 3, 3);
 
 

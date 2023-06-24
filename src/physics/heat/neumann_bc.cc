@@ -10,6 +10,10 @@ void computeNeumannBC(const HeatEquation& physics, const Real t, DiscVectorPtr u
   for (auto& bc : neumann_bcs)
   {
     //std::cout << "doing BC " << i << std::endl;
+
+    if (bc->getSurfDisc()->getNumFaces() == 0)
+      continue;
+      
     computeNeumannBC(bc, u, t, rhs);
   }
 

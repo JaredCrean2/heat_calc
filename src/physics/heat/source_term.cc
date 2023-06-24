@@ -16,6 +16,9 @@ void computeSourceTerm(const HeatEquation& physics, Real t, DiscVectorPtr rhs)
       auto src_term = physics.getSourceTerm(i);
       auto& rhs_arr = rhs->getArray(i);
 
+      if (vol_disc->getNumElems() == 0)
+        continue;
+
       computeSourceTerm(vol_disc, src_term, t, rhs_arr);
     }
   }

@@ -8,6 +8,9 @@ void applyDirichletValues(const HeatEquation& physics, const Real t, DiscVectorP
 {
   for (auto bc : physics.getDirichletBCs())
   {
+    if (bc->getSurfDisc()->getNumFaces() == 0)
+      continue;
+      
     applyDirichletValues(bc, t, u);
   }
 

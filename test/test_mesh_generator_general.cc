@@ -2,6 +2,7 @@
 #include "mesh/mesh_geometry_multi.h"
 #include "mesh/mesh_generator_multi_block.h"
 #include "utils/math.h"
+#include "test_helper.h"
 
 namespace {
 
@@ -76,6 +77,8 @@ std::map<int, double> computeMeshVolumePerDomain(apf::Mesh* m)
 
 TEST(MeshGeneratorGeneral, MiddleBlock)
 {
+  SERIAL_ONLY();
+
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
 
@@ -87,6 +90,8 @@ TEST(MeshGeneratorGeneral, MiddleBlock)
 
 TEST(MeshGeneratorGeneral, MiddleBlockPlusOneLayerY)
 {
+  SERIAL_ONLY();
+
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
   spec.numel_plusy.push_back(6);
@@ -105,6 +110,8 @@ TEST(MeshGeneratorGeneral, MiddleBlockPlusOneLayerY)
 
 TEST(MeshGeneratorGeneral, MiddleBlockPlusTwoLayerY)
 {
+  SERIAL_ONLY();
+
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
   spec.numel_plusy.push_back(6);     spec.numel_plusy.push_back(7);
@@ -127,6 +134,8 @@ TEST(MeshGeneratorGeneral, MiddleBlockPlusTwoLayerY)
 
 TEST(MeshGeneratorGeneral, MiddleBlockPlusTwoLayers)
 {
+  SERIAL_ONLY();
+
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
 
@@ -150,6 +159,8 @@ TEST(MeshGeneratorGeneral, MiddleBlockPlusTwoLayers)
 
 TEST(MeshGeneratorGeneral, OneLayerYNoMiddleBlock)
 {
+  SERIAL_ONLY();
+
   Mesh::MultiBlockMeshSpec spec;
   spec.middle_block = Mesh::getMeshSpec(0, 2, 0, 3, 0, 4, 3, 4, 5);
   spec.create_blocks.resize(boost::extents[1][2][1]);

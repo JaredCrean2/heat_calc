@@ -18,6 +18,9 @@ void applyMassMatrix(const HeatEquation& physics, DiscVectorPtr vec_in, DiscVect
     auto& arr_in  = vec_in->getArray(i);
     auto& arr_out = vec_out->getArray(i);
 
+    if (vol_disc->getNumElems() == 0)
+      continue;
+
     applyMassMatrix(vol_disc, params, dofs, arr_in, arr_out);
   }
 

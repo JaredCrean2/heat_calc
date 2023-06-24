@@ -7,6 +7,21 @@
 
 WeatherCatParsedData parseWeatherCatData(int argc, char* argv[])
 {
+  if (argc < 4)
+  {
+    std::cout << "Usage: " << argv[0] << "output_filename --file filename1 [start_date] [end_date] --file filename2 [start_date] [end_date] ..." << std::endl;
+    std::cout << "Combines sections of different weather files to form a single file with a contiguous date range" << std::endl;
+    std::cout << "The spacing between data points is preserved, but the data from each input file will be moved forward" << std::endl;
+    std::cout << "or backwards in time to the sections of the file are contiguous." << std::endl;
+    std::cout << "This program can also be used to extract a section of a single file" << std::endl;
+    std::cout << "The order of the --file arguments determines the order the blocks appear in the output file" << std::endl;
+    std::cout << "The dates are specified as month/year/date[-hour:minutes], and are optional.  If not specified" << std::endl;
+    std::cout << "the entire file will be used.  If the [-hour:minutes] section is not specified, all datapoints" << std::endl;
+    std::cout << "on the specified day will be included." << std::endl;
+
+    throw std::runtime_error("too few command line arguments");
+  }
+
   WeatherCatParsedData data;
   int idx=1;
   if (idx >= argc)

@@ -1,4 +1,7 @@
 #include "mesh/mesh_generator_multi_block.h"
+#include "mesh/apfSplit.h"
+#include "utils/mpi_utils.h"
+#include <PCU.h>
 
 namespace Mesh {
 
@@ -77,15 +80,29 @@ MeshGeneratorMultiBlock::MeshGeneratorMultiBlock(MultiBlockMeshSpec meshspec) :
 apf::Mesh2* MeshGeneratorMultiBlock::generate()
 {
   initializeGeometry();
-  m_mesh = apf::makeEmptyMdsMesh(m_gmi_model, 3, false);
-  createMeshBlocks();
-
-  m_mesh->acceptChanges();
-  m_mesh->verify();
-
-  apf::writeASCIIVtkFiles("mesh_created", m_mesh);
+  m_mesh = nullptr;
   
-  return m_mesh;
+  MPI_Comm comm_orig = PCU_Get_Comm();
+  PCU_Switch_Comm(MPI_COMM_SELF);
+  if (commRank(comm_orig) == 0)
+  {    
+    m_mesh = apf::makeEmptyMdsMesh(m_gmi_model, 3, false);
+    createMeshBlocks();
+    m_mesh->acceptChanges();
+    m_mesh->verify();    
+  }
+
+
+  mesh::ApfSplitter splitter(m_mesh, m_gmi_model);
+  apf::Mesh2* mesh_parallel = splitter.split(commSize(comm_orig), comm_orig);
+  //apf::writeASCIIVtkFiles("mesh_split", m_mesh);
+
+  mesh_parallel->acceptChanges();
+  mesh_parallel->verify();
+
+  apf::writeASCIIVtkFiles("mesh_created", mesh_parallel);
+  
+  return mesh_parallel;
 }
 
 std::shared_ptr<mesh_gmi::GMITopo> MeshGeneratorMultiBlock::getGmiTopo() { return m_gmi_topo; }

@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "ProjectDefs.h"
 #include "discretization/surface_discretization.h"
 #include "physics/heat/HeatEquation.h"
 #include "simple_house/geometry_generator.h"
@@ -24,16 +25,23 @@ std::array<Real, 3> computeCentroid(SurfDiscPtr surf)
       for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
         coords_dir[i] = coords[i][dir];
 
-      centroid[dir] += integrateFaceScalar(surf, face, coords_dir);
+      centroid[dir] += surf->getFaceWeight(face) * integrateFaceScalar(surf, face, coords_dir);
     }
 
     for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
       coords_dir[i] = 1;
 
-    area += integrateFaceScalar(surf, face, coords_dir);
+    area += surf->getFaceWeight(face) * integrateFaceScalar(surf, face, coords_dir);
   }
 
-  return centroid / area;
+  std::array<Real, 3> centroid_global;
+  Real area_global;
+
+  MPI_Allreduce(centroid.data(), centroid_global.data(), 3, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&area, &area_global, 1, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
+
+
+  return centroid_global / area_global;
 }
 
 std::array<Real, 3> computeAverageNormalVector(SurfDiscPtr surf)
@@ -48,13 +56,16 @@ std::array<Real, 3> computeAverageNormalVector(SurfDiscPtr surf)
       for (int i=0; i < surf->getNumQuadPtsPerFace(); ++i)
         normal_dir[i] = surf->normals[face][i][dir];
 
-      avg_normal[dir] += integrateFaceScalar(surf, face, normal_dir);
+      avg_normal[dir] += surf->getFaceWeight(face) * integrateFaceScalar(surf, face, normal_dir);
     }
   }
 
-  Real len = std::sqrt(dot(avg_normal, avg_normal));
+  std::array<Real, 3> avg_normal_global;
+  MPI_Allreduce(avg_normal.data(), avg_normal_global.data(), 3, REAL_MPI_DATATYPE, MPI_SUM, MPI_COMM_WORLD);
 
-  return avg_normal / len;
+  Real len = std::sqrt(dot(avg_normal_global, avg_normal_global));
+
+  return avg_normal_global / len;
 }
 /*
     Mesh::MeshSpec middle_block;
