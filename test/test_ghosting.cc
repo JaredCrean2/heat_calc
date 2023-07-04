@@ -151,30 +151,13 @@ TEST(Ghosting, 2Procs)
   Mesh::MeshSpec spec = Mesh::getMeshSpec(0, 2, 0, 2, 0, 1, 2, 2, 1);
   apf::Mesh2* mesh = Mesh::make_parallel_mesh(spec, commSize(MPI_COMM_WORLD), Mesh::identity);
 
-  apf::MeshIterator* it = mesh->begin(0);
-  apf::MeshEntity* e;
-  while ( (e = mesh->iterate(it)) )
-  {
-    apf::Vector3 pt;
-    mesh->getPoint(e, 0, pt);
-    std::cout << "vert " << e << " at " << pt << std::endl;
-  }
   Mesh::createGhosting(mesh, MPI_COMM_WORLD);
 
   EXPECT_EQ(mesh->count(0), 18);
   EXPECT_EQ(mesh->count(1), 2*12 + 9);
   EXPECT_EQ(mesh->count(2), 2*4 + 12);
   EXPECT_EQ(mesh->count(3), 4);
-/*
-  for (int i=0; i < spec.nx+1; ++i)
-    for (int j=0; j < spec.ny+1; ++j)
-      for (int k=0; k < spec.nz+1; ++k)
-      {
-        double x = i, y = j, z = k;
-        std::cout << "pt = " << x << ", y = " << y << ", z = " << z << std::endl;
-        EXPECT_TRUE(get_closest_entity(mesh, 0, {x, y, z}, 1e-12));
-      }
-*/
+
   std::vector<apf::Vector3> edge_centroids =  { // parallel to y axis
                                                 {0, 0.5, 0}, {0, 1.5, 0},
                                                 {1, 0.5, 0}, {1, 1.5, 0},
@@ -320,7 +303,6 @@ TEST(Ghosting, 2Procs)
 
   for (size_t i=0; i < el_centroids.size(); ++i)
   {
-    std::cout << "i = " << i << std::endl;
     apf::MeshEntity* el = get_closest_entity(mesh, 3, el_centroids[i], 1e-12);
     
     EXPECT_TRUE(el); 
@@ -338,18 +320,9 @@ TEST(Ghosting, 4Procs)
   if (commSize(MPI_COMM_WORLD) != 4)
     GTEST_SKIP();
 
-  std::cout << "myrank = " << commRank(MPI_COMM_WORLD) << std::endl;
   Mesh::MeshSpec spec = Mesh::getMeshSpec(0, 4, 0, 4, 0, 1, 4, 4, 1);
   apf::Mesh2* mesh = Mesh::make_parallel_mesh(spec, commSize(MPI_COMM_WORLD), Mesh::identity);
 
-  apf::MeshIterator* it = mesh->begin(0);
-  apf::MeshEntity* e;
-  while ( (e = mesh->iterate(it)) )
-  {
-    apf::Vector3 pt;
-    mesh->getPoint(e, 0, pt);
-    std::cout << "vert " << e << " at " << pt << std::endl;
-  }
   Mesh::createGhosting(mesh, MPI_COMM_WORLD);
 
   EXPECT_EQ(mesh->count(0), 32);
@@ -530,9 +503,7 @@ TEST(Ghosting, 4Procs)
         for (int i=0; i < 4; ++i)
         {
           double x = i + x0, y = j + y0, z = k + z0;
-          std::cout << "vert at "<< x << ", " << y << ", " << z << std::endl;
           apf::MeshEntity* vert = get_closest_entity(mesh, 0, {x, y, z}, 1e-12);
-          std::cout << "vert = " << vert << std::endl;
           EXPECT_TRUE(vert);
           EXPECT_EQ(mesh->isShared(vert),  vert_desc[idx][0]);
           EXPECT_EQ(mesh->isGhost(vert),   vert_desc[idx][1]);
@@ -543,9 +514,7 @@ TEST(Ghosting, 4Procs)
 
   for (size_t i=0; i < edge_centroids.size(); ++i)
   {
-    std::cout << "centroid " << edge_centroids[i] << ", orig = " << (edge_centroids[i].x() - x0) << ", " << (edge_centroids[i].y() - y0) << ", " << (edge_centroids[i].z() - z0) << std::endl;
     apf::MeshEntity* edge = get_closest_entity(mesh, 1, edge_centroids[i], 1e-12);
-    std::cout << "entity = " << edge << std::endl;
 
     EXPECT_TRUE(edge); 
     EXPECT_EQ(mesh->isShared(edge),  edge_desc[i][0]);

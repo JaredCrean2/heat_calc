@@ -14,26 +14,6 @@
 
 namespace Mesh {
 
-apf::Vector3 computeCentroid(apf::Mesh2* mesh, apf::MeshEntity* e)
-{
-  if (mesh->getType(e) == apf::Mesh::Type::VERTEX)
-  {
-    apf::Vector3 pt;
-    mesh->getPoint(e, 0, pt);
-    return pt;
-  } else
-  {
-    apf::Vector3 centroid;
-    apf::Downward down;
-    int ndown = mesh->getDownward(e, 0, down);
-    for (int i=0; i < ndown; ++i)
-    {
-      centroid += computeCentroid(mesh, down[i]);
-    }
-
-    return centroid / ndown;
-  }
-}
 
 class GhostingCreator
 {
@@ -55,26 +35,13 @@ class GhostingCreator
     void create()
     {
       std::vector<apf::MeshEntity*> els_to_ghost;
-      getGhostElements(els_to_ghost);
-      for (auto& el : els_to_ghost)
-      {
-        std::cout << "ghosting el " << el << " with centroid " << computeCentroid(m_mesh, el) << std::endl;
-      }
-
-      //std::cout << "\nGhosting verts" << std::endl;
-      //ghostVerts(els_to_ghost);  
-
-      std::cout << "\nghosting higher dimension entities" << std::endl;
+      getGhostElements(els_to_ghost); 
       ghostEntities(els_to_ghost);
       m_mesh->acceptChanges();
     }
 
     void getGhostElements(std::vector<apf::MeshEntity*>& els)
     {
-      // loop over verts
-      //   if isShared
-      //     get all upward elements
-      //     push_back into vector
       apf::MeshIterator* mit = m_mesh->begin(0);
       apf::MeshEntity* vert;
       apf::Adjacent vert_els;
@@ -255,7 +222,6 @@ class GhostingCreator
       apf::MeshEntity* vert = m_mesh->createVert(me);
       m_mesh->setPoint(vert, 0, pt);
       set_is_ghost(vert);
-      std::cout << "creating new vert " << vert << " at " << pt << std::endl;
 
 
       m_mesh->addGhost(vert, sender_rank, vert_sender);
@@ -268,7 +234,6 @@ class GhostingCreator
       }
 
       return vert;
-      // pack newly-created vert back to sender
     }
 
     void returnGhostsToOwner(const std::vector<std::vector<apf::MeshEntity*>>& sent_entities,
@@ -357,7 +322,6 @@ class GhostingCreator
             num_new_ghosts++;
             if (!m_mesh->isGhost(entity_local) && !m_mesh->isGhosted(entity_local))
             {
-              std::cout << "setting entity " << entity_local << " to is_ghosted from updateGhosts" << std::endl;
               set_is_ghosted(entity_local);
             }
           }
@@ -435,7 +399,6 @@ class GhostingCreator
 
     void packNonVertexEntity(apf::MeshEntity* entity, int dest, apf::Copies& entity_remotes)
     {
-      std::cout << "sending entity " << entity << " at " << computeCentroid(m_mesh, entity) << " to rank " << dest << std::endl;
       // pack bounding verts on dest rank (from getRemotes/getGhosts of verts)
       // pack edge on remote (if present), or nullptr
       // pack remotes of edge
@@ -449,35 +412,22 @@ class GhostingCreator
       apf::Copies down_entity_remotes;
       for (int i=0; i < ndown; ++i)
       {
-        std::cout << "down entity = " << down_entities[i] << " at " << computeCentroid(m_mesh, down_entities[i]) << std::endl;
         down_entity_remotes.clear();
         m_mesh->getRemotes(down_entities[i], down_entity_remotes);
         m_mesh->getGhosts(down_entities[i], down_entity_remotes);
 
-        for (auto& p : down_entity_remotes)
-          std::cout << "  rank " << p.first << ", entity " << p.second << std::endl;
-
         down_entities_remote[i] = down_entity_remotes.at(dest);
       }
-
-
-      //apf::MeshEntity* vert1_dest = vert1_remotes.at(dest);
-      //apf::MeshEntity* vert2_dest = vert2_remotes.at(dest);
 
       apf::ModelEntity* me = m_mesh->toModel(entity);
       int me_dim = m_mesh->getModelType(me);
       int me_tag = m_mesh->getModelTag(me);
-
-      //apf::Copies entity_remotes;
-      //m_mesh->getRemotes(entity, entity_remotes);
 
      
       PCU_Comm_Pack(dest, entity_type);
       for (int i=0; i < ndown; ++i)
         PCU_Comm_Pack(dest, down_entities_remote[i]);
         
-      //PCU_Comm_Pack(dest, vert1_dest);
-      //PCU_Comm_Pack(dest, vert2_dest);
       PCU_Comm_Pack(dest, me_dim);
       PCU_Comm_Pack(dest, me_tag);
 
@@ -509,8 +459,6 @@ class GhostingCreator
       for (int i=0; i < ndown; ++i)
         down_entities[i] = PCU_Comm_Unpack<apf::MeshEntity*>();
 
-      //auto vert1       = PCU_Comm_Unpack<apf::MeshEntity*>();
-      //auto vert2       = PCU_Comm_Unpack<apf::MeshEntity*>();
       int me_dim       = PCU_Comm_Unpack<int>();
       int me_tag       = PCU_Comm_Unpack<int>();
       auto entity_remote = PCU_Comm_Unpack<apf::MeshEntity*>();
@@ -520,15 +468,12 @@ class GhostingCreator
       apf::MeshEntity* entity = m_mesh->createEntity(entity_type, me, down_entities);
       set_is_ghost(entity);
 
-      std::cout << "created entity " << entity << " from rank " << sender_rank << ", entity " << entity_remote << std::endl;
-
       m_mesh->addGhost(entity, sender_rank, entity_remote);
       int nshared = PCU_Comm_Unpack<int>();
       for (int i=0; i < nshared; ++i)
       {
         int rank = PCU_Comm_Unpack<int>();
         auto remote_edge = PCU_Comm_Unpack<apf::MeshEntity*>();
-        std::cout << " adding ghost " << rank << ", " << remote_edge << std::endl;
         m_mesh->addGhost(entity, rank, remote_edge);
       }
 
@@ -560,7 +505,6 @@ class GhostingCreator
     void set_is_ghosted(apf::MeshEntity* vert)
     {
       int val = true;  // the value doesn't really matter, all that matters is that hasTag() returns true
-      std::cout << "setting entity " << vert << " to is_ghosted" << std::endl;
       m_mesh->setIntTag(vert, m_is_ghosted_tag, &val);
     }
 
