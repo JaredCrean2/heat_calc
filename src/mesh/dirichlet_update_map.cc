@@ -28,14 +28,8 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
   apf::Copies remotes;
   apf::MeshIterator* it = m_apf_data.m->begin(0);
   apf::MeshEntity* e;
-  std::cout << std::boolalpha;
   while ( (e = m_apf_data.m->iterate(it)) )
   {
-    std::cout << "e = " << e << ", is_dirichlet = " << bool(apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0))
-              << ", isShared = " << m_apf_data.m->isShared(e) 
-              << ", isGhost = " << m_apf_data.m->isGhost(e) 
-              << ", isGhosted = " << m_apf_data.m->isGhosted(e) << std::endl;
-
     if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && isSharedOrGhost(e))
     {
       SurfaceModelEntity surf = getMinDirichletSurface(e);
@@ -43,17 +37,11 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
 
       remotes.clear();
       m_apf_data.m->getRemotes(e, remotes);
-
-      apf::Copies ghosts;
       m_apf_data.m->getGhosts(e, remotes);
-      //std::cout << "number of ghosts = " << ghosts.size() << std::endl;
-      //for (auto& p : ghosts)
-      //  std::cout << "ghost rank " << p.first << ", entity " << p.second << std::endl;
 
       for (auto& p : remotes)
       {
         surf.vert = p.second;
-        std::cout << "sending entity " << e << " to rank " << p.first << ", entity " << p.second << std::endl;
         exchanger.getSendBuf(p.first).push_back(surf);
         exchanger.getRecvBuf(p.first).emplace_back();
       }
@@ -61,22 +49,13 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
   }
   m_apf_data.m->end(it);
 
-  for (int rank=0; rank < commSize(MPI_COMM_WORLD); ++rank)
-    std::cout << "rank " << rank << " send buf size = " << exchanger.getSendBuf(rank).size() << std::endl;
-
-  for (int rank=0; rank < commSize(MPI_COMM_WORLD); ++rank)
-    std::cout << "rank " << rank << " recv buf size = " << exchanger.getRecvBuf(rank).size() << std::endl;
   exchanger.startCommunication();
 
   auto unpacker = [&](int rank, const std::vector<SurfaceModelEntity>& buf)
   {
-    std::cout << "receiving from rank " << rank << std::endl;
-    int idx = 0;
     for (const auto& remote_entity : buf)
     {
-      std::cout << "idx " << idx << std::endl;
       apf::MeshEntity* vert = remote_entity.vert;
-      std::cout << "vert = " << vert << std::endl;
       SurfaceModelEntity& local_entity = (*min_dirichlet_surface)(vert, 0, 0);
       if  (remote_entity < local_entity)
       {
@@ -84,8 +63,6 @@ std::shared_ptr<DirichletUpdateMap::ModelEntityField> DirichletUpdateMap::collec
         local_entity.model_entity_dim = remote_entity.model_entity_dim;
         local_entity.model_entity_tag = remote_entity.model_entity_tag;
       }
-
-      idx++;
     }
   };
 
@@ -171,8 +148,16 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
   apf::MeshEntity* e;
   while ( (e = m_apf_data.m->iterate(it)) ) 
   {
+    std::cout << "e = " << e << std::endl;
+    std::cout << std::boolalpha;
+    std::cout << "is dirichlet = " << bool(apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0)) << ", isShared = " << bool(m_apf_data.m->isShared(e)) << ", isGhost = " << bool(m_apf_data.m->isGhost(e)) << ", isGhosted = " << bool(m_apf_data.m->isGhosted(e)) << std::endl;
+    apf::Copies ghosts;
+    m_apf_data.m->getGhosts(e, ghosts);
+    for (auto& p : ghosts)
+      std::cout << "  ghost " << p.second << " on rank " << p.first << std::endl;
     if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && isSharedOrGhost(e))
     {
+      std::cout << "min entity = " << (*min_dirichlet_surface)(e, 0, 0).model_entity_dim << ", " << (*min_dirichlet_surface)(e, 0, 0).model_entity_tag  << " on rank " << (*min_dirichlet_surface)(e, 0, 0).rank << std::endl;
       remotes.clear();      
       bool is_local = (*min_dirichlet_surface)(e, 0, 0).rank == myrank;
       bool have_local_source = hasLocalDirichletSurface(e);
@@ -183,11 +168,13 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
       {
         for (auto& p : remotes)
         {
+          std::cout << "  expecting to receive from rank " << p.first << ", entity " << p.second << std::endl;
           exchanger.getRecvBuf(p.first).push_back({nullptr, false});
         }        
       } else
       {
         int sender_rank = (*min_dirichlet_surface)(e, 0, 0).rank;
+        std::cout << "  sending to rank " << sender_rank << " entity " << remotes[sender_rank] << std::endl;
         exchanger.getSendBuf(sender_rank).push_back({remotes[sender_rank], have_local_source});
         if (!have_local_source)
         {
@@ -199,6 +186,13 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
     }
   }
   m_apf_data.m->end(it);
+
+  std::cout << "myrank = " << commRank(m_comm) << std::endl;
+  for (int i=0; i < commSize(m_comm); ++i)
+    std::cout << "sending " << exchanger.getSendBuf(i).size() << " values to rank " << i << std::endl;
+
+  for (int i=0; i < commSize(m_comm); ++i)
+    std::cout << "receiving " << exchanger.getRecvBuf(i).size() << " values to rank " << i << std::endl;
 
   exchanger.startCommunication();
 

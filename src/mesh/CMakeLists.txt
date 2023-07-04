@@ -20,7 +20,8 @@ add_library(mesh mesh_generator.cc
                  apfShapeHex.cc
                  apfMDSField.cc
                  FieldDataManager.cc
-                 dirichlet_update_map.cc)
+                 dirichlet_update_map.cc
+                 ghosting.cc)
 
 target_include_directories(mesh PUBLIC
                           "${PROJECT_BINARY_DIR}/include"  # needed for configured header
