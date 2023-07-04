@@ -61,11 +61,11 @@ class GhostingCreator
         std::cout << "ghosting el " << el << " with centroid " << computeCentroid(m_mesh, el) << std::endl;
       }
 
-      std::cout << "\nGhosting verts" << std::endl;
-      ghostVerts(els_to_ghost);  
+      //std::cout << "\nGhosting verts" << std::endl;
+      //ghostVerts(els_to_ghost);  
 
       std::cout << "\nghosting higher dimension entities" << std::endl;
-      ghostHigherDimensionEntities(els_to_ghost);
+      ghostEntities(els_to_ghost);
       m_mesh->acceptChanges();
     }
 
@@ -199,81 +199,6 @@ class GhostingCreator
       sort_and_unique(entity_dests);
     }
 
-
-    //-------------------------------------------------------------------------
-    // Verts
-
-    void ghostVerts(const std::vector<apf::MeshEntity*>& els_to_ghost)
-    {
-      std::map<apf::MeshEntity*, std::vector<int>> vert_dests;
-      getEntityDestinations(els_to_ghost, 0, vert_dests);
-      getEntityDestinationsOnOwnerRank(vert_dests);
-
-      for (auto& p : vert_dests)
-      {
-        std::cout << "sending " << p.first << " at " << computeCentroid(m_mesh, p.first) << " to rank ";
-        for (auto dest : p.second)
-          std::cout << dest << ", ";
-        std::cout << std::endl;
-      }
-
-      createVertsFromOwner(vert_dests);
-
-      int num_new_ghosts = 0;
-      do
-      {
-        num_new_ghosts = updateGhosts(0);
-      } while (num_new_ghosts > 0);      
-    }
-
-    void createVertsFromOwner(std::map<apf::MeshEntity*, std::vector<int>>& vert_dests)
-    {
-      // create empty vector of send verts
-      // create map<MeshEntity*, std::vector<int>> that maps mesh entities
-      //TODO: need to determine unique sender (which can't be owner, because the owner
-      //      might not know all the destinations)
-      // Alternatively, send all destinations to owner
-      // to dests.  It would be better to use the apf::Mesh::getGhosts 
-      // function, but we can't create the ghost and set the remote MeshEntity*
-      // later
-      // loop over els
-        // get all verts
-        // get all destinations from the remotes of the shared verts
-        // if vert does not have a ghost or share on dest proc already and vert isOwned
-        //   pack verts to dest
-        //   insert into map
-
-      PCU_Comm_Begin();
-      apf::Copies shared_entities;
-      std::vector<std::vector<apf::MeshEntity*>> sent_verts(commSize(m_comm));
-      for (auto& p : vert_dests)
-      {
-        apf::MeshEntity* vert       = p.first;
-        std::vector<int> dest_ranks = p.second;
-
-        shared_entities.clear();
-        m_mesh->getRemotes(vert, shared_entities);
-        for (int dest_rank : dest_ranks)
-          if (shared_entities.count(dest_rank) == 0)
-          {
-            packVertex(vert, dest_rank, shared_entities);
-            sent_verts[dest_rank].push_back(vert);
-          }
-      }
-
-      PCU_Comm_Send();
-      std::vector<std::vector<apf::MeshEntity*>> received_verts(commSize(m_comm));
-      while (PCU_Comm_Listen())
-      {
-        int rank = PCU_Comm_Sender();
-        while (!PCU_Comm_Unpacked())
-        {
-          received_verts[rank].push_back(unpackVertex());
-        }
-      }
-
-      returnGhostsToOwner(sent_verts, received_verts);
-    }
 
     void packVertex(apf::MeshEntity* vert, int dest, const apf::Copies& shared_entities)
     {
@@ -445,27 +370,15 @@ class GhostingCreator
       return num_new_ghosts_global;
     }
 
-    //-------------------------------------------------------------------------
-    // Edges
-
-    void ghostHigherDimensionEntities(const std::vector<apf::MeshEntity*>& els_to_ghost)
+    void ghostEntities(const std::vector<apf::MeshEntity*>& els_to_ghost)
     {
-      for (int dim=1; dim <= 3; ++dim)
+      for (int dim=0; dim <= 3; ++dim)
       {
-        std::cout << "\ndim = " << dim << std::endl;
-        std::map<apf::MeshEntity*, std::vector<int>> edge_dests;
-        getEntityDestinations(els_to_ghost, dim, edge_dests);
-        getEntityDestinationsOnOwnerRank(edge_dests);
+        std::map<apf::MeshEntity*, std::vector<int>> entity_dests;
+        getEntityDestinations(els_to_ghost, dim, entity_dests);
+        getEntityDestinationsOnOwnerRank(entity_dests);
 
-        for (auto& p : edge_dests)
-        {
-          std::cout << "sending entity " << p.first << " at " << computeCentroid(m_mesh, p.first) << " to dest ";
-          for (auto dest : p.second)
-            std::cout << dest << ", ";
-          std::cout << std::endl;
-        }
-
-        createEntitiesFromOwner(edge_dests);
+        createEntitiesFromOwner(entity_dests, dim);
 
         int num_new_ghosts = 0;
         do
@@ -476,7 +389,7 @@ class GhostingCreator
 
     }
 
-    void createEntitiesFromOwner(std::map<apf::MeshEntity*, std::vector<int>>& entity_dests)
+    void createEntitiesFromOwner(std::map<apf::MeshEntity*, std::vector<int>>& entity_dests, int dim)
     {
       // get vector of edges
       // get destinations for each edge from getGhosts(verts)
@@ -484,7 +397,6 @@ class GhostingCreator
       // (on owner) for each edge 
       //   pack edge to destination
       // set isGhosted
-      //TODO: how do other shares of edge set isGhosted correctly?
 
       PCU_Comm_Begin();
       std::vector<std::vector<apf::MeshEntity*>> sent_entities(commSize(m_comm));
@@ -500,7 +412,7 @@ class GhostingCreator
         {
           if (shared_entities.count(dest_rank) == 0)
           {
-            packEntity(entity, dest_rank);
+            packEntity(entity, dest_rank, shared_entities);
             sent_entities[dest_rank].push_back(entity);
           }
         }
@@ -514,14 +426,14 @@ class GhostingCreator
         int sender_rank = PCU_Comm_Sender();
         while (!PCU_Comm_Unpacked())
         {
-          received_entities[sender_rank].push_back(unpackEntity());
+          received_entities[sender_rank].push_back(unpackEntity(dim));
         }
       }
 
       returnGhostsToOwner(sent_entities, received_entities);
     }
 
-    void packEntity(apf::MeshEntity* entity, int dest)
+    void packNonVertexEntity(apf::MeshEntity* entity, int dest, apf::Copies& entity_remotes)
     {
       std::cout << "sending entity " << entity << " at " << computeCentroid(m_mesh, entity) << " to rank " << dest << std::endl;
       // pack bounding verts on dest rank (from getRemotes/getGhosts of verts)
@@ -531,8 +443,6 @@ class GhostingCreator
       int entity_type = m_mesh->getType(entity);
       int dim = apf::Mesh::typeDimension[entity_type];
 
-      //std::array<apf::Copies, 12> down_entities_remotes;
-      //apf::Copies vert1_remotes, vert2_remotes;
       apf::Downward down_entities, down_entities_remote;
       int ndown = m_mesh->getDownward(entity, dim-1, down_entities);
 
@@ -558,8 +468,8 @@ class GhostingCreator
       int me_dim = m_mesh->getModelType(me);
       int me_tag = m_mesh->getModelTag(me);
 
-      apf::Copies entity_remotes;
-      m_mesh->getRemotes(entity, entity_remotes);
+      //apf::Copies entity_remotes;
+      //m_mesh->getRemotes(entity, entity_remotes);
 
      
       PCU_Comm_Pack(dest, entity_type);
@@ -583,7 +493,7 @@ class GhostingCreator
       set_is_ghosted(entity);
     }
 
-    apf::MeshEntity* unpackEntity()
+    apf::MeshEntity* unpackNonVertexEntity()
     {
       // unpack 2 verts
       // unpack local edge ptr
@@ -625,6 +535,21 @@ class GhostingCreator
       return entity;
     }
 
+    void packEntity(apf::MeshEntity* entity, int dest, apf::Copies& entity_remotes)
+    {
+      if (m_mesh->getType(entity) == apf::Mesh::Type::VERTEX)
+        packVertex(entity, dest, entity_remotes);
+      else
+         packNonVertexEntity(entity, dest, entity_remotes);
+    }
+    
+    apf::MeshEntity* unpackEntity(int dim)
+    {
+      if (dim == 0)
+        return unpackVertex();
+      else
+        return unpackNonVertexEntity();
+    }
 
     void set_is_ghost(apf::MeshEntity* vert)
     {
