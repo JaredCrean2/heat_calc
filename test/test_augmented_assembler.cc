@@ -103,6 +103,13 @@ TEST_F(AugmentedAssemblerTester, RowValues)
   int num_augmented_dofs = 2;
   bool am_i_last_rank = commRank(MPI_COMM_WORLD) == (commSize(MPI_COMM_WORLD) - 1);
   auto base_pattern = std::make_shared<linear_system::SparsityPatternMesh>(mesh);
+
+  const auto& ghost_global_dofs = base_pattern->getGhostGlobalIndices();
+  std::cout << "base pattern ghost indices = " << std::endl;
+  for (auto& val : ghost_global_dofs)
+    std::cout << "  " << val << std::endl;
+
+
   auto augmented_pattern = std::make_shared<linear_system::SparsityPatternAugmented>(base_pattern, num_augmented_dofs, MPI_COMM_WORLD);
   linear_system::LargeMatrixOptsPetsc opts;
   auto mat = std::make_shared<linear_system::LargeMatrixPetsc>(opts, augmented_pattern);

@@ -54,6 +54,7 @@ void getGhostsAndSelf(apf::Mesh* mesh, apf::MeshEntity* e, apf::Copies& ghosts)
   int myrank = commRank(MPI_COMM_WORLD);
   ghosts.clear();
   mesh->getGhosts(e, ghosts);
+  EXPECT_EQ(ghosts.count(myrank), 0);
   ghosts[myrank] = e;
 }
 

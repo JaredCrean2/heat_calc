@@ -182,6 +182,8 @@ class GhostingCreator
       apf::ModelEntity* me = m_mesh->toModel(vert);
       int me_dim = m_mesh->getModelType(me);
       int me_tag = m_mesh->getModelTag(me);
+      apf::Parts parts;
+      m_mesh->getResidence(vert, parts);
 
       m_mesh->getPoint(vert, 0, pt);
 
@@ -196,6 +198,11 @@ class GhostingCreator
         PCU_Comm_Pack(dest, p.first);
         PCU_Comm_Pack(dest, p.second);
       }
+
+      int nresidence = parts.size();
+      PCU_Comm_Pack(dest, nresidence);
+      for (int rank : parts)
+        PCU_Comm_Pack(dest, rank);
 
       // need to set isGhosted flag on all shared, but do that on the reverse
       set_is_ghosted(vert);
@@ -232,6 +239,13 @@ class GhostingCreator
         apf::MeshEntity* vert_shared = PCU_Comm_Unpack<apf::MeshEntity*>();
         m_mesh->addGhost(vert, rank, vert_shared);
       }
+
+      int nresidence = PCU_Comm_Unpack<int>();
+      apf::Parts parts;
+      for (int i=0; i < nresidence; ++i)
+        parts.insert(PCU_Comm_Unpack<int>());
+
+      m_mesh->setResidence(vert, parts);
 
       return vert;
     }
@@ -316,7 +330,7 @@ class GhostingCreator
 
           ghosts.clear();
           m_mesh->getGhosts(entity_local, ghosts);
-          if (ghosts.count(rank_ghost) == 0)
+          if (ghosts.count(rank_ghost) == 0 && rank_ghost != myrank)
           {
             m_mesh->addGhost(entity_local, rank_ghost, entity_ghost);
             num_new_ghosts++;
@@ -423,6 +437,8 @@ class GhostingCreator
       int me_dim = m_mesh->getModelType(me);
       int me_tag = m_mesh->getModelTag(me);
 
+      apf::Parts parts;
+      m_mesh->getResidence(entity, parts);
      
       PCU_Comm_Pack(dest, entity_type);
       for (int i=0; i < ndown; ++i)
@@ -439,6 +455,11 @@ class GhostingCreator
         PCU_Comm_Pack(dest, p.first);
         PCU_Comm_Pack(dest, p.second);
       }
+
+      int nresidence = parts.size();
+      PCU_Comm_Pack(dest, nresidence);
+      for (int rank : parts)
+        PCU_Comm_Pack(dest, rank);      
 
       set_is_ghosted(entity);
     }
@@ -476,6 +497,13 @@ class GhostingCreator
         auto remote_edge = PCU_Comm_Unpack<apf::MeshEntity*>();
         m_mesh->addGhost(entity, rank, remote_edge);
       }
+
+      int nresidence = PCU_Comm_Unpack<int>();
+      apf::Parts parts;
+      for (int i=0; i < nresidence; ++i)
+        parts.insert(PCU_Comm_Unpack<int>());
+
+      m_mesh->setResidence(entity, parts);      
 
       return entity;
     }

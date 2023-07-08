@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <apfMesh.h>
 #include "discretization/DirichletBC_defs.h"
 #include "test_helper.h"
 #include "mesh_helper.h"
@@ -220,6 +221,10 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
   applyDirichletValues(m_bc, 0, disc_vec);
   disc_vec->updateDependentDirichletValues();
 
+  disc_vec->getDisc()->getMesh()->writeVtkFiles("dirichlet_test");
+
+  
+
   for (int vol_block=0; vol_block < 2; ++vol_block)
   {
     std::cout << "\nvol_block " << vol_block << std::endl;
@@ -235,12 +240,12 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
         if (!dof_numbering->isDofActive(dofs[i][j]))
         {
           std::cout << "non-active dof at " << coords[i][j][0] << ", " << coords[i][j][1] << ", " << coords[i][j][2] << std::endl;
+          std::cout << "block " << vol_block << ", el " << i << ", node " << j << std::endl;
         }
         Real val_ex = func(coords[i][j][0], coords[i][j][1], coords[i][j][2]);
         EXPECT_EQ(arr[i][j], val_ex);        
       }
   }
-
 }
 
 TEST_F(DiscVectorTester, AssignmentOperator)

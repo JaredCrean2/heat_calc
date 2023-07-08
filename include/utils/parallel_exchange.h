@@ -46,10 +46,14 @@ class ParallelExchange
         if (m_recv_bufs[i].size() > 0)
           numRecvs++;
 
+      std::cout << "numRecvs = " << numRecvs << std::endl;
+
       for (int i=0; i < numRecvs; ++i)
       {
+        std::cout << "i = " << i << std::endl;
         int rank;
-        MPI_Waitany(m_recv_reqs.size(), m_recv_reqs.data(), &rank, MPI_STATUSES_IGNORE);
+        MPI_Waitany(m_recv_reqs.size(), m_recv_reqs.data(), &rank, MPI_STATUS_IGNORE);
+        std::cout << "rank = " << rank << std::endl;
         func(rank, m_recv_bufs[rank]);
       }
 

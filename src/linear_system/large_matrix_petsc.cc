@@ -24,7 +24,10 @@ LargeMatrixPetsc::LargeMatrixPetsc(LargeMatrixOptsPetsc opts, std::shared_ptr<Sp
 
   const auto& ghost_global_dofs = sparsity_pattern->getGhostGlobalIndices();
     
-  //VecCreate(PETSC_COMM_WORLD, &m_x);
+  std::cout << "ghost global dofs = " << std::endl;
+  for (auto& val : ghost_global_dofs)
+    std::cout << "  " << val << std::endl;
+  //VecCreate(PETSC_COMM_WORLD, &m_x);  
   VecCreateGhost(PETSC_COMM_WORLD, getNLocal(), PETSC_DECIDE, ghost_global_dofs.size(), ghost_global_dofs.data(), &m_x);
   PetscObjectSetName((PetscObject)m_x, (opts.opts_prefix + "_Solution").c_str());
   VecSetOptionsPrefix(m_x, opts.opts_prefix.c_str());

@@ -131,6 +131,8 @@ const ArrayType<Real, 2>& DiscVector::getArray(const Index idx) const
 
 void DiscVector::updateDependentDirichletValues()
 {
+  std::cout << "\nupdating dependent dirichlet values" << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
   using ArrayNode = Mesh::DirichletUpdateMap::ArrayNode;
 
   auto dirichlet_update_map = getDisc()->getDofNumbering()->getDirichletUpdateMap();
@@ -150,19 +152,28 @@ void DiscVector::updateDependentDirichletValues()
   ParallelExchange<double> exchanger(comm, 1103);
   for (int i=0; i < commSize(comm); ++i)
   {
-    exchanger.getRecvBuf(dirichlet_update_map->getRecvCount(i));
+    exchanger.getRecvBuf(i).resize(dirichlet_update_map->getRecvCount(i));
 
     for (const ArrayNode& send_node : dirichlet_update_map->getSendDofs(i))
       exchanger.getSendBuf(i).push_back(getArray(send_node.block)[send_node.el][send_node.localnode]);
+
+    std::cout << "sending " << exchanger.getSendBuf(i).size() << " values to rank " << i << std::endl;
+    std::cout << "recving " << exchanger.getRecvBuf(i).size() << " values from rank " << i << std::endl;
   }
+
+  exchanger.startCommunication();
 
   auto unpacker = [&](int rank, const std::vector<double>& buf)
   {
+    std::cout << "\nreceiving from rank " << rank << std::endl;
     for (size_t i=0; i < buf.size(); ++i)
     {
       dirichlet_update_map->getRecvDofs(rank, i, dest_nodes);
       for (const ArrayNode& dest_node : dest_nodes)
+      {
+        std::cout << "writing value " << buf[i] << " to " << dest_node.block << ", " << dest_node.el << ", " << dest_node.localnode << std::endl;
         getArray(dest_node.block)[dest_node.el][dest_node.localnode] = buf[i];
+      }
     }
   };
 

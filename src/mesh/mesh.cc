@@ -8,6 +8,7 @@
 #include "PCU.h"
 #include "mesh/reference_element_apf.h"
 #include "mesh/reference_element_interface.h"
+#include "mesh/ghosting.h"
 #include "mpi.h"
 
 #include "apfShape.h"
@@ -323,6 +324,7 @@ void MeshCG::getGhostDofInfo(std::vector<DofInt>& global_dofs, std::vector<DofIn
             if (isDofActive(local_dof_num))
             {
               int global_dof_num = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
+              std::cout << "entity " << e << " has global dof num = " << global_dof_num << std::endl;
               data.emplace_back(local_dof_num, global_dof_num);
             }
           }
@@ -421,7 +423,8 @@ std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
                                      std::vector<MeshEntityGroupSpec> other_surface_spec,
                                      const int solution_degree, const int coord_degree)
 {
-  createGhostLayer(m);
+  //createGhostLayer(m);
+  createGhosting(m, MPI_COMM_WORLD);
   return std::shared_ptr<MeshCG>(new MeshCG(m, volume_group_spec, bc_spec, other_surface_spec, solution_degree, coord_degree));
 }
 

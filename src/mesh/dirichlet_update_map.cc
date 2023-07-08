@@ -2,6 +2,36 @@
 #include "mesh/mesh.h"
 #include "parallel_exchange.h"
 
+#include "PCU.h"
+
+namespace {
+apf::MeshEntity* findClosestVert(apf::Mesh* mesh, const apf::Vector3& pt)
+{
+  double min_dist = std::numeric_limits<double>::max();
+  apf::MeshEntity* min_entity = nullptr;
+  apf::MeshIterator* it = mesh->begin(0);
+  apf::MeshEntity* e;
+
+  while ( (e = mesh->iterate(it)) )
+  {
+    apf::Vector3 coords;
+    mesh->getPoint(e, 0, coords);
+
+    double dist = 0;
+    for (int i=0; i < 3; ++i)
+      dist += std::abs(pt[i] - coords[i]);
+
+    if (dist < min_dist)
+    {
+      min_dist = dist;
+      min_entity = e;
+    }
+  }
+
+  return min_entity;
+}
+}
+
 namespace Mesh {
 
 DirichletUpdateMap::DirichletUpdateMap(MeshCG* mesh, MPI_Comm comm) :
@@ -13,6 +43,17 @@ DirichletUpdateMap::DirichletUpdateMap(MeshCG* mesh, MPI_Comm comm) :
   m_recv_nodes(commSize(comm)),
   m_recv_node_ptrs(commSize(comm))
 {
+  std::cout << "rank on comm = " << commRank(comm) << " / " << commSize(comm) << std::endl;
+
+  std::cout << "vert at (2, 2, 0) = " << findClosestVert(m_apf_data.m, {2, 2, 0}) << std::endl;;
+  std::cout << "vert at (2, 2, 1) = " << findClosestVert(m_apf_data.m, {2, 2, 1}) << std::endl;;
+  std::cout << "vert at (2, 2, 2) = " << findClosestVert(m_apf_data.m, {2, 2, 2}) << std::endl;;
+
+  std::cout << "this = " << this << std::endl;
+  int rank, size;
+  PCU_Comm_Rank(&rank);
+  PCU_Comm_Size(&size);
+  std::cout << "rank on pcu = " << rank << " / " << size << std::endl;
   getLocalDirichletUpdateMap();
   auto min_dirichlet_surface = collectMinDirichletSurfaces();
   createSendAndRecvLists(min_dirichlet_surface);
@@ -173,6 +214,7 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
         }        
       } else
       {
+        std::cout << "have local source = " << have_local_source << std::endl;
         int sender_rank = (*min_dirichlet_surface)(e, 0, 0).rank;
         std::cout << "  sending to rank " << sender_rank << " entity " << remotes[sender_rank] << std::endl;
         exchanger.getSendBuf(sender_rank).push_back({remotes[sender_rank], have_local_source});
@@ -181,6 +223,7 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
           m_recv_counts[sender_rank]++;  //TODO: is this needed?
           getArrayNodes(e, m_recv_nodes[sender_rank]);
           m_recv_node_ptrs[sender_rank].push_back(m_recv_nodes[sender_rank].size());
+          std::cout << "recv_node_ptrs.size = " << m_recv_node_ptrs[sender_rank].size() << std::endl;
         }
       }
     }
@@ -192,7 +235,7 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
     std::cout << "sending " << exchanger.getSendBuf(i).size() << " values to rank " << i << std::endl;
 
   for (int i=0; i < commSize(m_comm); ++i)
-    std::cout << "receiving " << exchanger.getRecvBuf(i).size() << " values to rank " << i << std::endl;
+    std::cout << "receiving " << exchanger.getRecvBuf(i).size() << " values from rank " << i << std::endl;
 
   exchanger.startCommunication();
 
@@ -202,7 +245,9 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
     {
       if (!entity_status.status)
       {
+        std::cout << "receiving entity " << entity_status.e << " from rank " << rank << std::endl;
         ArrayNode node = getArrayNode(entity_status.e);
+        std::cout << "array node = " << node.block << ", " << node.el << ", " << node.localnode << std::endl;
         m_send_nodes[rank].push_back(node);
       }
     }

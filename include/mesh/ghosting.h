@@ -39,6 +39,19 @@ T PCU_Comm_Unpack()
 namespace Mesh
 {
 
+// Creates a ghost layer of elements.
+// Specifically, add a layer of elements connect to local elements via a vertex.
+// Some definitions:
+//   An entity has isGhost() == true if it is created in this function
+//   An entity has isGhosted() == true if it is created on another process in this
+//   function.  For shared entitities that are ghosted, *all* the sharers have 
+//   isGhosted() == true.
+// The function getGhosts returns a map of (mpi_rank, apf::MeshEntity*) that contains
+// the entities that are both isGhost() and isGhosted().  Therefore, this
+// ghosting information can be used for symmetric communication patterns.
+// getResidence() returns the set of procs the entity existed on *before*
+// ghosting.  It does this for both regular and ghosted entities (ie.
+// The ranks the entity was ghosted to are not included).
 void createGhosting(apf::Mesh2* mesh, MPI_Comm comm);
 
 }  // namespace

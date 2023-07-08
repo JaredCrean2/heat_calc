@@ -13,6 +13,7 @@
 #include <queue>
 
 #include "mesh/dof_numbering.h"
+#include "mpi_utils.h"
 
 namespace Mesh {
 
@@ -148,7 +149,6 @@ void AdjacencyNumberer::countNodes(apf::Mesh2* m_local, NumberingType* is_dirich
 
 // initially number all dofs with number greater than number of nodes, to show
 // they have not received final number yet
-
 void AdjacencyNumberer::numberdofs(int ndof, int comp)
 {
 //  apf::FieldShape* fieldshape = m_local->getShape();
@@ -259,7 +259,24 @@ void AdjacencyNumberer::reorder()
 {
 // TODO: move m_is_dirichlet checks out one loop level because 
 //       it is node status now, not dof status
-
+/*
+  int val = commRank(MPI_COMM_WORLD) == 0 ? 0x2b9 : 0x1f9;
+  apf::MeshEntity* tmp = reinterpret_cast<apf::MeshEntity*>((void*)val);
+  std::cout << std::boolalpha;
+  std::cout << "entity " << tmp << "isShared = " << bool(m_local->isShared(tmp)) << ", isGhost = " << bool(m_local->isGhost(tmp)) << ", isGhosted = " << bool(m_local->isGhosted(tmp)) << ", isOwned = " << m_local->isOwned(tmp) << std::endl;
+  apf::Parts parts;
+  m_local->getResidence(tmp, parts);
+  std::cout << "resident parts = ";
+  for (int rank : parts)
+    std::cout << rank << ", ";
+  std::cout << std::endl;
+  std::cout << "owner = " << m_local->getOwner(tmp) << std::endl;
+  apf::Copies shares;
+  m_local->getRemotes(tmp, shares);
+  std::cout << "shared entities = " << std::endl;
+  for (auto& p : shares)
+    std::cout << "  " << p.first << ", " << p.second << std::endl;
+*/
   const int dim = m_local->getDimension();
   const int numEl = m_local->count(m_local->getDimension());  // counts the number of elements
 
