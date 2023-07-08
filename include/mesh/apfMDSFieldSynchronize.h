@@ -33,7 +33,6 @@ class ApfMDSFieldSyncrhonizer
 
     void synchronize()
     {
-      std::cout << "\nsynchronizing field" << m_field.getName() <<  std::endl;
       packBuffers();
       doCommunication();
     }
@@ -70,44 +69,7 @@ class ApfMDSFieldSyncrhonizer
             }
 
 
-          }
-/*
-          if (mesh->isShared(e))
-          {
-            std::cout << "packing shares for entity " << e << std::endl;
-            int owner_rank = mesh->getOwner(e);
-            if (owner_rank == m_comm_rank)
-            {
-              copies.clear();
-              mesh->getRemotes(e, copies);
-              packCopies(e, copies);
-            } else
-            {
-              countReceives(e);
-            }
-          }
-
-          // This problem is this: our definitions are that
-          //  1) getGhosts on the owner returns the ghosts, and getGhosts on the ghosts returns (at least) the owner
-          //  2) getGhosts should return the same values on the sharers as on the ghosts (ie. everyone knows about everyone)
-          // For more than 2 procs, this implies that two shared entities can also be ghost entities if the entity is ghosted
-          // to a third process.  It happens during the updateGhosts() function: the ghost initially has the owner is its
-          // getGhosts list, it then sends it getGhosts list to the other ghosts, which includes the shared entities.
-          // So now the shared entities has the owner in its getGhosts list.  One more round results in the owner having
-          // The shared entity in the ghost list.
-          if (mesh->isGhost(e))  
-          {
-            std::cout << "counting ghost receives for entity " << e << std::endl;
-            countReceives(e);
-          } else if (mesh->isGhosted(e) && mesh->getOwner(e) == m_comm_rank)  // not sure if the getOwner condition is required,
-                                                                              // it might be implied by isGhosted
-          {
-            std::cout << "packing ghosts for entity " << e << std::endl;
-            copies.clear();
-            mesh->getGhosts(e, copies);
-            packCopies(e, copies);
-          }
-*/          
+          }        
         }
         mesh->end(it);
       }
@@ -123,11 +85,7 @@ class ApfMDSFieldSyncrhonizer
         m_send_entities[rank].push_back(p.second);
         for (int i=0; i < countNodesOn(entity_local); ++i)
           for (int c=0; c < m_field.getNumComponents(); ++c)
-          {
-            //if (entity_local == reinterpret_cast<apf::MeshEntity*>((void*)0x1f9))
-            //  std::cout << "sending value " << m_field(entity_local, i, c) << " to rank " << rank << " for entity " << p.second << " from local entity " << entity_local << std::endl;
             m_send_vals[rank].push_back(m_field(entity_local, i, c));
-          }
       }
     }
 
@@ -157,7 +115,6 @@ class ApfMDSFieldSyncrhonizer
       for (int i=0; i < m_comm_size; ++i)
         if (m_recv_entity_counts[i] > 0)
         {
-          std::cout << "expecting to receive " << m_recv_entities[i].size() << " entities and " << m_recv_vals[i].size() << " values from rank " << i << std::endl;
           int count = m_recv_entities[i].size() * sizeof(apf::MeshEntity*);
           MPI_Irecv(m_recv_entities[i].data(), count, MPI_BYTE, i, tag, m_comm, &(recv_reqs_entities[idx]));
 
@@ -169,8 +126,6 @@ class ApfMDSFieldSyncrhonizer
       for (int i=0; i < m_comm_size; ++i)
         if (m_send_entities[i].size() > 0)
         {
-          std::cout << "sending " << m_send_entities[i].size() << " entities and " << m_send_vals[i].size() << " values from rank " << i << std::endl;
-
           int count = m_send_entities[i].size() * sizeof(apf::MeshEntity*);
           MPI_Isend(m_send_entities[i].data(), count, MPI_BYTE, i, tag, m_comm, &(send_reqs_entities[idx]));
 
@@ -210,16 +165,12 @@ class ApfMDSFieldSyncrhonizer
       for (int i=0; i < m_comm_size; ++i)
         if (m_recv_entities[i].size() > 0)
         {
-          std::cout << "\nreceiving from rank " << i << std::endl;
           auto& vals = m_recv_vals[i];
           int idx = 0;
           for (auto& e : m_recv_entities[i])
             for (int i=0; i < countNodesOn(e); ++i)
               for (int c=0; c < m_field.getNumComponents(); ++c)
-              {
-                std::cout << "receiving val " << vals[idx] << " for entity " << e << std::endl;
                 m_field(e, i, c) = vals[idx++];
-              }
         }
     }
 

@@ -41,19 +41,16 @@ class ParallelExchange
     template <typename Func>
     void finishCommunication(Func func)
     {
-      int numRecvs = 0;
+      int num_recvs = 0;
       for (size_t i=0; i < m_recv_bufs.size(); ++i)
         if (m_recv_bufs[i].size() > 0)
-          numRecvs++;
+          num_recvs++;
 
-      std::cout << "numRecvs = " << numRecvs << std::endl;
 
-      for (int i=0; i < numRecvs; ++i)
+      for (int i=0; i < num_recvs; ++i)
       {
-        std::cout << "i = " << i << std::endl;
         int rank;
         MPI_Waitany(m_recv_reqs.size(), m_recv_reqs.data(), &rank, MPI_STATUS_IGNORE);
-        std::cout << "rank = " << rank << std::endl;
         func(rank, m_recv_bufs[rank]);
       }
 

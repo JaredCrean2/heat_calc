@@ -39,12 +39,7 @@ class DirichletUpdateMap
 
     int getSendCount(int rank) const { return m_send_nodes[rank].size(); }
 
-    int getRecvCount(int rank) const 
-    { 
-      std::cout << "this = " << this << std::endl;
-      std::cout << "for rank " << rank << ", recv_node_ptrs.size = " << m_recv_node_ptrs[rank].size() << std::endl;
-      return m_recv_node_ptrs[rank].size() - 1;
-    }
+    int getRecvCount(int rank) const { return m_recv_node_ptrs[rank].size() - 1; }
 
     const std::vector<ArrayNode>& getSendDofs(int rank) const { return m_send_nodes[rank]; }
 

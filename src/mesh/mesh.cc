@@ -324,7 +324,6 @@ void MeshCG::getGhostDofInfo(std::vector<DofInt>& global_dofs, std::vector<DofIn
             if (isDofActive(local_dof_num))
             {
               int global_dof_num = apf::getNumber(m_apf_data.global_dof_nums, e, i, c);
-              std::cout << "entity " << e << " has global dof num = " << global_dof_num << std::endl;
               data.emplace_back(local_dof_num, global_dof_num);
             }
           }

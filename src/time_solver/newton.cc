@@ -124,7 +124,6 @@ void NewtonSolver::updateNonlinearSolution(ArrayType<Real, 1>& u_vec, AuxiliaryE
     auto& delta_u_block = m_aux_delta_u->getVector(block);
     for (int i=0; i < num_vars; ++i)
     {
-      std::cout << "block " << block << " delta u = " << delta_u_block[i] << std::endl;
       u_block[i] -= damp_factor * delta_u_block[i];
       delta_u_block[i] = 0;
     }

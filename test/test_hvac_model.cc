@@ -11,7 +11,6 @@ void test_derivative_interior_temp(Heat::HVACModel& model, Real interior_temp, R
   Real flux2 = model.enforceTemperatureLimit(interior_temp + eps, load_flux);
   Real flux_deriv = model.enforceTemperatureLimit_dot(interior_temp, 1, load_flux, 0);
   Real flux_fd = (flux2 - flux)/eps;
-  std::cout << "flux1 = " << flux << ", flux2 = " << flux2 << ", flux_fd = " << flux_fd << ", flux_deriv = " << flux_deriv << std::endl;
   EXPECT_NEAR(flux_deriv, flux_fd, 1e-5); 
 }
 
@@ -22,7 +21,6 @@ void test_derivative_load_flux(Heat::HVACModel& model, Real interior_temp, Real 
   Real flux2 = model.enforceTemperatureLimit(interior_temp, load_flux + eps);
   Real flux_deriv = model.enforceTemperatureLimit_dot(interior_temp, 0, load_flux, 1);
   Real flux_fd = (flux2 - flux)/eps;
-  std::cout << "flux1 = " << flux << ", flux2 = " << flux2 << ", flux_fd = " << flux_fd << ", flux_deriv = " << flux_deriv << std::endl;
 
   EXPECT_NEAR(flux_deriv, flux_fd, 1e-5); 
 }
@@ -37,15 +35,12 @@ void test_derivative_combined(Heat::HVACModel& model, Real interior_temp, Real l
   Real flux2 = model.enforceTemperatureLimit(interior_temp + interior_temp_dot*eps, load_flux + load_flux_dot*eps);
   Real flux_deriv = model.enforceTemperatureLimit_dot(interior_temp, interior_temp_dot, load_flux, load_flux_dot);
   Real flux_fd = (flux2 - flux)/eps;
-  std::cout << "flux1 = " << flux << ", flux2 = " << flux2 << ", flux_fd = " << flux_fd << ", flux_deriv = " << flux_deriv << std::endl;
 
   EXPECT_NEAR(flux_deriv, flux_fd, 1e-5); 
 }
 
 void test_reverse_mode(Heat::HVACModel& model, Real interior_temp, Real load_flux)
 {
-  std::cout << "\nTesting reverse mode" << std::endl;
-
   Real hvac_flux_bar = 2;
   Real interior_temp_dot = hvac_flux_bar;
   Real load_flux_dot     = hvac_flux_bar;

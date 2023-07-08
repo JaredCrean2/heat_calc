@@ -43,17 +43,10 @@ DirichletUpdateMap::DirichletUpdateMap(MeshCG* mesh, MPI_Comm comm) :
   m_recv_nodes(commSize(comm)),
   m_recv_node_ptrs(commSize(comm))
 {
-  std::cout << "rank on comm = " << commRank(comm) << " / " << commSize(comm) << std::endl;
 
-  std::cout << "vert at (2, 2, 0) = " << findClosestVert(m_apf_data.m, {2, 2, 0}) << std::endl;;
-  std::cout << "vert at (2, 2, 1) = " << findClosestVert(m_apf_data.m, {2, 2, 1}) << std::endl;;
-  std::cout << "vert at (2, 2, 2) = " << findClosestVert(m_apf_data.m, {2, 2, 2}) << std::endl;;
-
-  std::cout << "this = " << this << std::endl;
   int rank, size;
   PCU_Comm_Rank(&rank);
   PCU_Comm_Size(&size);
-  std::cout << "rank on pcu = " << rank << " / " << size << std::endl;
   getLocalDirichletUpdateMap();
   auto min_dirichlet_surface = collectMinDirichletSurfaces();
   createSendAndRecvLists(min_dirichlet_surface);
@@ -189,16 +182,8 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
   apf::MeshEntity* e;
   while ( (e = m_apf_data.m->iterate(it)) ) 
   {
-    std::cout << "e = " << e << std::endl;
-    std::cout << std::boolalpha;
-    std::cout << "is dirichlet = " << bool(apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0)) << ", isShared = " << bool(m_apf_data.m->isShared(e)) << ", isGhost = " << bool(m_apf_data.m->isGhost(e)) << ", isGhosted = " << bool(m_apf_data.m->isGhosted(e)) << std::endl;
-    apf::Copies ghosts;
-    m_apf_data.m->getGhosts(e, ghosts);
-    for (auto& p : ghosts)
-      std::cout << "  ghost " << p.second << " on rank " << p.first << std::endl;
     if (apf::getNumber(m_apf_data.is_dirichlet, e, 0, 0) && isSharedOrGhost(e))
     {
-      std::cout << "min entity = " << (*min_dirichlet_surface)(e, 0, 0).model_entity_dim << ", " << (*min_dirichlet_surface)(e, 0, 0).model_entity_tag  << " on rank " << (*min_dirichlet_surface)(e, 0, 0).rank << std::endl;
       remotes.clear();      
       bool is_local = (*min_dirichlet_surface)(e, 0, 0).rank == myrank;
       bool have_local_source = hasLocalDirichletSurface(e);
@@ -209,33 +194,22 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
       {
         for (auto& p : remotes)
         {
-          std::cout << "  expecting to receive from rank " << p.first << ", entity " << p.second << std::endl;
           exchanger.getRecvBuf(p.first).push_back({nullptr, false});
         }        
       } else
       {
-        std::cout << "have local source = " << have_local_source << std::endl;
         int sender_rank = (*min_dirichlet_surface)(e, 0, 0).rank;
-        std::cout << "  sending to rank " << sender_rank << " entity " << remotes[sender_rank] << std::endl;
         exchanger.getSendBuf(sender_rank).push_back({remotes[sender_rank], have_local_source});
         if (!have_local_source)
         {
           m_recv_counts[sender_rank]++;  //TODO: is this needed?
           getArrayNodes(e, m_recv_nodes[sender_rank]);
           m_recv_node_ptrs[sender_rank].push_back(m_recv_nodes[sender_rank].size());
-          std::cout << "recv_node_ptrs.size = " << m_recv_node_ptrs[sender_rank].size() << std::endl;
         }
       }
     }
   }
   m_apf_data.m->end(it);
-
-  std::cout << "myrank = " << commRank(m_comm) << std::endl;
-  for (int i=0; i < commSize(m_comm); ++i)
-    std::cout << "sending " << exchanger.getSendBuf(i).size() << " values to rank " << i << std::endl;
-
-  for (int i=0; i < commSize(m_comm); ++i)
-    std::cout << "receiving " << exchanger.getRecvBuf(i).size() << " values from rank " << i << std::endl;
 
   exchanger.startCommunication();
 
@@ -245,9 +219,7 @@ void DirichletUpdateMap::createSendAndRecvLists(std::shared_ptr<ModelEntityField
     {
       if (!entity_status.status)
       {
-        std::cout << "receiving entity " << entity_status.e << " from rank " << rank << std::endl;
         ArrayNode node = getArrayNode(entity_status.e);
-        std::cout << "array node = " << node.block << ", " << node.el << ", " << node.localnode << std::endl;
         m_send_nodes[rank].push_back(node);
       }
     }
