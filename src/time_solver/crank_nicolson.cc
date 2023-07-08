@@ -8,12 +8,14 @@ namespace timesolvers {
 
 CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u,
                              AuxiliaryEquationsStoragePtr u_aux_vec, 
-                             TimeStepperOpts opts) :
+                             TimeStepperOpts opts,
+                             MPI_Comm comm) :
   m_physics_model(physics_model),
   m_aux_eqns(physics_model->getAuxEquations()),
   m_u(u),
   m_u_aux(u_aux_vec),
-  m_opts(opts)
+  m_opts(opts),
+  m_comm(comm)
 {
   checkTimeStepperOpts(opts);
   auto mesh     = physics_model->getDiscretization()->getMesh();
@@ -24,11 +26,11 @@ CrankNicolson::CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVe
     for (int i=1; i < physics_model->getAuxEquations()->getNumBlocks(); ++i)
       num_augmented += physics_model->getAuxEquations()->getBlockSize(i);
     
-    sparsity = std::make_shared<linear_system::SparsityPatternAugmented>(sparsity, num_augmented, MPI_COMM_WORLD);
+    sparsity = std::make_shared<linear_system::SparsityPatternAugmented>(sparsity, num_augmented, m_comm);
   }
   m_matrix      = largeMatrixFactory(opts.mat_type, opts.matrix_opts, sparsity);
   m_func        = std::make_shared<CrankNicolsonFunction>(physics_model, m_matrix, opts.t_start, opts);
-  m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix);
+  m_newton      = std::make_shared<NewtonSolver>(m_func, m_matrix, comm);
 }
 
 
@@ -47,7 +49,8 @@ void CrankNicolson::solve()
   {
     Real delta_t = m_opts.timestep_controller->getNextTimestep(t);
     delta_t = std::min(delta_t, m_opts.t_end - t);
-    std::cout << "delta_t = " << delta_t << std::endl;
+    if (commRank(m_comm) == 0)
+      std::cout << "delta_t = " << delta_t << std::endl;
     assertAlways(delta_t > 0, "delta_t must be > 0");
 
     advanceTimestep(t + delta_t, delta_t);
@@ -78,7 +81,8 @@ void CrankNicolson::solve()
 
 void CrankNicolson::advanceTimestep(Real t_new, Real delta_t)
 {
-  std::cout << "CN advancing to time " << t_new << std::endl;
+  if (commRank(m_comm) == 0)
+    std::cout << "CN advancing to time " << t_new << std::endl;
 
   NewtonOpts opts;
   opts.nonlinear_abs_tol = m_opts.nonlinear_abs_tol;

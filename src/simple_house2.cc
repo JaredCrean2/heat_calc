@@ -79,7 +79,8 @@ std::shared_ptr<Heat::CombinedAirWindSkyNeumannBC> createCombinedBC(SurfDiscPtr 
 
 std::shared_ptr<DirichletBC> makeBottomBC(SurfDiscPtr surf, Real temp)
 {
-  std::cout << "making bottom BC with temp = " << temp << std::endl;
+  if (commRank(MPI_COMM_WORLD) == 0)
+    std::cout << "making bottom BC with temp = " << temp << std::endl;
   // for the bottom exterior surface, set temperature = const
   auto f = [=](Real x, Real y, Real z, Real t) { return temp; };
   return makeDirichletBCMMS(surf, f);
@@ -107,7 +108,6 @@ void setExteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
   auto postprocessors = heat_eqn->getPostProcessors();
 
   {
-    std::cout << "GroundBottom id = " << static_cast<int>(SurfaceName::GroundBottom) << std::endl;
     auto surf = disc->getSurfDisc(generator.getSurfaceId(SurfaceName::GroundBottom));
     //auto bc = std::make_shared<Heat::NewtonCooling>(surf, 0.0);  // zero flux BC for the bottom of the
     //                                                        // ground
@@ -341,6 +341,7 @@ int main(int argc, char* argv[])
   initialize(argc, argv);
 
   double t_start_initialize = MPI_Wtime();
+  bool am_i_root = commRank(MPI_COMM_WORLD) == 0;
 
   {
     Params params = parseParams(fname);
@@ -350,8 +351,11 @@ int main(int argc, char* argv[])
 
     GeometryGenerator generator(params.simple_house_spec);
     std::shared_ptr<Mesh::MeshCG> mesh = generator.getMesh();
-    std::cout << "total number of dofs = " << mesh->getNumTotalDofs() << std::endl;
-    std::cout << "number of local dofs = " << mesh->getNumDofs() << std::endl;
+    if (am_i_root)
+    {
+      std::cout << "total number of dofs = " << mesh->getNumTotalDofs() << std::endl;
+      std::cout << "number of local dofs = " << mesh->getNumDofs() << std::endl;
+    }
     mesh->writeVtkFiles("mesh_initial");
     DiscPtr disc = std::make_shared<Discretization>(mesh, 3, 3);
 
@@ -388,8 +392,9 @@ int main(int argc, char* argv[])
     auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(params.air_rho * params.air_cp, generator.computeInteriorVolume(),  
                                                     air_leakage, air_ventilation, interior_loads, window_model, hvac_model);
 
-    auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator);
-    std::cout << "initial air temp = " << initial_air_temp << std::endl;
+    auto heat_eqn = std::make_shared<Heat::HeatEquationSolar>(disc, solar_calc, environment_interface, air_updator, MPI_COMM_WORLD);
+    if (am_i_root)
+      std::cout << "initial air temp = " << initial_air_temp << std::endl;
     auto u_aux = makeAuxiliaryEquationsStorage(heat_eqn->getAuxEquations());
     u_aux->getVector(1)[0] = initial_air_temp;
 
@@ -403,7 +408,8 @@ int main(int argc, char* argv[])
 
     // make exterior BCS
     double bottom_temp = computeBottomTemp(environment_interface, solar_calc, opts.t_start, opts.t_end, 30, params);
-    std::cout << "bottom temperature = " << bottom_temp << std::endl;
+    if (am_i_root)
+      std::cout << "bottom temperature = " << bottom_temp << std::endl;
     setExteriorBCs(generator, heat_eqn, bottom_temp, params);
     setExteriorWallTempPostProcessors(generator, heat_eqn);
 
@@ -425,7 +431,6 @@ int main(int argc, char* argv[])
     // create CN solver
 
     DiscVectorPtr u = makeDiscVector(disc);
-    std::cout << "DiscVector vec.shape = " << u->getVector().shape()[0] << std::endl;
     u->set(initial_air_temp);  //TODO: maybe set to steady state solution?
     timesolvers::CrankNicolson timesolver(heat_eqn, u, u_aux, opts);
 
@@ -436,14 +441,18 @@ int main(int argc, char* argv[])
     timesolver.solve();
     mesh->writeVtkFiles("solution_final");
 
+    MPI_Barrier(MPI_COMM_WORLD);
     double t_end_run = MPI_Wtime();
 
-    std::cout << "\n\nFinished simple house run" << std::endl;
-    std::cout << "initializing took " << t_start_run - t_start_initialize << " seconds" << std::endl;
-    double t_run_elapsed = t_end_run - t_start_run;
-    double t_simulated_elapsed = opts.t_end - opts.t_start;
-    std::cout << "simulation took " << t_run_elapsed << " seconds to simulate " << t_simulated_elapsed << " seconds"
-              << ", which is " << t_simulated_elapsed/t_run_elapsed << "x realtime" << std::endl;
+    if (am_i_root)
+    {
+      std::cout << "\n\nFinished simple house run" << std::endl;
+      std::cout << "initializing took " << t_start_run - t_start_initialize << " seconds" << std::endl;
+      double t_run_elapsed = t_end_run - t_start_run;
+      double t_simulated_elapsed = opts.t_end - opts.t_start;
+      std::cout << "simulation took " << t_run_elapsed << " seconds to simulate " << t_simulated_elapsed << " seconds"
+                << ", which is " << t_simulated_elapsed/t_run_elapsed << "x realtime" << std::endl;
+    }
 
   } // force destructors to run before MPI_Finalize
 

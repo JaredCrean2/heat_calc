@@ -17,7 +17,7 @@ Real InteriorAirTemperatureUpdator::computeNetFlux(DiscVectorPtr sol_vec, Real i
   Real load_flux = computeLoadFlux(sol_vec, interior_temp, t);
   m_hvac_flux = m_hvac_model->enforceTemperatureLimit(interior_temp, load_flux);
 
-  std::cout << "load_flux = " << load_flux << ", hvac flux = " << m_hvac_flux << std::endl;
+  //std::cout << "load_flux = " << load_flux << ", hvac flux = " << m_hvac_flux << std::endl;
 
   return load_flux + m_hvac_flux;
 }
@@ -27,11 +27,11 @@ Real InteriorAirTemperatureUpdator::computeNetFluxJacobian(DiscVectorPtr sol_vec
   Real load_flux_dot;
   Real load_flux = computeLoadFluxDotTair(sol_vec, interior_temp, t, load_flux_dot);
   Real hvac_flux_dot = m_hvac_model->enforceTemperatureLimit_dot(interior_temp, 1, load_flux, load_flux_dot); 
-
+/*
   std::cout << "load_flux = " << load_flux << std::endl;
   std::cout << "load_flux_dot = " << load_flux_dot << ", hvac_flux_dot = " << hvac_flux_dot << std::endl;
   std::cout << "net flux dot = " << load_flux_dot + hvac_flux_dot << std::endl;
-
+*/
   return load_flux_dot + hvac_flux_dot;
 }
 
@@ -201,7 +201,6 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
 
   Real bc_flux = 0;
 
-  std::cout << "number of bcs = " << m_bcs.size() << std::endl;
   for (auto& bc : m_bcs )
   {
     // BCs are defined such that flux into the wall is positive, so
@@ -215,12 +214,13 @@ Real InteriorAirTemperatureUpdator::computeLoadFlux(DiscVectorPtr sol_vec, Real 
   Real interior_load_flux = m_interior_loads->computeLoadPower();
   Real window_flux        = m_window_model->computeConductionPower(interior_temp);
 
-
+/*
   std::cout << "bc_flux            = " << bc_flux << std::endl;
   std::cout << "air_leakage_flux   = " << air_leakage_flux << std::endl;
   std::cout << "ventilation_flux   = " << ventilation_flux << std::endl;
   std::cout << "interior_load_flux = " << interior_load_flux << std::endl;
   std::cout << "window_flux        = " << window_flux << std::endl;
+*/  
 
   return bc_flux + air_leakage_flux + ventilation_flux + interior_load_flux + window_flux;
 }

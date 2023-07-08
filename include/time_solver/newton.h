@@ -72,7 +72,7 @@ using NewtonFunctionPtr = std::shared_ptr<NewtonFunction>;
 class NewtonSolver
 {
   public:
-    explicit NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr jac);
+    explicit NewtonSolver(NewtonFunctionPtr func, linear_system::LargeMatrixPtr jac, MPI_Comm comm=MPI_COMM_WORLD);
 
     NewtonResult solve(ArrayType<Real, 1>& u, AuxiliaryEquationsStoragePtr u_aux_vec, NewtonOpts opts);
 
@@ -113,6 +113,8 @@ class NewtonSolver
     // linear solver temporaries
     AuxiliaryEquationsStoragePtr m_aux_delta_u;
     AuxiliaryEquationsStoragePtr m_aux_rhs;
+    //MPI_Comm m_comm;
+    bool m_am_i_root;
 };
 
 }

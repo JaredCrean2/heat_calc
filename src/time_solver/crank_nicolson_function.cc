@@ -313,7 +313,6 @@ void CrankNicolsonFunction::setTnp1(const ArrayType<Real, 1>& u_n, AuxiliaryEqua
 
 void CrankNicolsonFunction::precomputeLinearJacobian(linear_system::LargeMatrixPtr jac)
 {
-  std::cout << "precomputing matrices" << std::endl;
   m_mass_matrix = jac->clone();
   m_linear_stiffness_matrix = jac->clone();
 

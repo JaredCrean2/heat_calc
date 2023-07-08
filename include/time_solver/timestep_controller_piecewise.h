@@ -18,8 +18,9 @@ class TimestepControllerPiecewise : public TimestepController
       Real delta_t;
     };
 
-    TimestepControllerPiecewise(const std::vector<TimestepPoint>& pts) :
-      m_pts(pts)
+    TimestepControllerPiecewise(const std::vector<TimestepPoint>& pts, bool do_output) :
+      m_pts(pts),
+      m_do_output(do_output)
     {
       assertAlways(pts.size() >= 2, "must have at least 2 points for TimestepControllerPiecewise");
       sortData();
@@ -30,11 +31,16 @@ class TimestepControllerPiecewise : public TimestepController
     Real getNextTimestep(Real t) override
     {
       Real delta_t = interpolateDeltaT(t);
-      std::cout << "new delta_t = " << delta_t << std::endl;
+      if (m_do_output)
+        std::cout << "new delta_t = " << delta_t << std::endl;
       return delta_t;
     }
 
-    void recordLastIteration(Real physics_rhs) override {  std::cout << "recording residual " << physics_rhs << std::endl;}
+    void recordLastIteration(Real physics_rhs) override 
+    {
+      if (m_do_output)
+        std::cout << "recording residual " << physics_rhs << std::endl;
+    }
 
   private:
     void sortData()
@@ -82,6 +88,7 @@ class TimestepControllerPiecewise : public TimestepController
 
 
     std::vector<TimestepPoint> m_pts;
+    bool m_do_output;
 };
 }
 

@@ -17,7 +17,8 @@ class HeatEquationSolar : public HeatEquation
 
     HeatEquationSolar(DiscPtr disc, std::shared_ptr<SolarPositionCalculator> solar_position,
                       std::shared_ptr<EnvironmentInterface> environment_interface,
-                      std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator);
+                      std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator,
+                      MPI_Comm comm=MPI_COMM_WORLD);
 
     using HeatEquation::initialize; 
     using HeatEquation::addNeumannBC;

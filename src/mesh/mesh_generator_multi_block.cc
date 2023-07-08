@@ -7,7 +7,6 @@ namespace Mesh {
 
 void validateMultiBlockMeshSpec(MultiBlockMeshSpec& spec)
 {
-  std::cout << "\nValidating mesh spec" << std::endl;
   if (spec.numel_plusx.size() != spec.thickness_plusx.size())
     throw std::runtime_error("plusx number of layers is inconsistent");
 

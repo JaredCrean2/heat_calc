@@ -227,7 +227,7 @@ timesolvers::TimeStepperOpts parseTimesolverData(const std::map<std::string, std
   for (size_t i=0; i < timestep_vals.size(); ++i)
     timesteps.push_back({timestep_points[i], timestep_vals[i]});
 
-  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(timesteps);
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(timesteps, commRank(MPI_COMM_WORLD) == 0);
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
 
 
@@ -239,6 +239,13 @@ timesolvers::TimeStepperOpts parseTimesolverData(const std::map<std::string, std
   matrix_opts->petsc_opts["ksp_atol"] = input_vals.at("linear_abs_tol");
   matrix_opts->petsc_opts["ksp_rtol"] = input_vals.at("linear_rel_tol");
   matrix_opts->petsc_opts["ksp_monitor"] = "";
+
+  if (commSize(MPI_COMM_WORLD) > 1)
+  {
+    matrix_opts->petsc_opts["pc_type"] = "asm";
+    matrix_opts->petsc_opts["pc_asm_overlap"] = "1";
+  }
+
   opts.matrix_opts = matrix_opts;
 
   opts.t_start = parser.parseScalar<double>(input_vals.at("t_start"));

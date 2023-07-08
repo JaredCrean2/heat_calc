@@ -24,9 +24,11 @@ enum class JacobianTerms
 class PhysicsModel
 {
   public:
-    explicit PhysicsModel(DiscPtr disc) :
+    explicit PhysicsModel(DiscPtr disc, MPI_Comm comm=MPI_COMM_WORLD) :
         m_disc(disc),
-        m_aux_equations_none(makeAuxiliaryEquationsNone(disc))
+        m_aux_equations_none(makeAuxiliaryEquationsNone(disc)),
+        m_comm(comm)
+
     {}
 
     virtual ~PhysicsModel() {}
@@ -76,6 +78,8 @@ class PhysicsModel
         m_postprocessors->runPostProcessors(timestep, u, u_aux, t);
     }
 
+    MPI_Comm getComm() const { return m_comm; }
+
   protected:
     virtual void checkInitialization();
 
@@ -87,6 +91,7 @@ class PhysicsModel
     std::vector<SourceTermPtr> m_source_terms;
     AuxiliaryEquationsPtr m_aux_equations_none;
     physics::PostProcessorManagerPtr m_postprocessors;
+    MPI_Comm m_comm;
 };
 
 #endif

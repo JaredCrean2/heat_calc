@@ -21,7 +21,7 @@ namespace timesolvers {
 class CrankNicolson
 {
   public:
-    CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, TimeStepperOpts opts);
+    CrankNicolson(std::shared_ptr<PhysicsModel> physics_model, DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, TimeStepperOpts opts, MPI_Comm=MPI_COMM_WORLD);
 
     void solve();
 
@@ -40,6 +40,7 @@ class CrankNicolson
     TimeStepperOpts m_opts;
     std::shared_ptr<CrankNicolsonFunction> m_func;
     std::shared_ptr<NewtonSolver> m_newton;
+    MPI_Comm m_comm;
 };
 
 } // namespace

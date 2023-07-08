@@ -7,8 +7,9 @@ namespace Heat {
 
 HeatEquationSolar::HeatEquationSolar(DiscPtr disc, std::shared_ptr<SolarPositionCalculator> solar_position,
                   std::shared_ptr<EnvironmentInterface> environment_interface,
-                  std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator)
-: HeatEquation(disc),
+                  std::shared_ptr<InteriorAirTemperatureUpdator> air_temp_updator,
+                  MPI_Comm comm)
+: HeatEquation(disc, comm),
   m_solar_position(solar_position),
   m_environment(environment_interface),
   m_air_temp(air_temp_updator),

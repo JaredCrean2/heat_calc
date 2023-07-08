@@ -5,7 +5,6 @@ namespace Heat {
 void AuxiliaryEquationsSolar::computeAuxiliaryRhs(int block, DiscVectorPtr u_vec, AuxiliaryEquationsStoragePtr u_aux_vec, Real t, ArrayType<Real, 1>& rhs)
 {
   Real interior_temp = u_aux_vec->getVector(1)[0];
-  std::cout << "interior_temp = " << interior_temp << std::endl;
   rhs[0] = m_air_temp->computeNetFlux(u_vec, interior_temp, t);
 }
 

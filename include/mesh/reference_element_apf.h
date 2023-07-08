@@ -134,7 +134,6 @@ class FieldShapeRefEl: public FieldShape
     m_ref_el(ref_el),
     m_entityshapes(entityshapes)
     { 
-      std::cout << "about to register FieldShape name " << getName() << std::endl;
       registerSelf(getName());
     }
 

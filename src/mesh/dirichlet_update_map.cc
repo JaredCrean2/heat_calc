@@ -4,34 +4,6 @@
 
 #include "PCU.h"
 
-namespace {
-apf::MeshEntity* findClosestVert(apf::Mesh* mesh, const apf::Vector3& pt)
-{
-  double min_dist = std::numeric_limits<double>::max();
-  apf::MeshEntity* min_entity = nullptr;
-  apf::MeshIterator* it = mesh->begin(0);
-  apf::MeshEntity* e;
-
-  while ( (e = mesh->iterate(it)) )
-  {
-    apf::Vector3 coords;
-    mesh->getPoint(e, 0, coords);
-
-    double dist = 0;
-    for (int i=0; i < 3; ++i)
-      dist += std::abs(pt[i] - coords[i]);
-
-    if (dist < min_dist)
-    {
-      min_dist = dist;
-      min_entity = e;
-    }
-  }
-
-  return min_entity;
-}
-}
-
 namespace Mesh {
 
 DirichletUpdateMap::DirichletUpdateMap(MeshCG* mesh, MPI_Comm comm) :

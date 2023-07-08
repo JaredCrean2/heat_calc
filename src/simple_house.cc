@@ -282,7 +282,7 @@ timesolvers::TimeStepperOpts getTimeStepperOpts()
                                                                                {2*opts.t_end, day}
                                                                              };                                                                             
 
-  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(pts);
+  opts.timestep_controller = std::make_shared<timesolvers::TimestepControllerPiecewise>(pts, true);
   opts.mat_type = linear_system::LargeMatrixType::Petsc;
   opts.nonlinear_abs_tol = 1e-9;
   opts.nonlinear_rel_tol = 1e-8;

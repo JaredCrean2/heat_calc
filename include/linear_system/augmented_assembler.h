@@ -113,8 +113,6 @@ class AugmentedAssembler
 
     void startAssembly()
     {
-      std::cout << "\nstarting assembling" << std::endl;
-      std::cout << "myrank = " << commRank(m_comm) << " / " << commSize(m_comm) << std::endl;
       getRecvCounts();
       startSends();
       startRecvs();
@@ -122,8 +120,6 @@ class AugmentedAssembler
 
     void finishAssembly()
     {
-      std::cout << "\nfinishing assembling" << std::endl;
-
       finishRecvs();
       finishSends();
       for (auto& buf : m_dofs_rows)
@@ -171,18 +167,15 @@ class AugmentedAssembler
       for (int rank=0; rank < comm_size; ++rank)
       {
         int tag = m_start_tag;
-        std::cout << "rank = " << rank << std::endl;
 
         for (int i=0; i < m_num_augmented; ++i)
         {
-          std::cout << "  i = " << i << ", number of values = " << m_recv_dofs_rows[rank][i].size() << std::endl;
           m_recv_dofs_rows[rank][i].resize(m_recv_counts_rows[m_num_augmented * rank + i]);
           m_recv_vals_rows[rank][i].resize(m_recv_counts_rows[m_num_augmented * rank + i]);
 
 
           MPI_Irecv(m_recv_dofs_rows[rank][i].data(), m_recv_dofs_rows[rank][i].size(), DofInt_MPI_DATATYPE, rank,
                     tag++, m_comm, &(m_recv_dofs_rows_reqs[rank][i]));
-          std::cout << "  recv_req = " << m_recv_dofs_rows_reqs[rank][i] << std::endl;
           MPI_Irecv(m_recv_vals_rows[rank][i].data(), m_recv_vals_rows[rank][i].size(), MPI_DOUBLE, rank,
                     tag++, m_comm, &(m_recv_vals_rows_reqs[rank][i]));
         }

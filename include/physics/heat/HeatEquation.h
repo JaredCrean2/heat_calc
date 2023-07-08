@@ -45,8 +45,8 @@ class InteriorAirTemperatureUpdator;
 class HeatEquation : public PhysicsModel
 {
   public:
-    HeatEquation(DiscPtr disc)
-    : PhysicsModel(disc)
+    HeatEquation(DiscPtr disc, MPI_Comm comm=MPI_COMM_WORLD)
+    : PhysicsModel(disc, comm)
     {}
 
     void computeRhs(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, const Real t, DiscVectorPtr rhs) override;
