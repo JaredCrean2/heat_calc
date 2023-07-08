@@ -39,8 +39,8 @@ class AugmentedAssembler
         {
           m_recv_dofs_rows[i].resize(num_augmented);
           m_recv_vals_rows[i].resize(num_augmented);
-          m_recv_dofs_rows_reqs[i].resize(num_augmented);
-          m_recv_vals_rows_reqs[i].resize(num_augmented);
+          m_recv_dofs_rows_reqs[i].resize(num_augmented, MPI_REQUEST_NULL);
+          m_recv_vals_rows_reqs[i].resize(num_augmented, MPI_REQUEST_NULL);
         }
 
         if (m_am_i_last_rank)
@@ -52,7 +52,7 @@ class AugmentedAssembler
       m_num_mesh_dofs++;
     }
 
-
+    bool amILastRank() const { return m_am_i_last_rank; }
 
     void setAlpha(Real alpha) { m_alpha = alpha; }
 
@@ -122,7 +122,7 @@ class AugmentedAssembler
 
     void finishAssembly()
     {
-      std::cout << "\finishing assembling" << std::endl;
+      std::cout << "\nfinishing assembling" << std::endl;
 
       finishRecvs();
       finishSends();
@@ -191,8 +191,8 @@ class AugmentedAssembler
 
     void finishRecvs()
     {
-      //if (!m_am_i_last_rank)
-      //  return;
+      if (!m_am_i_last_rank)
+        return;
 
       int comm_size = commSize(m_comm);
 

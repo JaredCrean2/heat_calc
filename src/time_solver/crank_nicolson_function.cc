@@ -282,7 +282,8 @@ void CrankNicolsonFunction::computeJacobian(const ArrayType<Real, 1>& u, Auxilia
       for (int i=0; i < block_size; ++i)
         augmented_rows[i] = i + start_dof;
 
-      m_augmented_assembler->assembleAugmentedValuesDiag(augmented_rows, augmented_rows, vals);
+      if (m_augmented_assembler->amILastRank())
+        m_augmented_assembler->assembleAugmentedValuesDiag(augmented_rows, augmented_rows, vals);
       start_dof += block_size;
     }
   }

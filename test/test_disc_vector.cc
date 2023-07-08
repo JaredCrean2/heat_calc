@@ -234,7 +234,7 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
     for (unsigned int i=0; i < dofs.shape()[0]; ++i)
       for (unsigned int j=0; j < dofs.shape()[1]; ++j)
       {
-        auto& dofs = dof_numbering->getDofs(vol_block);
+        //auto& dofs = dof_numbering->getDofs(vol_block);
 
         //if (!dof_numbering->isDofActive(dofs[i][j]))
         //{
