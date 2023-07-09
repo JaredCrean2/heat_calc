@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <apfMesh.h>
 #include <apfVector.h>
 #include "mesh/ghosting.h"
 #include "mesh/mesh_generator.h"
@@ -16,14 +17,17 @@ apf::Vector3 computeCentroid(apf::Mesh* mesh, apf::MeshEntity* e)
     return pt;
   } else
   {
-    apf::Vector3 centroid;
+    apf::Vector3 centroid(0, 0, 0);
     apf::Downward down;
     int ndown = mesh->getDownward(e, 0, down);
     for (int i=0; i < ndown; ++i)
     {
+      //std::cout << "vert " << i << ", centroid = " << computeCentroid(mesh, down[i]) << std::endl;
       centroid += computeCentroid(mesh, down[i]);
     }
 
+    //std::cout << "final sum = " << centroid << std::endl;
+    //std::cout << "final centroid = " << centroid / ndown << std::endl;
     return centroid / ndown;
   }
 }

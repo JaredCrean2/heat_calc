@@ -312,6 +312,7 @@ TEST_F(NeumannBCTester, SimpleConvectionBC)
   
   Real heat_transfer_coeff = 2;
   auto bc = std::make_shared<Heat::SimpleConvectionBC>(disc->getSurfDisc(0), heat_transfer_coeff);
+  bc->setAirTemperature(3);
 
   testDerivative(bc);
   testDerivativeWrtTair(bc);

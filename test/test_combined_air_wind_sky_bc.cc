@@ -119,6 +119,15 @@ class CombinedAirWindSkyBCTester : public StandardDiscSetup,
       m_bc2 = std::make_shared<AirWindSkyTestBC>(surf, false, 
                   h_vals_second[0], h_vals_second[1], h_vals_second[2], h_vals_second[3], h_vals_second[4]);
       m_bc3 = std::make_shared<Heat::CombinedAirWindSkyNeumannBC>(std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>>{m_bc1, m_bc2});
+
+      m_bc3->setAirTemperature(300);
+      m_bc3->setAirDirection({1, 0, 0});
+      m_bc3->setAirSpeed(5);
+      m_bc3->setIRHorizontalRadiation(6);
+      m_bc3->setDiffuseRadiation(7);
+      m_bc3->setDirectNormalRadiation(8);
+      m_bc3->setSolarDirection({0, 0, 1});
+      
     }
 
     void checkFlux()

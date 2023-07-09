@@ -37,7 +37,7 @@ else()
     REQUIRED #indicate that SCOREC is really needed to compile
     CONFIG   #skip the 'MODULE' search system, save some time and confusion
   )
-
+message("Scorec libraries: ${SCOREC_LIBRARIES}")
 endif()
 
 

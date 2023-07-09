@@ -115,12 +115,12 @@ TEST_F(DiscVectorTester, SetConstant)
   disc_vec->set(1);
   auto& vec = disc_vec->getVector();
   for (unsigned int i=0; i < vec.shape()[0]; ++i)
-    EXPECT_EQ(vec[i], 1.0);
+    EXPECT_DOUBLE_EQ(vec[i], 1.0);
 
   auto& arr = disc_vec->getArray(0);
   for (unsigned int i=0; i < arr.shape()[0]; ++i)
     for (unsigned int j=0; j < arr.shape()[1]; ++j)
-      EXPECT_EQ(arr[i][j], 1.0);
+      EXPECT_DOUBLE_EQ(arr[i][j], 1.0);
 }
 
 TEST_F(DiscVectorTester, SetFunc)
@@ -141,9 +141,9 @@ TEST_F(DiscVectorTester, SetFunc)
       Real val_ex = func(coords[i][j][0], coords[i][j][1], coords[i][j][2]);
 
       if (dof_numbering->isDofActive(dof))
-        EXPECT_EQ(vec[dof], val_ex);
+        EXPECT_DOUBLE_EQ(vec[dof], val_ex);
 
-      EXPECT_EQ(arr[i][j], val_ex);
+      EXPECT_DOUBLE_EQ(arr[i][j], val_ex);
     }
 }
 
@@ -168,7 +168,7 @@ TEST_F(DiscVectorTester, syncArrayToVector)
       Real val_ex = func(coords[i][j][0], coords[i][j][1], coords[i][j][2]);
 
       if (dof_numbering->isDofActive(dof))
-        EXPECT_EQ(vec[dof], val_ex);
+        EXPECT_DOUBLE_EQ(vec[dof], val_ex);
     }
 }
 
@@ -196,7 +196,7 @@ TEST_F(DiscVectorTester, syncVectorToArray)
       if (!(dof_numbering->isDofActive(dof)))
         val_ex = 0;
 
-      EXPECT_EQ(arr[i][j], val_ex);        
+      EXPECT_DOUBLE_EQ(arr[i][j], val_ex);        
     }
 }
 
@@ -242,7 +242,7 @@ TEST_F(DiscVectorDirichletTester, syncVectorToArrayDirichlet)
         //  std::cout << "block " << vol_block << ", el " << i << ", node " << j << std::endl;
         //}
         Real val_ex = func(coords[i][j][0], coords[i][j][1], coords[i][j][2]);
-        EXPECT_EQ(arr[i][j], val_ex);        
+        EXPECT_DOUBLE_EQ(arr[i][j], val_ex);        
       }
   }
 }
@@ -263,7 +263,7 @@ TEST_F(DiscVectorTester, AssignmentOperator)
   auto& vec = disc_vec->getVector();
   auto& vec2 = disc_vec2->getVector();
   for (int i=0; i < disc_vec->getNumDofs(); ++i)
-    EXPECT_EQ(vec[i], vec2[i]);
+    EXPECT_DOUBLE_EQ(vec[i], vec2[i]);
 
   for (int i=0; i < disc->getNumVolDiscs(); ++i)
   {
@@ -271,6 +271,6 @@ TEST_F(DiscVectorTester, AssignmentOperator)
     auto& arr2 = disc_vec2->getArray(i);
     for (int el=0; el < arr.shape()[0]; ++el)
       for (int j=0; j < arr.shape()[1]; ++j)
-        EXPECT_EQ(arr[el][j], arr2[el][j]);
+        EXPECT_DOUBLE_EQ(arr[el][j], arr2[el][j]);
   }
 }

@@ -3,9 +3,12 @@
 #include "file/DataExtractor.h"
 #include "file/EpwReader.h"
 #include "file/WeatherFileWriter.h"
+#include "test_helper.h"
 
 TEST(DataExtractor, File)
 {
+  SERIAL_ONLY();
+  
   EPWDataPoint pt1;
   pt1.year = 2000;
   pt1.month = 2;

@@ -23,7 +23,8 @@ struct ElementNode
 template <typename T>
 struct Assign2
 {
-  T operator()(const T first, const T second) { return second;}
+  //T operator()(const T first, const T second) const { return second;}
+  T operator()(T first, T second) const { return second;}
 };
 
 class DofNumbering
