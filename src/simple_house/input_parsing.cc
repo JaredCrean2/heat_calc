@@ -92,6 +92,7 @@ const std::map<std::string, std::string>& getInputFileDefaults()
     std::make_pair("nonlinear_itermax", "30"),
     std::make_pair("linear_abs_tol", "1e-12"),
     std::make_pair("linear_rel_tol", "1e-50"),
+    std::make_pair("vis_output_freq", "-1")
   };
 
   return input_file_defaults;
@@ -219,6 +220,7 @@ timesolvers::TimeStepperOpts parseTimesolverData(const std::map<std::string, std
   opts.nonlinear_abs_tol = parser.parseScalar<double>(input_vals.at("nonlinear_abs_tol"));
   opts.nonlinear_rel_tol = parser.parseScalar<double>(input_vals.at("nonlinear_rel_tol"));
   opts.nonlinear_itermax = parser.parseScalar<int>(input_vals.at("nonlinear_itermax"));
+  opts.vis_output_freq   = parser.parseScalar<int>(input_vals.at("vis_output_freq"));
 
   std::vector<double> timestep_vals = parser.parseArray<double>(input_vals.at("timestep_values"));
   std::vector<double> timestep_points = parser.parseArray<double>(input_vals.at("timestep_points"));
@@ -242,6 +244,9 @@ timesolvers::TimeStepperOpts parseTimesolverData(const std::map<std::string, std
 
   if (commSize(MPI_COMM_WORLD) > 1)
   {
+    matrix_opts->petsc_opts["ksp_type"] = "cg";
+    //matrix_opts->petsc_opts["pc_type"] = "jacobi";
+
     matrix_opts->petsc_opts["pc_type"] = "asm";
     matrix_opts->petsc_opts["pc_asm_overlap"] = "1";
   }

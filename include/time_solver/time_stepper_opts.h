@@ -28,6 +28,8 @@ struct TimeStepperOpts
   // one for the linear (solution independent) part of the Jacobian.
   // This may speed the computation of the Jacobian at the expense of memory.
   bool precompute_linear_jacobian = false;
+
+  int vis_output_freq = -1;
 };
 
 void checkTimeStepperOpts(const TimeStepperOpts& opts, bool check_implicit=true);

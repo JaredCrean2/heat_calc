@@ -4,11 +4,6 @@
 
 export OPENBLAS_NUM_THREADS=1
 
-# mpicxx for IntelMPI looks for g++ as the default underlying
-# compiler.  Tell it to use clang instead
-export I_MPI_CXX="clang++"  
-export I_MPI_CC="clang"
-
 #source ~/build/gcc-7.3.0_install/use_gcc.sh
 source ~/build/llvm_develop/use_clang.sh
 source ~/build/mpich-3.4.1_clang_install/use_mpich.sh
