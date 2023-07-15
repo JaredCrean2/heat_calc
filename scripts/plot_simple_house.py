@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 matplotlib.use('AGG')
 import numpy as np
 import sys
+import os
 
 
 btu_per_house_to_tons = 1.0/11917
@@ -18,6 +19,7 @@ else:
   print("Usage: " + sys.argv[0] + " fname")
   exit(1)
 
+fname_prefix = os.path.splitext(fname)[0]
 
 def getColumnNames(fname):
   file = open(fname, 'r')
@@ -247,7 +249,7 @@ plotColumns(column_names, column_names3, data, "time (s)", "temperature (K)", fi
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("simple_house_interior_results.png", dpi=600);
+fig.savefig(fname_prefix + "interior_results.png", dpi=600);
 
 # plot interior flux breakdown
 fig, axs = plt.subplots(3);
@@ -264,7 +266,7 @@ plotColumns(column_names, column_names3, data, "time (s)", "flux (W)", fig, axs[
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("simple_house_interior_fluxes.png", dpi=600);
+fig.savefig(fname_prefix + "_interior_fluxes.png", dpi=600);
 
 
 # plot exterior
@@ -282,7 +284,7 @@ plotColumns(column_names, column_names3, data, "time (s)", "temperature (K)", fi
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("simple_house_exterior_results.png", dpi=600);
+fig.savefig(fname_prefix + "_exterior_results.png", dpi=600);
 
 # plot exterior flux breakdown
 fig, axs = plt.subplots(3);
@@ -300,7 +302,7 @@ plotColumns(column_names, column_names3, data, "time (s)", "flux (W)", fig, axs[
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("simple_house_exterior_fluxes.png", dpi=600);
+fig.savefig(fname_prefix + "_exterior_fluxes.png", dpi=600);
 
 # plot under ground temperatures
 fig, axs = plt.subplots(2);
@@ -312,7 +314,7 @@ plotColumns(column_names, column_names1, data, "time (s)", "temperature (K)", fi
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("underground_temps.png", dpi=600);
+fig.savefig(fname_prefix + "_underground_temps.png", dpi=600);
 
 # plot interior net flux
 fig, axs = plt.subplots(2);
@@ -329,7 +331,7 @@ plotColumnsWithLabels(column_names, column_names1, data, "time (s)", "flux (W)",
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("interior_net_flux.png", dpi=600);
+fig.savefig(fname_prefix + "_interior_net_flux.png", dpi=600);
 
 # plot some things in Imperial units
 fig, axs = plt.subplots(3);
@@ -348,8 +350,8 @@ plotColumns(column_names, column_names6, data, "time (s)", "tons", fig, axs[2])
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig("simple_house_imperial_results.png", dpi=600)
+fig.savefig(fname_prefix + "_imperial_results.png", dpi=600)
 
 computeTotalHVACFluxes(column_names, data)
 
-writeResults(column_names, data, fname + "_postprocessed");
+writeResults(column_names, data, fname_prefix + "_postprocessed.txt");
