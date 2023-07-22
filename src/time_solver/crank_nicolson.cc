@@ -45,7 +45,7 @@ void CrankNicolson::solve()
   //m_physics_model->runPostProcessors(0, m_u, m_aux_aux, t);
 
   int iter = 0;
-  while (t < m_opts.t_end)
+  while (t < (m_opts.t_end - 1e-11))
   {
     Real delta_t = m_opts.timestep_controller->getNextTimestep(t);
     delta_t = std::min(delta_t, m_opts.t_end - t);
