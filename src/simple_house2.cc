@@ -431,7 +431,19 @@ int main(int argc, char* argv[])
     // create CN solver
 
     DiscVectorPtr u = makeDiscVector(disc);
-    u->set(initial_air_temp);  //TODO: maybe set to steady state solution?
+    auto ic_func = [&](const Real& x, const Real& y, const Real& z)
+    {
+      Real val = 0;
+      if (z > 0)
+        val = initial_air_temp;
+      else
+        val = bottom_temp;
+
+      return val;
+    };
+
+    u->setFunc(ic_func);
+    //u->set(initial_air_temp);  //TODO: maybe set to steady state solution?
     timesolvers::CrankNicolson timesolver(heat_eqn, u, u_aux, opts);
 
     // run solver

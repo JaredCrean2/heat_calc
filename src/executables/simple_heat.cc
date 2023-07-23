@@ -87,17 +87,18 @@ std::shared_ptr<Heat::HeatEquation> createPhysics(std::shared_ptr<Mesh::MeshCG> 
 
 void setSolution(std::shared_ptr<Heat::HeatEquation> heat, DiscVectorPtr sol)
 {
-  Real rho = 1, Cp = 1, kappa = 1;
+  Real rho = 64, Cp = 2020, kappa = 0.039;
+  double pi = std::atan2(0, -1);
 
   Heat::VolumeGroupParams params = {kappa, rho, Cp};
-  auto ex_sol = [](const Real& x, const Real& y, const Real& z, const Real& t)
+  auto ex_sol = [=](const Real& x, const Real& y, const Real& z, const Real& t)
   {
-    return x*x + y*y + z*z + t*t;
+    return x*x + y*y + z*z + std::sin(pi * t/86400);
   };
 
-  auto ex_sol_dt = [](const Real& x, const Real& y, const Real& z, const Real& t)
+  auto ex_sol_dt = [=](const Real& x, const Real& y, const Real& z, const Real& t)
   {
-    return 2*t;
+    return pi * std::cos(pi * t / 86400) / 86400;
   };
 
   auto deriv = [=](const Real& x, const Real& y, const Real& z, const Real& t)
@@ -107,7 +108,7 @@ void setSolution(std::shared_ptr<Heat::HeatEquation> heat, DiscVectorPtr sol)
 
   auto src = [=](const Real& x, const Real& y, const Real& z, const Real& t)
   {
-    return rho * Cp * 2*t - 8*kappa;
+    return rho * Cp * pi * std::cos(pi * t / 86400) / 86400 - 8*kappa;
   };
 
 
@@ -170,6 +171,15 @@ timesolvers::TimeStepperOpts getTimeStepperOpts(const Opts& input_opts)
   return opts;
 }
 
+int getNumDofs(std::shared_ptr<Mesh::MeshCG> mesh)
+{
+  int num_owned_dofs = mesh->getNumOwnedDofs();
+  int num_total_dofs = 0;
+  MPI_Allreduce(&num_owned_dofs, &num_total_dofs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  return num_total_dofs;
+}
+
 
 
 int main(int argc, char* argv[])
@@ -178,6 +188,8 @@ int main(int argc, char* argv[])
   //linear_system::setPetscGlobalOption("log_view", "");
 
   initialize(argc, argv);  
+
+  bool am_i_root = commRank(MPI_COMM_WORLD) == 0;
 
   // Runs a simple MMS case, solving the heat equation with solution T = x^2 + y^2 + z^2 + t^2
   Opts opts = parseArguments(argc, argv);
@@ -189,6 +201,12 @@ int main(int argc, char* argv[])
   auto timestepper_opts = getTimeStepperOpts(opts);
   auto u_aux = makeAuxiliaryEquationsStorage(heat->getAuxEquations());
 
+  int num_total_dofs = getNumDofs(mesh);
+  if (am_i_root)
+  {
+    
+    std::cout << "number of dofs = " << num_total_dofs << std::endl;
+  }
 
   timesolvers::CrankNicolson timesolver(heat, sol, u_aux, timestepper_opts);
 
