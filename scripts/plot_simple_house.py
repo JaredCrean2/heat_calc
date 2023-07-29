@@ -211,6 +211,16 @@ data, column_names = sumColumns(data, column_names, net_flux_names, "net_exterio
 net_flux_names = ["east_exterior_wall_flux_sky_rad", "north_exterior_wall_flux_sky_rad", "west_exterior_wall_flux_sky_rad", "south_exterior_wall_flux_sky_rad", "roof_flux_sky_rad"];
 data, column_names = sumColumns(data, column_names, net_flux_names, "net_exterior_flux_sky_rad");
 
+net_flux_names = ["east_exterior_wall_flux_sky_rad", "north_exterior_wall_flux_sky_rad", "west_exterior_wall_flux_sky_rad", "south_exterior_wall_flux_sky_rad",
+                  "east_exterior_wall_flux_solar_rad", "north_exterior_wall_flux_solar_rad", "west_exterior_wall_flux_solar_rad", "south_exterior_wall_flux_solar_rad" ];
+data, column_names = sumColumns(data, column_names, net_flux_names, "exterior_wall_flux_rad");
+
+net_flux_names = ["roof_flux_sky_rad", "roof_flux_solar_rad" ];
+data, column_names = sumColumns(data, column_names, net_flux_names, "roof_flux_rad");
+
+net_flux_names = ["roof_flux_rad", "exterior_wall_flux_rad" ];
+data, column_names = sumColumns(data, column_names, net_flux_names, "net_exterior_flux_rad");
+
 net_flux_names = ["floor_flux_north_rad", "floor_flux_east_rad", "floor_flux_south_rad", "floor_flux_west_rad"];
 data, column_names = sumColumns(data, column_names, net_flux_names, "net_floor_flux_rad");
 
@@ -249,7 +259,7 @@ plotColumns(column_names, column_names3, data, "time (s)", "temperature (K)", fi
 
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
-fig.savefig(fname_prefix + "interior_results.png", dpi=600);
+fig.savefig(fname_prefix + "_interior_results.png", dpi=600);
 
 # plot interior flux breakdown
 fig, axs = plt.subplots(3);
@@ -303,6 +313,24 @@ plotColumns(column_names, column_names3, data, "time (s)", "flux (W)", fig, axs[
 makeLegend(fig, axs)
 fig.suptitle("Simple House")
 fig.savefig(fname_prefix + "_exterior_fluxes.png", dpi=600);
+
+# plot exterior flux breakdown2
+fig, axs = plt.subplots(3);
+fig.set_size_inches(8, 6)
+fig.subplots_adjust(left=0.15, bottom=0.1, right=0.9, top=0.9, wspace=0.4, hspace=0.6)
+
+column_names1 = ["time", "exterior_wall_flux_cond", "roof_flux_cond", "net_exterior_flux_cond"]
+column_names2 = ["time", "exterior_wall_flux_rad", "roof_flux_rad", "net_exterior_flux_rad"]
+column_names3 = ["time", "net_exterior_flux_rad", "net_exterior_flux_cond", "net_exterior_flux"]
+
+
+plotColumns(column_names, column_names1, data, "time (s)", "flux (W)", fig, axs[0])
+plotColumns(column_names, column_names2, data, "time (s)", "flux (W)", fig, axs[1])
+plotColumns(column_names, column_names3, data, "time (s)", "flux (W)", fig, axs[2])
+
+makeLegend(fig, axs)
+fig.suptitle("Simple House")
+fig.savefig(fname_prefix + "_exterior_fluxes2.png", dpi=600);
 
 # plot under ground temperatures
 fig, axs = plt.subplots(2);
