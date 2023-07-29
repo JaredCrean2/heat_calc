@@ -2,6 +2,7 @@
 #define PHYSICS_HEAT_SOLAR_POSITION_CALCULATOR_H
 
 #include "ProjectDefs.h"
+#include "physics/post_processor_base.h"
 #include "solar_position.h"
 
 #include <iomanip>
@@ -16,6 +17,28 @@ class SolarPositionCalculator
 
     virtual DirectionCosines computePosition(Real t_seconds) = 0;
 
+};
+
+class PostProcessorSolarPositionCalculator : public physics::PostProcessorBase
+{
+  public:
+    explicit PostProcessorSolarPositionCalculator(std::shared_ptr<SolarPositionCalculator> solar_calc) :
+      m_solar_calc(solar_calc)
+    {}
+
+    // returns number of values this postprocessor returns
+    int numValues() const override { return 3; }
+
+    std::vector<std::string> getNames() const override { return {"solar_dir_cs1", "solar_dir_cs2", "solar_dir_cs3"}; }
+
+    std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override
+    {
+      DirectionCosines dir = m_solar_calc->computePosition(t);
+      return {dir.cs1, dir.cs2, dir.cs3};
+    }
+
+  private:
+    std::shared_ptr<SolarPositionCalculator> m_solar_calc;
 };
 
 

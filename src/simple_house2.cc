@@ -373,6 +373,7 @@ int main(int argc, char* argv[])
     //auto solar_calc = std::make_shared<Heat::SolarPositionCalculatorConstant>(solar_calc_variable->computePosition(0));
     auto solar_calc = solar_calc_variable;
     
+    
     auto air_leakage = std::make_shared<Heat::AirLeakageModelPressure>(params.air_leakage_ach50, 4, generator.computeInteriorVolume(),
                                                                        params.air_cp, params.air_rho);
     auto air_ventilation = std::make_shared<Heat::AirLeakageModelPressure>(0, 4, generator.computeInteriorVolume(), params.air_cp, params.air_rho);
@@ -402,6 +403,7 @@ int main(int argc, char* argv[])
     auto postprocessors = std::make_shared<physics::PostProcessorManager>(postprocessor_scheduler, "simple_house_data.txt", MPI_COMM_WORLD);
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorInterior>(heat_eqn->getAuxEquationsSolar(), air_updator));
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorEnvironmentData>(heat_eqn.get()));
+    postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorSolarPositionCalculator>(solar_calc));
     heat_eqn->setPostProcessors(postprocessors);
 
     generator.createVolumeGroups(heat_eqn);
