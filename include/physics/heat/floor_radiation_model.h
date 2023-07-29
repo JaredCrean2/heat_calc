@@ -13,16 +13,20 @@ namespace Heat
 // from windows
 // This model takes the flux through the windows and distributes it evenly
 // over the floor
+// shading_angle: if the angle between the sun and the z axis (normal to the earths surface)
+//                is greater than this value, no direct normal flux will enter the
+//                window.  Angle is in radians
 class FloorRadiationModel
 {
   public:
     FloorRadiationModel(Real window_area, std::array<Real, 3> window_normal, Real shgc,
-                        Real floor_area, Real floor_absorptivity) :
+                        Real floor_area, Real floor_absorptivity, Real shading_angle) :
       m_window_area(window_area),
       m_window_normal(window_normal),
       m_solar_heat_gain_coefficient(shgc),
       m_floor_area(floor_area),
-      m_floor_absorptivity(floor_absorptivity)
+      m_floor_absorptivity(floor_absorptivity),
+      m_shading_z_component(shading_angle > 0 ? std::cos(shading_angle): 2)
     {
       m_window_normal = m_window_normal / std::sqrt(dot(window_normal, window_normal));
     }
@@ -42,6 +46,9 @@ class FloorRadiationModel
     Real computeFlux()
     {
       Real direction_val = std::max(dot(m_window_normal, m_solar_direction_unit), 0.0);
+      if (m_solar_direction_unit[2] > m_shading_z_component)
+        direction_val = 0;
+
       Real net_flux = m_solar_heat_gain_coefficient * m_window_area * (direction_val * m_direct_flux + m_diffuse_flux);
       return m_floor_absorptivity * net_flux/m_floor_area;
     }
@@ -52,6 +59,7 @@ class FloorRadiationModel
     Real m_solar_heat_gain_coefficient;
     Real m_floor_area;
     Real m_floor_absorptivity;
+    Real m_shading_z_component;
 
     Real m_direct_flux = -1;
     Real m_diffuse_flux = -1;

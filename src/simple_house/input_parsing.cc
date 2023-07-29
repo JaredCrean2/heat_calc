@@ -34,6 +34,9 @@ const std::map<std::string, std::string>& getInputFileDefaults()
     std::make_pair("floor_roughness_index", "0"),
     std::make_pair("window_shgc", "0.9"),
     std::make_pair("floor_absorptivity", "0.65"),
+    std::make_pair("window_shading_angle", "-1"),  // if the angle between the sun and the z axis is greater than
+                                                   // this angle, no direct normal radiation enteres the windows
+                                                   // set a negative number for no shading
     std::make_pair("window_areas", "[1.114836, 1.114836, 1.114836, 1.114836]"),
     std::make_pair("window_r_value", "0.5283305514"),
 
@@ -267,6 +270,8 @@ Params parseParams(const std::string& fname)
   Params params;
   ValueParser parser;
 
+  const double pi = std::atan(1)*4;
+
   params.weather_filename         = input_vals.at("weather_filename");
   params.met_terrain_index        = parser.parseScalar<int>(input_vals.at("met_terrain_index"));
   params.meterological_altitude   = parser.parseScalar<int>(input_vals.at("meterological_altitude"));
@@ -296,6 +301,8 @@ Params parseParams(const std::string& fname)
   params.floor_roughness_index     = parser.parseScalar<int>(input_vals.at(   "floor_roughness_index"));
   params.window_shgc               = parser.parseScalar<double>(input_vals.at("window_shgc"));
   params.floor_absorptivity        = parser.parseScalar<double>(input_vals.at("floor_absorptivity"));
+  params.window_shading_angle      = parser.parseScalar<double>(input_vals.at("window_shading_angle"));
+  params.window_shading_angle      = params.window_shading_angle * pi / 180.0;
   std::vector<double> window_areas = parser.parseArray<double>(input_vals.at( "window_areas"));
   if (window_areas.size() != 4)
     throw std::runtime_error("the building has 4 walls, must have exactly 4 window areas");

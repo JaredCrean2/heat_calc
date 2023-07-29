@@ -191,7 +191,7 @@ std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> makeFloorRadiationBCs(Ge
     }
 
     bcs[i] = std::make_shared<Heat::FloorRadiationBC>(surf, params.window_areas[i], window_normal, params.window_shgc,
-                                                      floor_area, params.floor_absorptivity, names[i]);
+                                                      floor_area, params.floor_absorptivity, params.window_shading_angle, names[i]);
   }
 
   return bcs;

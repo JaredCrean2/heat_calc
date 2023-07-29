@@ -13,7 +13,7 @@ TEST(FloorRadiationModel, Example)
   Real diffuse_flux = 50;
   Heat::DirectionCosines cosines = {1, 0, 0};
 
-  Heat::FloorRadiationModel model(window_area, window_normal, shgc, floor_area, floor_absorptivity);
+  Heat::FloorRadiationModel model(window_area, window_normal, shgc, floor_area, floor_absorptivity, -1);
   model.setDirectNormalRadiation(direct_normal_flux);
   model.setDiffuseRadiation(diffuse_flux);
   model.setSolarDirection(cosines);
@@ -21,7 +21,7 @@ TEST(FloorRadiationModel, Example)
   EXPECT_NEAR(model.computeFlux(), floor_absorptivity * shgc * window_area * (direct_normal_flux + diffuse_flux)/floor_area, 1e-13);
 }
 
-TEST(FloorRadiationModel, Shading)
+TEST(FloorRadiationModel, ShadingBelowHorizon)
 {
   Real window_area = 2;
   std::array<Real, 3> window_normal = {1, 0, 0};
@@ -33,7 +33,27 @@ TEST(FloorRadiationModel, Shading)
   Real diffuse_flux = 50;
   Heat::DirectionCosines cosines = {-1, 0, 0};
 
-  Heat::FloorRadiationModel model(window_area, window_normal, shgc, floor_area, floor_absorptivity);
+  Heat::FloorRadiationModel model(window_area, window_normal, shgc, floor_area, floor_absorptivity, -1);
+  model.setDirectNormalRadiation(direct_normal_flux);
+  model.setDiffuseRadiation(diffuse_flux);
+  model.setSolarDirection(cosines);
+
+  EXPECT_NEAR(model.computeFlux(), floor_absorptivity * shgc * window_area * diffuse_flux/floor_area, 1e-13);
+}
+
+TEST(FloorRadiationModel, ShadingAboveOverhang)
+{
+  Real window_area = 2;
+  std::array<Real, 3> window_normal = {1, 0, 0};
+  Real shgc = 0.9;
+  Real floor_area = 4;
+  Real floor_absorptivity = 0.8;
+
+  Real direct_normal_flux = 100;
+  Real diffuse_flux = 50;
+  Heat::DirectionCosines cosines = {0, 0, 1};
+
+  Heat::FloorRadiationModel model(window_area, window_normal, shgc, floor_area, floor_absorptivity, 0.7);
   model.setDirectNormalRadiation(direct_normal_flux);
   model.setDiffuseRadiation(diffuse_flux);
   model.setSolarDirection(cosines);

@@ -234,9 +234,9 @@ class FloorRadiationBC : public AirWindSkyNeumannBC
 {
   public:
     FloorRadiationBC(SurfDiscPtr surf, Real window_area, std::array<Real, 3> window_normal,
-                     Real shgc, Real floor_area, Real floor_absorbtivity, const std::string& name) :
+                     Real shgc, Real floor_area, Real floor_absorbtivity, Real shading_angle, const std::string& name) :
       AirWindSkyNeumannBC(surf, false, name),
-      m_model(window_area, window_normal, shgc, floor_area, floor_absorbtivity)
+      m_model(window_area, window_normal, shgc, floor_area, floor_absorbtivity, shading_angle)
     {}
 
     void setAirTemperature(Real t_air) override { m_t_air = t_air; }

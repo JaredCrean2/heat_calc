@@ -56,6 +56,7 @@ struct Params
   int floor_roughness_index = 0;
   Real window_shgc = 0.9;
   Real floor_absorptivity = 0.65; // unfinished concrete 
+  Real window_shading_angle = -1;
   std::array<Real, 4> window_areas = {0.557418 * 2, 0.557418 * 2, 0.557418 * 2, 0.557418 * 2};  // 6 sq ft each window, 2 windows per wall
   Real window_area    = window_areas[0] + window_areas[1] + window_areas[2] + window_areas[3];
   Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units   
