@@ -73,7 +73,7 @@ class CNDependentTester : public StandardDiscSetup,
 
       for (int i=0; i < disc->getNumVolDiscs(); ++i)
       {
-        heat_model->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+        heat_model->addSourceTerm(i, makeSourcetermMMS(disc->getVolDisc(i), src));
         heat_model->addVolumeGroupParams(params);
       }
 

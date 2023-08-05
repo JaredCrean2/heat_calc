@@ -353,7 +353,7 @@ namespace {
 
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
-          heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), zeroFunc));
+          heat->addSourceTerm(i, makeSourcetermMMS(disc->getVolDisc(i), zeroFunc));
           heat->addVolumeGroupParams(params);
         }
 

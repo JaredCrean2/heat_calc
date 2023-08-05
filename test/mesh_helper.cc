@@ -120,7 +120,7 @@ void StandardMeshBase::setup(const int quad_degree, int sol_degree, const Mesh::
           const std::vector<bool>& is_surf_dirichlet)
 {
   spec = meshspec;
-  //quad = getGaussianQuadrature(quad_degree);
+  quad = getGaussianQuadrature(quad_degree);
 
   mesh_dim_mins = {spec.xmin, spec.ymin, spec.zmin};
   mesh_dim_maxs = {spec.xmax, spec.ymax, spec.zmax};

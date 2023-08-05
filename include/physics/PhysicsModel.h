@@ -60,11 +60,11 @@ class PhysicsModel
 
     virtual const std::vector<NeumannBCPtr>& getNeumannBCs() const {return m_neumann_bcs; }
 
-    virtual void addSourceTerm(SourceTermPtr src) { m_source_terms.push_back(src); }
+    virtual void addSourceTerm(int vol_disc, SourceTermPtr src) { m_source_terms[vol_disc] = src; }
 
     virtual SourceTermPtr getSourceTerm(int idx)  const { return m_source_terms.at(idx); }
 
-    bool hasSourceTerm(size_t idx) const { return idx < m_source_terms.size(); }
+    bool hasSourceTerm(size_t vol_disc) const { return m_source_terms.count(vol_disc) > 0; }
 
     virtual AuxiliaryEquationsPtr getAuxEquations() { return m_aux_equations_none; }
 
@@ -88,7 +88,7 @@ class PhysicsModel
     DiscPtr m_disc;
     std::vector<DirichletBCPtr> m_dirichlet_bcs;
     std::vector<NeumannBCPtr> m_neumann_bcs;
-    std::vector<SourceTermPtr> m_source_terms;
+    std::map<int, SourceTermPtr> m_source_terms;
     AuxiliaryEquationsPtr m_aux_equations_none;
     physics::PostProcessorManagerPtr m_postprocessors;
     MPI_Comm m_comm;

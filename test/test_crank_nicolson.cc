@@ -156,15 +156,15 @@ class CNPhysicsModel : public PhysicsModel
 
     const std::vector<NeumannBCPtr>& getNeumannBCs() const { return m_heat->getNeumannBCs(); }
 
-    void addSourceTerm(SourceTermPtr src) 
+    void addSourceTerm(int vol_disc, SourceTermPtr src) 
     { 
-      PhysicsModel::addSourceTerm(src);
-      m_heat->addSourceTerm(src);
+      PhysicsModel::addSourceTerm(vol_disc, src);
+      m_heat->addSourceTerm(vol_disc, src);
     }
 
-    SourceTermPtr getSourceTerm(int idx) const 
+    SourceTermPtr getSourceTerm(int vol_disc) const 
     { 
-      return m_heat->getSourceTerm(idx);
+      return m_heat->getSourceTerm(vol_disc);
     }
 
     void setSolveType(SolveType solve_type) { m_solve_type = solve_type;}
@@ -203,7 +203,7 @@ class CNTester : public StandardDiscSetup,
 
       for (int i=0; i < disc->getNumVolDiscs(); ++i)
       {
-        cn_model->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+        cn_model->addSourceTerm(i, makeSourcetermMMS(disc->getVolDisc(i), src));
         heat->addVolumeGroupParams(params);
       }
 

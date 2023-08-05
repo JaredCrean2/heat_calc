@@ -105,7 +105,7 @@ namespace {
       {
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
-          heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+          heat->addSourceTerm(i, makeSourcetermMMS(disc->getVolDisc(i), src));
           heat->addVolumeGroupParams(params);
         }
 
@@ -200,7 +200,7 @@ namespace {
       {
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
-          heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+          heat->addSourceTerm(i, makeSourcetermMMS(disc->getVolDisc(i), src));
           heat->addVolumeGroupParams(params);
         }
 
@@ -297,7 +297,7 @@ namespace {
       {
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
         {
-          heat->addSourceTerm(makeSourcetermMMS(disc->getVolDisc(i), src));
+          heat->addSourceTerm(i, makeSourcetermMMS(disc->getVolDisc(i), src));
           heat->addVolumeGroupParams(params);
         }
 
