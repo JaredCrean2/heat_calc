@@ -2,6 +2,8 @@
 #define SOURCE_TERM_H
 
 #include "discretization/volume_discretization.h"
+//#include "physics/heat/bc_defs.h"
+
 
 class SourceTerm
 {
@@ -33,6 +35,7 @@ class SourceTerm
 };
 
 using SourceTermPtr = std::shared_ptr<SourceTerm>;
+
 
 // T must be callable with signature f(x, y, z, t)
 template <typename T>
