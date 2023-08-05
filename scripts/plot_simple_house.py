@@ -9,7 +9,7 @@ import os
 
 
 btu_per_house_to_tons = 1.0/11917
-watts_to_btu_per_hour = 0.2931
+watts_to_btu_per_hour = 3.41
 joules_to_btu = 0.000947817
 
 
