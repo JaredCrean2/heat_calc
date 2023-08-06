@@ -95,7 +95,14 @@ const std::map<std::string, std::string>& getInputFileDefaults()
     std::make_pair("nonlinear_itermax", "30"),
     std::make_pair("linear_abs_tol", "1e-12"),
     std::make_pair("linear_rel_tol", "1e-50"),
-    std::make_pair("vis_output_freq", "-1")
+    std::make_pair("vis_output_freq", "-1"),
+
+    // solar thermal
+    std::make_pair("solar_collector_area", "0.0"),
+    std::make_pair("solar_collector_efficiency", "0.8"),
+    std::make_pair("solar_collector_emissivity", "0.8"),
+    std::make_pair("solar_collector_normal", "[0, 0, 1]"),
+    std::make_pair("solar_min_thickness", "0.0254"),
   };
 
   return input_file_defaults;
@@ -107,7 +114,7 @@ void checkInRange(double val, double val_min, double val_max, const std::string&
     throw std::runtime_error(msg + ", val = " + std::to_string(val) + " must be in range " + std::to_string(val_min) + ", " + std::to_string(val_max));
 }
 
-void validateParams(const Params& params)
+void validateParams(Params& params)
 {
   double max = std::numeric_limits<double>::max();
 
@@ -137,6 +144,7 @@ void validateParams(const Params& params)
     checkInRange(params.window_areas[i], 0, max, "air rho out of range");
 
   checkInRange(params.window_r_value, 0, max, "window r value out of range");
+
 }
 
 
@@ -310,6 +318,17 @@ Params parseParams(const std::string& fname)
   params.window_areas              = {window_areas[0], window_areas[1], window_areas[2], window_areas[3]};
   params.window_area               = window_areas[0] + window_areas[1] + window_areas[2] + window_areas[3];
   params.window_r_value            = parser.parseScalar<double>(input_vals.at("window_r_value"));
+
+  
+  params.solar_collector_area       = parser.parseScalar<double>(input_vals.at(  "solar_collector_area"));
+  params.solar_collector_efficiency = parser.parseScalar<double>(input_vals.at(  "solar_collector_efficiency"));
+  params.solar_collector_emissivity = parser.parseScalar<double>(input_vals.at(  "solar_collector_emissivity"));
+  auto solar_collector_normal       = parser.parseArray<double>(input_vals.at("solar_collector_normal"));
+  assertAlways(solar_collector_normal.size() == 3, "solar_collect_normal must have 3 components");
+  params.solar_collector_normal     = {solar_collector_normal[0], solar_collector_normal[1], solar_collector_normal[2]};
+  params.solar_collector_normal     = params.solar_collector_normal / std::sqrt(dot(params.solar_collector_normal, params.solar_collector_normal));
+  params.solar_min_thickness        = parser.parseScalar<double>(input_vals.at(  "solar_min_thickness"));
+
 
   params.simple_house_spec = parseSimpleHouseSpec(input_vals);
   params.time_stepper_opts = parseTimesolverData(input_vals);

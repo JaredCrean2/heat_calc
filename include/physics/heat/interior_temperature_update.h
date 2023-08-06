@@ -38,10 +38,16 @@ class InteriorAirTemperatureUpdator
       m_hvac_model(hvac_model)
     {}
 
-    void initialize(HeatEquationSolar* heat_eqn_solar, const std::vector<NeumannBCPtr>& interior_bcs)
+
+
+    void initialize(HeatEquationSolar* heat_eqn_solar)
     {
       m_heat_eqn = heat_eqn_solar;
-      m_bcs = interior_bcs;
+    }
+
+    void setBCs(const std::vector<NeumannBCPtr>& bcs)
+    {
+      m_bcs = bcs;
     }
 
     void setExteriorTemperature(Real t_exterior);

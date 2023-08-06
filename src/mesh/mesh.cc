@@ -428,6 +428,17 @@ std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
 }
 
 
+int getVolumeGroupIdx(int model_entity_id, std::shared_ptr<MeshCG> mesh)
+{
+  ModelEntitySpec me(3, model_entity_id);
+  auto& model_entity_specs = mesh->getVolumeGroupSpecs();
+
+  for (size_t i=0; i < model_entity_specs.size(); ++i)
+    if (model_entity_specs[i].hasModelEntity(me))
+      return i;
+
+  throw std::runtime_error(std::string("unable to find volume group with model entity id ") +  std::to_string(model_entity_id));
+} 
 
 
 

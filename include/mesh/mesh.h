@@ -89,6 +89,8 @@ class MeshCG
     }
 
     // getting elements
+    const std::vector<MeshEntityGroupSpec>& getVolumeGroupSpecs() const { return m_volume_spec; }
+
     VolumeGroup& getElements(const MeshEntityGroupSpec& surf)
     {
       return m_vol_group.at(surf.getIdx());
@@ -204,6 +206,8 @@ std::shared_ptr<MeshCG> createMeshCG(apf::Mesh2* m,
                                      std::vector<MeshEntityGroupSpec> other_surface_spec,
                                      const int solution_degree, const int coord_degree);
 
+
+int getVolumeGroupIdx(int model_entity_id, std::shared_ptr<MeshCG> mesh);
 } // namespace
 
 #endif

@@ -186,7 +186,7 @@ std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> makeFloorRadiationBCs(Ge
   return bcs;
 }
 
-void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, std::array<Real, 4> window_areas)
+void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, std::array<Real, 4> window_areas, std::vector<NeumannBCPtr>& interior_air_bcs)
 {
   auto disc = heat_eqn->getDiscretization();
   std::array<Real, 3> vertical_vector = {0, 0, 1};
@@ -205,6 +205,7 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
 
     std::shared_ptr<Heat::AirWindSkyNeumannBC> bc = std::make_shared<Heat::TarpBC>(surf, surface_area, perimeter, 0, vertical_vector);
 
+    interior_air_bcs.push_back(bc);
     if (i == 0)
     {
       auto bcs = makeFloorRadiationBCs(generator, heat_eqn->getDiscretization(), window_areas);
@@ -397,7 +398,7 @@ int main(int argc, char* argv[])
     //auto hvac_model = std::make_shared<Heat::HVACModelSwitch>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
     //auto hvac_model = std::make_shared<Heat::HVACModelDoubleSpline>(interior_air_min_temp, interior_air_max_temp, air_rho*air_cp, generator.computeInteriorVolume(), hvac_restore_time);
 
-
+    std::vector<NeumannBCPtr> interior_air_bcs;
     auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(air_rho * air_cp, generator.computeInteriorVolume(),  
                                                     air_leakage, air_ventilation, interior_loads, window_model, hvac_model);
 
@@ -419,10 +420,12 @@ int main(int argc, char* argv[])
     setExteriorWallTempPostProcessors(generator, heat_eqn);
 
     // make interior BCS
-    setInteriorBCs(generator, heat_eqn, window_areas);
+    setInteriorBCs(generator, heat_eqn, window_areas, interior_air_bcs);
     setInteriorWallTempPostProcessors(generator, heat_eqn);
 
     setUndergroundTempPostProcessors(generator, heat_eqn);
+
+    air_updator->setBCs(interior_air_bcs);
 
     // make postprocessors for air sub model
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_leakage, "air_leakage"));

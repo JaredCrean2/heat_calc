@@ -312,5 +312,11 @@ std::pair<Real, Real> GeometryGenerator::computeLawnDimensions()
   return std::make_pair(total_thickness_x, total_thickness_y);
 }        
 
+int GeometryGenerator::getVolumeGroupIdx(int i, int j, int k)
+{
+  int model_entity_id = m_generator->getVolumeGeometricId(i, j, k);
+  return Mesh::getVolumeGroupIdx(model_entity_id, m_meshcg);
+}
+
 
 }

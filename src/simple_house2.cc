@@ -1,3 +1,4 @@
+#include "bounding_box.h"
 #include "discretization/DirichletBC_defs.h"
 #include "discretization/NeumannBC.h"
 #include "discretization/disc_vector.h"
@@ -18,6 +19,7 @@
 #include "physics/heat/solar_position.h"
 #include "physics/heat/solar_position_calculator.h"
 #include "physics/heat/interior_temperature_update.h"
+#include "physics/heat/source_terms_def.h"
 #include "physics/heat/steady_state_temp_calculator.h"
 #include "physics/heat/window_conduction_model.h"
 #include "physics/post_processors.h"
@@ -197,7 +199,8 @@ std::vector<std::shared_ptr<Heat::AirWindSkyNeumannBC>> makeFloorRadiationBCs(Ge
   return bcs;
 }
 
-void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, const Params& params)
+void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, const Params& params,
+                    std::vector<NeumannBCPtr>& interior_air_bcs)
 {
   auto disc = heat_eqn->getDiscretization();
   auto postprocessors = heat_eqn->getPostProcessors();
@@ -218,6 +221,7 @@ void setInteriorBCs(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEqua
                                                                                    roughness_index, params.vertical_vector);
     //std::shared_ptr<Heat::AirWindSkyNeumannBC> bc = std::make_shared<Heat::NewtonCoolingFromAir>(surf, 1.0);
     //std::shared_ptr<Heat::AirWindSkyNeumannBC> bc = std::make_shared<Heat::AirWindSkyZeroBC>(surf);  
+    interior_air_bcs.push_back(bc);
 
     if (i == 0)
     {
@@ -272,6 +276,43 @@ void setUndergroundTempPostProcessors(GeometryGenerator& generator,  std::shared
     auto surf = disc->getSurfDisc(generator.getSurfaceId(surf_enums[i]));
     postprocessors->addPostProcessor(physics::makePostProcessorSurfaceIntegralAverage(surf, names[i], f, MPI_COMM_WORLD));
   }
+}
+
+void createSolarThermalSystem(GeometryGenerator& generator, std::shared_ptr<Heat::HeatEquationSolar> heat_eqn, const Params& params)
+{
+  int vol_group_idx = generator.getVolumeGroupIdx(0, 0, -1);
+  auto vol_disc = heat_eqn->getDiscretization()->getVolDisc(vol_group_idx);
+
+  Real delta_z = params.simple_house_spec.foundation_thicknesses[0] / params.simple_house_spec.foundation_numels[0];
+  int num_els = std::ceil(params.solar_min_thickness / delta_z);
+
+  double zmin = 0, zmax = 0;
+  if (num_els > params.simple_house_spec.foundation_numels[0])
+  {
+    zmax = -delta_z;
+    zmin = -(1 + num_els) * delta_z;
+  } else
+  {
+    zmax = 0;
+    zmin = -delta_z * params.simple_house_spec.foundation_numels[0];
+  }
+
+  utils::BoundingBox box({MIN_REAL, MIN_REAL, zmin}, {MAX_REAL, MAX_REAL, zmax});
+
+  auto middle_block_spec = params.simple_house_spec.middle_block;
+  Real delta_x = middle_block_spec.xmax - middle_block_spec.xmin;
+  Real delta_y = middle_block_spec.ymax - middle_block_spec.ymin;
+
+  Real foundation_volume = delta_x * delta_y * (zmax - zmin)*delta_z;
+
+  auto src_term = std::make_shared<Heat::SourceTermSolarHeating>(
+    vol_disc, params.solar_collector_area, params.solar_collector_efficiency, params.solar_collector_emissivity,
+    params.solar_collector_normal, foundation_volume, box);
+
+  heat_eqn->addSourceTerm(vol_group_idx, src_term);
+
+  auto postproc = std::make_shared<Heat::SolarThermalPostProcessor>(src_term);
+  heat_eqn->getPostProcessors()->addPostProcessor(postproc);
 }
 
 /*
@@ -390,6 +431,7 @@ int main(int argc, char* argv[])
 
 
 
+    std::vector<NeumannBCPtr> interior_air_bcs;
     auto air_updator = std::make_shared<Heat::InteriorAirTemperatureUpdator>(params.air_rho * params.air_cp, generator.computeInteriorVolume(),  
                                                     air_leakage, air_ventilation, interior_loads, window_model, hvac_model);
 
@@ -416,10 +458,14 @@ int main(int argc, char* argv[])
     setExteriorWallTempPostProcessors(generator, heat_eqn);
 
     // make interior BCS
-    setInteriorBCs(generator, heat_eqn, params);
+    setInteriorBCs(generator, heat_eqn, params, interior_air_bcs);
     setInteriorWallTempPostProcessors(generator, heat_eqn);
 
     setUndergroundTempPostProcessors(generator, heat_eqn);
+
+    createSolarThermalSystem(generator, heat_eqn, params);
+
+    air_updator->setBCs(interior_air_bcs);
 
     // make postprocessors for air sub model
     postprocessors->addPostProcessor(std::make_shared<Heat::PostProcessorAirLeakage>(air_leakage, "air_leakage"));

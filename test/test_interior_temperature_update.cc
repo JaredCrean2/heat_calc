@@ -361,6 +361,7 @@ TEST_F(TemperatureUpdatorTester, WallConduction)
   auto wall_bc = std::make_shared<Heat::TarpBC>(disc->getSurfDisc(0), surface_area, perimeter, roughness_index, vertical_vector,
                                                 point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
   heat_eqn.addNeumannBC(wall_bc, false);
+  air_updator->setBCs({wall_bc});
   auto u_aux_vec = makeAuxiliaryEquationsStorage(heat_eqn.getAuxEquations());
   u_aux_vec->getVector(1)[0] = initial_air_temp;
 

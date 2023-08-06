@@ -2,6 +2,7 @@
 #include "physics/heat/HeatEquationSolar.h"
 #include "physics/heat/AuxiliaryEquationsSolar.h"
 #include "physics/heat/basis_vals.h"
+#include "physics/heat/source_terms_def.h"
 
 namespace Heat {
 
@@ -20,13 +21,7 @@ HeatEquationSolar::HeatEquationSolar(DiscPtr disc, std::shared_ptr<SolarPosition
 void HeatEquationSolar::initialize() 
 { 
   HeatEquation::initialize();
-  
-  std::vector<NeumannBCPtr> interior_bcs;
-  for (size_t i=0; i < getNeumannBCs().size(); ++i)
-    if (!m_is_neumann_bc_exterior[i])
-      interior_bcs.push_back(getNeumannBCs()[i]);
-
-  m_air_temp->initialize(this, interior_bcs); 
+  m_air_temp->initialize(this); 
 }
 
 
@@ -69,6 +64,23 @@ void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
       }
     }
   }
+
+  for (int i=0; i < getDiscretization()->getNumVolDiscs(); ++i)
+    if (hasSourceTerm(i))
+    {
+      SourceTermPtr src_term = getSourceTerm(i);
+      auto src_term_air_wind_sky = std::dynamic_pointer_cast<SourceTermAirWindSky>(src_term);
+      if (src_term_air_wind_sky)
+      {
+        src_term_air_wind_sky->setAirTemperature(env_data.air_temp);
+        src_term_air_wind_sky->setAirSpeed(env_data.air_speed);
+        src_term_air_wind_sky->setAirDirection(env_data.air_direction);
+        src_term_air_wind_sky->setIRHorizontalRadiation(env_data.ir_horizontal_radiation);
+        src_term_air_wind_sky->setDirectNormalRadiation(env_data.direct_normal_radiation);
+        src_term_air_wind_sky->setDiffuseRadiation(env_data.diffuse_radiation);
+        src_term_air_wind_sky->setSolarDirection(solar_dir);        
+      }
+    }
 
   m_env_data = env_data;
   m_air_temp->setExteriorTemperature(env_data.air_temp);

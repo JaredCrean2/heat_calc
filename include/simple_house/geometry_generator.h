@@ -69,6 +69,8 @@ class GeometryGenerator
     // creates the volume groups and sets the material properties
     void createVolumeGroups(std::shared_ptr<Heat::HeatEquation> heat_eqn);
 
+    int getVolumeGroupIdx(int i, int j, int k);
+
     //const std::vector<int>& getExteriorGeometricFaces(int face) const { return m_exterior_geometric_faces[face]; }
 
     //const std::vector<int>& getInteriorGeometricFaces(int face) const { return m_interior_geometric_faces[face]; }

@@ -15,7 +15,7 @@ TEST_F(HeatSourceTermTester, Values)
 {
   setup(3, 1);
   Real collector_area = 2.0, efficiency = 0.8, output_area = 10.0;
-  Heat::SourceTermSolarHeating heating(disc->getVolDisc(0), collector_area, efficiency, {0, 0, 1}, output_area);
+  Heat::SourceTermSolarHeating heating(disc->getVolDisc(0), collector_area, efficiency, 0, {0, 0, 1}, output_area);
 
   Real direct_normal_radiation = 3;
   Real diffuse_radiation = 2.0;

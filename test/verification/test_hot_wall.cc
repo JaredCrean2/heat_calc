@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "discretization/DirichletBC_defs.h"
+#include "discretization/NeumannBC.h"
 #include "discretization/NeumannBC_defs.h"
 #include "discretization/disc_vector.h"
 #include "discretization/source_term.h"
@@ -57,6 +58,7 @@ namespace {
         for (int i=0; i < disc->getNumVolDiscs(); ++i)
           heat->addVolumeGroupParams(params);
 
+        std::vector<NeumannBCPtr> interior_air_bcs;
         for (int i=0; i < disc->getNumBCSurfDiscs(); ++i)
         {
           auto surf = disc->getBCSurfDisc(i);
@@ -73,12 +75,15 @@ namespace {
             auto bc = std::make_shared<Heat::TarpBC>(surf, 80.0*144/(39*39), 36.0*12/39, 0, std::array<Real, 3>{0, 0, 1});
             //auto bc = std::make_shared<Heat::SimpleConvectionBC>(surf, 0.5);
             heat->addNeumannBC(bc, false);
+            interior_air_bcs.push_back(bc);
           } else
           {
             auto f = [](Real x, Real y, Real z, Real t) { return std::array<Real, 3>{0, 0, 0}; };
             heat->addNeumannBC(makeNeumannBCMMS(surf, f), true);
           }
         }
+
+        air_temp_updator->setBCs(interior_air_bcs);
 
         auto f = [&](Real x, Real y, Real z)
                     { return initial_wall_temp; };

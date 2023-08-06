@@ -11,6 +11,8 @@ using range = boost::multi_array_types::index_range;
 using Real = double;
 constexpr MPI_Datatype REAL_MPI_DATATYPE = MPI_DOUBLE;
 
+constexpr Real MIN_REAL = std::numeric_limits<Real>::lowest();
+constexpr Real MAX_REAL = std::numeric_limits<Real>::max();
 
 using DofInt = int;      // for degrees of freedom
 using Index = int;       // for element/face numbers

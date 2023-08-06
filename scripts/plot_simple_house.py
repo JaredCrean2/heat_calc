@@ -234,7 +234,7 @@ data, column_names = copyColumn(data, column_names, "ceiling_flux", -1, "ceiling
 data, column_names = copyColumn(data, column_names, "interior_wall_flux", -1, "interior_wall_flux_neg");
 data, column_names = copyColumn(data, column_names, "net_air_ventilation", -1, "net_air_ventilation_neg")
 
-net_flux_names = ["interior_wall_flux_neg", "floor_flux_cond_neg", "ceiling_flux_neg", "interior_wall_flux_neg", "net_air_ventilation_neg", "window_conduction"];
+net_flux_names = ["interior_wall_flux_neg", "floor_flux_cond_neg", "ceiling_flux_neg", "net_air_ventilation_neg", "window_conduction"];
 data, column_names = sumColumns(data, column_names, net_flux_names, "net_interior_load");
 
 

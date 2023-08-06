@@ -61,6 +61,15 @@ struct Params
   Real window_area    = window_areas[0] + window_areas[1] + window_areas[2] + window_areas[3];
   Real window_r_value = 3 * 0.1761101838;  // r value converted to SI units   
 
+  // solar thermal
+  Real solar_collector_area = 0;
+  Real solar_collector_efficiency = 0.8;
+  Real solar_collector_emissivity = 0.8;
+  std::array<Real, 3> solar_collector_normal;
+  Real solar_min_thickness = 1;  // The heat flux will be applied over a horizontal layer of
+                                 // at least this thickness.  The thickness will be at least
+                                 // 1 layer of elements.
+
   SimpleHouseSpec simple_house_spec;
   timesolvers::TimeStepperOpts time_stepper_opts;                        
 };
