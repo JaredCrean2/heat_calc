@@ -30,6 +30,7 @@ const std::map<std::string, std::string>& getInputFileDefaults()
     std::make_pair("interior_air_min_temp", "293.15"),
     std::make_pair("interior_air_max_temp", "297.039"),
     std::make_pair("air_leakage_ach50", "7"),
+    std::make_pair("disable_hvac", "false"),
 
     std::make_pair("floor_roughness_index", "0"),
     std::make_pair("window_shgc", "0.9"),
@@ -253,6 +254,8 @@ timesolvers::TimeStepperOpts parseTimesolverData(const std::map<std::string, std
   matrix_opts->petsc_opts["ksp_rtol"] = input_vals.at("linear_rel_tol");
   matrix_opts->petsc_opts["ksp_monitor"] = "";
 
+  matrix_opts->petsc_opts["ksp_type"] = "cg";
+
   if (commSize(MPI_COMM_WORLD) > 1)
   {
     matrix_opts->petsc_opts["ksp_type"] = "cg";
@@ -305,6 +308,8 @@ Params parseParams(const std::string& fname)
   params.interior_air_min_temp    = parser.parseScalar<double>(input_vals.at("interior_air_min_temp"));
   params.interior_air_max_temp    = parser.parseScalar<double>(input_vals.at("interior_air_max_temp"));
   params.air_leakage_ach50        = parser.parseScalar<double>(input_vals.at("air_leakage_ach50"));
+  params.disable_hvac             = parser.parseScalar<bool>(input_vals.at("disable_hvac"));
+
 
   params.floor_roughness_index     = parser.parseScalar<int>(input_vals.at(   "floor_roughness_index"));
   params.window_shgc               = parser.parseScalar<double>(input_vals.at("window_shgc"));

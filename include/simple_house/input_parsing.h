@@ -51,6 +51,7 @@ struct Params
   Real interior_air_min_temp = 293.15;
   Real interior_air_max_temp = 297.039; 
   Real air_leakage_ach50 = 7;
+  bool disable_hvac = false;
 
   // for windows + floor radiation BC
   int floor_roughness_index = 0;

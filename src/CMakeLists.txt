@@ -161,6 +161,7 @@ add_custom_command(OUTPUT plot_simple_house
 )
 
 install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/plot_simple_house.py" DESTINATION bin)
+install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/compute_net_hvac.py" DESTINATION bin)
 install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/extract_weeks.sh" DESTINATION bin)
 
 #add_executable(gauss_seidel gauss_seidel.cc)

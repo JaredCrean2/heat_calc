@@ -22,3 +22,12 @@ TEST(Parser, Double)
 
   EXPECT_ANY_THROW(parser.get<double>("1.0a"));
 }
+
+TEST(Parser, Boolean)
+{
+  Parser parser;
+
+  EXPECT_EQ(parser.get<bool>("true"), true);
+  EXPECT_EQ(parser.get<bool>("false"), false);
+  EXPECT_ANY_THROW(parser.get<double>("blah"));
+}

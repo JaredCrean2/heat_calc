@@ -13,6 +13,7 @@
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/environment_interface.h"
 #include "physics/heat/environment_interface_weather_file.h"
+#include "physics/heat/hvac_model.h"
 #include "physics/heat/interior_loads.h"
 #include "physics/heat/post_processor_environment_data.h"
 #include "physics/heat/post_processor_interior.h"
@@ -425,9 +426,15 @@ int main(int argc, char* argv[])
 
 
     Real initial_air_temp = (params.interior_air_min_temp + params.interior_air_max_temp) / 2;
-    //auto hvac_model = std::make_shared<Heat::HVACModelConstant>(0);
-    auto hvac_model = std::make_shared<Heat::HVACModelTempOnly>(params.interior_air_min_temp, params.interior_air_max_temp,
-                                    params.air_rho*params.air_cp, generator.computeInteriorVolume(), params.hvac_restore_time, 2);
+    std::shared_ptr<Heat::HVACModel> hvac_model;
+    if (params.disable_hvac)
+    {
+      hvac_model = std::make_shared<Heat::HVACModelConstant>(0);
+    } else 
+    {
+      hvac_model = std::make_shared<Heat::HVACModelTempOnly>(params.interior_air_min_temp, params.interior_air_max_temp,
+                                      params.air_rho*params.air_cp, generator.computeInteriorVolume(), params.hvac_restore_time, 2);
+    }
 
 
 

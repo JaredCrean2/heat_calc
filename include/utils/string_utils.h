@@ -2,6 +2,7 @@
 #define HEAT_CALC_UTILS_STRING_UTILS
 
 
+#include <ios>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -16,6 +17,10 @@ std::string trimWhiteSpace(const std::string& str);
 class Parser
 {
   public:
+    Parser()
+    {
+      ss << std::boolalpha;
+    }
     template<typename T>
     T get(const std::string& key)
     {
