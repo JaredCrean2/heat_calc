@@ -104,6 +104,7 @@ const std::map<std::string, std::string>& getInputFileDefaults()
     std::make_pair("solar_collector_emissivity", "0.8"),
     std::make_pair("solar_collector_normal", "[0, 0, 1]"),
     std::make_pair("solar_min_thickness", "0.0254"),
+    std::make_pair("solar_thermal_thermostat", "false")
   };
 
   return input_file_defaults;
@@ -333,6 +334,7 @@ Params parseParams(const std::string& fname)
   params.solar_collector_normal     = {solar_collector_normal[0], solar_collector_normal[1], solar_collector_normal[2]};
   params.solar_collector_normal     = params.solar_collector_normal / std::sqrt(dot(params.solar_collector_normal, params.solar_collector_normal));
   params.solar_min_thickness        = parser.parseScalar<double>(input_vals.at(  "solar_min_thickness"));
+  params.solar_thermal_thermostat   = parser.parseScalar<bool>(input_vals.at("solar_thermal_thermostat"));
 
 
   params.simple_house_spec = parseSimpleHouseSpec(input_vals);

@@ -70,6 +70,10 @@ struct Params
   Real solar_min_thickness = 1;  // The heat flux will be applied over a horizontal layer of
                                  // at least this thickness.  The thickness will be at least
                                  // 1 layer of elements.
+  bool solar_thermal_thermostat = false; // If true, use a thermostat to control how much solar heating
+                                         // is applied.  This also disables the regular HVAC system from
+                                         // applying heat.  If false, all the solar thermal heat is applied,
+                                         // and the regular HVAC heating system remains active
 
   SimpleHouseSpec simple_house_spec;
   timesolvers::TimeStepperOpts time_stepper_opts;                        

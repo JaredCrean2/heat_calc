@@ -300,7 +300,15 @@ void createSolarThermalSystem(GeometryGenerator& generator, std::shared_ptr<Heat
   }
 
   utils::BoundingBox box({MIN_REAL, MIN_REAL, zmin}, {MAX_REAL, MAX_REAL, zmax});
-  auto  controller = std::make_shared<Heat::TemperatureControllerConstant>();
+
+  std::shared_ptr<Heat::TemperatureController> controller;
+  if (params.solar_thermal_thermostat)
+  {
+    controller = std::make_shared<Heat::TemperatureControllerHeatQuadratic>(params.interior_air_min_temp, params.interior_air_max_temp);
+  } else
+  {
+    controller = std::make_shared<Heat::TemperatureControllerConstant>();
+  }
 
   auto middle_block_spec = params.simple_house_spec.middle_block;
   Real delta_x = middle_block_spec.xmax - middle_block_spec.xmin;
@@ -434,8 +442,15 @@ int main(int argc, char* argv[])
       hvac_model = std::make_shared<Heat::HVACModelConstant>(0);
     } else 
     {
-      hvac_model = std::make_shared<Heat::HVACModelTempOnly>(params.interior_air_min_temp, params.interior_air_max_temp,
-                                      params.air_rho*params.air_cp, generator.computeInteriorVolume(), params.hvac_restore_time, 2);
+      if (params.solar_thermal_thermostat)
+      {
+        hvac_model = std::make_shared<Heat::HVACModelTempOnlyCoolingOnly>(params.interior_air_min_temp, params.interior_air_max_temp,
+                                        params.air_rho*params.air_cp, generator.computeInteriorVolume(), params.hvac_restore_time, 2);
+      } else
+      {
+        hvac_model = std::make_shared<Heat::HVACModelTempOnly>(params.interior_air_min_temp, params.interior_air_max_temp,
+                                        params.air_rho*params.air_cp, generator.computeInteriorVolume(), params.hvac_restore_time, 2);
+      }
     }
 
 
