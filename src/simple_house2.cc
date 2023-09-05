@@ -22,6 +22,7 @@
 #include "physics/heat/interior_temperature_update.h"
 #include "physics/heat/source_terms_def.h"
 #include "physics/heat/steady_state_temp_calculator.h"
+#include "physics/heat/temperature_controller.h"
 #include "physics/heat/window_conduction_model.h"
 #include "physics/post_processors.h"
 #include "physics/post_processor_scheduler.h"
@@ -290,15 +291,16 @@ void createSolarThermalSystem(GeometryGenerator& generator, std::shared_ptr<Heat
   double zmin = 0, zmax = 0;
   if (num_els > params.simple_house_spec.foundation_numels[0])
   {
-    zmax = -delta_z;
-    zmin = -(1 + num_els) * delta_z;
+    zmax = 0;
+    zmin = -params.simple_house_spec.foundation_thicknesses[0];
   } else
   {
-    zmax = 0;
-    zmin = -delta_z * params.simple_house_spec.foundation_numels[0];
+    zmax = -delta_z;
+    zmin = -(1 + num_els) * delta_z;    
   }
 
   utils::BoundingBox box({MIN_REAL, MIN_REAL, zmin}, {MAX_REAL, MAX_REAL, zmax});
+  auto  controller = std::make_shared<Heat::TemperatureControllerConstant>();
 
   auto middle_block_spec = params.simple_house_spec.middle_block;
   Real delta_x = middle_block_spec.xmax - middle_block_spec.xmin;
@@ -308,7 +310,7 @@ void createSolarThermalSystem(GeometryGenerator& generator, std::shared_ptr<Heat
 
   auto src_term = std::make_shared<Heat::SourceTermSolarHeating>(
     vol_disc, params.solar_collector_area, params.solar_collector_efficiency, params.solar_collector_emissivity,
-    params.solar_collector_normal, foundation_volume, box);
+    params.solar_collector_normal, foundation_volume, box, controller);
 
   heat_eqn->addSourceTerm(vol_group_idx, src_term);
 

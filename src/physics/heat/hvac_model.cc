@@ -160,4 +160,50 @@ void HVACModelTempOnly::enforceTemperatureLimit_rev(Real interior_temp, Real& in
   interior_temp_bar = delta_t_bar;
 }
 
+//-----------------------------------------------------------------------------
+// HVACModelTempOnlyCoolingOnly
+
+HVACModelTempOnlyCoolingOnly::HVACModelTempOnlyCoolingOnly(Real temp_lower, Real temp_upper, Real rho_cp, Real air_volume,
+                                     Real hvac_restore_time, int poly_degree) :
+  m_temp_only_model(temp_lower, temp_upper, rho_cp, air_volume, hvac_restore_time, poly_degree)
+{
+}
+
+Real HVACModelTempOnlyCoolingOnly::enforceTemperatureLimit(Real interior_temp, Real load_flux)
+{
+  Real flux = m_temp_only_model.enforceTemperatureLimit(interior_temp, load_flux);
+  if (flux > 0)
+    return 0;
+  else
+    return flux;
+}
+
+// compute derivative of HVAC flux wrt interior_temp
+Real HVACModelTempOnlyCoolingOnly::enforceTemperatureLimit_dot(Real interior_temp, Real interior_temp_dot, Real load_flux, Real load_flux_dot)
+{
+  Real flux = m_temp_only_model.enforceTemperatureLimit(interior_temp, load_flux);
+
+  if (flux > 0)
+  {
+    return 0;
+  } else
+  {
+    return m_temp_only_model.enforceTemperatureLimit_dot(interior_temp, interior_temp_dot, load_flux, load_flux_dot);
+  }
+}
+
+// reverse mode of enforceTemperatureLimit
+void HVACModelTempOnlyCoolingOnly::enforceTemperatureLimit_rev(Real interior_temp, Real& interior_temp_bar, Real load_flux, 
+                                                    Real& load_flux_bar, Real hvac_flux_bar)
+{
+  Real flux = m_temp_only_model.enforceTemperatureLimit(interior_temp, load_flux);
+  if (flux > 0)
+  {
+    interior_temp_bar = 0;
+  } else
+  {
+    m_temp_only_model.enforceTemperatureLimit_rev(interior_temp, interior_temp_bar, load_flux, load_flux_bar, hvac_flux_bar);
+  }
+}
+
 }

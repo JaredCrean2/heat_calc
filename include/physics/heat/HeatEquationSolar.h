@@ -3,6 +3,8 @@
 
 #include "physics/PhysicsModel.h"
 #include "physics/heat/HeatEquation.h"
+#include "physics/heat/source_terms_def.h"
+
 
 namespace Heat {
 
@@ -71,6 +73,13 @@ void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, Di
 void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u,
                               Real t_interior, Real t_interior_dot,
                               const Real t, DiscVectorPtr rhs, DiscVectorPtr rhs_dot);
+
+void computeSourceTerm_dotTair(const HeatEquation& physics, Real t, Real t_interior_dot,
+                               DiscVectorPtr rhs, DiscVectorPtr rhs_dot);
+
+void computeSourceTerm_dotTair(const VolDiscPtr vol_disc, SourceTermAirWindSkyPtr src, Real t, Real t_interior_dot,
+                               ArrayType<Real, 2>& rhs_arr, ArrayType<Real, 2>& rhs_arr_dot);                              
+
 }
 
 #endif

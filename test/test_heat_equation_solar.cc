@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "bounding_box.h"
 #include "discretization/disc_vector.h"
 #include "mesh_helper.h"
 #include "physics/AuxiliaryEquations.h"
@@ -8,6 +9,8 @@
 #include "physics/heat/bc_defs.h"
 #include "physics/heat/interior_temperature_update.h"
 #include "physics/heat/environment_interface.h"
+#include "physics/heat/source_terms_def.h"
+#include "physics/heat/temperature_controller.h"
 #include "physics/heat/window_conduction_model.h"
 
 namespace {
@@ -28,7 +31,7 @@ class HeatEquationSolarTester : public StandardDiscSetup, public ::testing::Test
 
     void makeHeatEquationSolar()
     {
-      Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 0, 0, 0};
+      Heat::EnvironmentData edata{298, 0, {1, 0, 0}, 1000, 100, 100};
       Real hvac_restore_time = 5;
       Real min_temp = -10000;
       Real max_temp = 10000;
@@ -65,10 +68,23 @@ class HeatEquationSolarTester : public StandardDiscSetup, public ::testing::Test
       int met_terrain_index = 0;
       Real meterological_altitude = 1;
       int local_terrain_index = 0;
+
       auto wall_bc = std::make_shared<Heat::TarpBC>(disc->getSurfDisc(0), surface_area, perimeter, roughness_index, vertical_vector,
                                                     point_at_zero_altitude, met_terrain_index, meterological_altitude, local_terrain_index);
       heat_eqn->addNeumannBC(wall_bc, false);
       air_updator->setBCs({wall_bc});
+
+      Real collector_area = 2;
+      Real collector_efficiency = 0.8;
+      Real collector_emissivity = 0.7;
+      const std::array<Real, 3>& collector_unit_normal = {0, 0, 1};
+      Real output_area= 4;
+      utils::BoundingBox box;
+      auto controller = std::make_shared<Heat::TemperatureControllerHeatQuadratic>(298, 305);      
+      auto nonlinear_source_term = std::make_shared<Heat::SourceTermSolarHeating>(disc->getVolDisc(0), collector_area,
+                                                    collector_efficiency, collector_emissivity, collector_unit_normal, output_area,
+                                                    box, controller);
+      heat_eqn->addSourceTerm(0, nonlinear_source_term);
 
       sol_aux_vec = makeAuxiliaryEquationsStorage(heat_eqn->getAuxEquations());
       sol_aux_vec->getVector(1)[0] = initial_air_temp;
@@ -92,16 +108,18 @@ TEST_F(HeatEquationSolarTester, dRdTair)
   for (size_t i=0; i < dRdTair.shape()[0]; ++i)
     dRdTair[i] = 666;
 
+  Real t = 12*60*60;
   Real eps = 1e-7;
   Real t_air = 298;
   sol_vec->set(320);
   sol_aux_vec->getVector(1)[0] = t_air;
 
-  heat_eqn->computedRdTinterior_airProduct(sol_vec, t_air, 0, 1, dRdTair);
+  heat_eqn->computedRdTinterior_airProduct(sol_vec, t_air, t, 1, dRdTair);
 
-  heat_eqn->computeRhs(sol_vec, sol_aux_vec, 0.0, rhs0);
+  heat_eqn->computeRhs(sol_vec, sol_aux_vec, t, rhs0);
   sol_aux_vec->getVector(1)[0] = t_air + eps;
-  heat_eqn->computeRhs(sol_vec, sol_aux_vec, 0.0, rhs1);
+
+  heat_eqn->computeRhs(sol_vec, sol_aux_vec, t, rhs1);
 
   if (!rhs0->isVectorCurrent())
     rhs0->syncArrayToVector();

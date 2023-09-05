@@ -429,6 +429,27 @@ class HVACModelTempOnly : public HVACModel
     Real m_A2;
 };
 
+class HVACModelTempOnlyCoolingOnly : public HVACModel
+{
+  public:
+    HVACModelTempOnlyCoolingOnly(Real temp_lower, Real temp_upper, Real rho_cp, Real air_volume, 
+                      Real hvac_restore_time, int poly_degree);
+    
+    // computes the HVAC flux.  Negative values denote cooling (decreasing interior air 
+    // temperature), positive values denote heating (increasing interior air temperature)
+    Real enforceTemperatureLimit(Real interior_temp, Real load_flux) override;
+
+    // compute derivative of HVAC flux wrt interior_temp
+    Real enforceTemperatureLimit_dot(Real interior_temp, Real interior_temp_dot, Real load_flux, Real load_flux_dot) override;
+
+    // reverse mode of enforceTemperatureLimit
+    void enforceTemperatureLimit_rev(Real interior_temp, Real& interior_temp_bar, Real load_flux, 
+                                     Real& load_flux_bar, Real hvac_flux_bar) override;
+
+  private:
+    HVACModelTempOnly m_temp_only_model;
+};
+
 }  // namespace
 
 #endif

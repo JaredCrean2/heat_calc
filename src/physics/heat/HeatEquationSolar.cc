@@ -66,13 +66,15 @@ void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
   }
 
   for (int i=0; i < getDiscretization()->getNumVolDiscs(); ++i)
+  {
     if (hasSourceTerm(i))
     {
       SourceTermPtr src_term = getSourceTerm(i);
       auto src_term_air_wind_sky = std::dynamic_pointer_cast<SourceTermAirWindSky>(src_term);
       if (src_term_air_wind_sky)
       {
-        src_term_air_wind_sky->setAirTemperature(env_data.air_temp);
+        src_term_air_wind_sky->setInteriorAirTemperature(interior_air_temp);
+        src_term_air_wind_sky->setExteriorAirTemperature(env_data.air_temp);
         src_term_air_wind_sky->setAirSpeed(env_data.air_speed);
         src_term_air_wind_sky->setAirDirection(env_data.air_direction);
         src_term_air_wind_sky->setIRHorizontalRadiation(env_data.ir_horizontal_radiation);
@@ -81,6 +83,7 @@ void HeatEquationSolar::setTimeParameters(Real t, Real interior_air_temp)
         src_term_air_wind_sky->setSolarDirection(solar_dir);        
       }
     }
+  }
 
   m_env_data = env_data;
   m_air_temp->setExteriorTemperature(env_data.air_temp);
@@ -105,7 +108,10 @@ void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real int
   setTimeParameters(t, interior_temp);
   auto rhs = makeDiscVector(getDiscretization());
   auto rhs_dot = makeDiscVector(getDiscretization());
+  rhs_dot->set(0);
+
   computeNeumannBC_dotTair(*this, t, u, interior_temp, x, rhs, rhs_dot);
+  computeSourceTerm_dotTair(*this, t, x, rhs, rhs_dot);
   rhs_dot->syncArrayToVector();
 
   auto& rhs_dot_vec = rhs_dot->getVector();
@@ -122,8 +128,6 @@ void HeatEquationSolar::computedRdTinterior_airProduct(DiscVectorPtr u, Real int
 void computeNeumannBC_dotTair(const HeatEquationSolar& physics, const Real t, DiscVectorPtr u, Real t_interior, Real t_interior_dot, 
                               DiscVectorPtr rhs, DiscVectorPtr rhs_dot)
 {
-  rhs_dot->set(0);  //TODO: is this right?  Maybe should accumulate
-
   const auto& neumann_bcs = physics.getNeumannBCs();
   for (size_t i=0; i < neumann_bcs.size(); ++i)
     if (!physics.isNeumannBCExterior(i))
@@ -195,6 +199,66 @@ void computeNeumannBC_dotTair(NeumannBCPtr bc, DiscVectorPtr u, Real t_interior,
           res_arr_dot[face_spec.el_group][node_sol] += basis.getValue(face_spec.face, i, ki, kj) * val_dot;
         }          
       }
+  }
+}
+
+
+void computeSourceTerm_dotTair(const HeatEquation& physics, Real t, Real t_interior_dot,
+                               DiscVectorPtr rhs, DiscVectorPtr rhs_dot)
+{
+  auto disc = physics.getDiscretization();
+
+  for (int i=0; i < disc->getNumVolDiscs(); ++i)
+  {
+    if (physics.hasSourceTerm(i))
+    {
+      auto vol_disc = disc->getVolDisc(i);
+      auto src_term = physics.getSourceTerm(i);
+      auto src_term_air_wind_sky = std::dynamic_pointer_cast<SourceTermAirWindSky>(src_term);
+
+
+      if (src_term_air_wind_sky)
+      {
+        auto& rhs_arr     = rhs->getArray(i);
+        auto& rhs_arr_dot = rhs_dot->getArray(i);
+
+        if (vol_disc->getNumElems() == 0)
+          continue;
+
+        computeSourceTerm_dotTair(vol_disc, src_term_air_wind_sky, t, t_interior_dot, rhs_arr, rhs_arr_dot);
+      }
+    }
+  }
+
+  rhs->markArrayModified();
+  rhs_dot->markArrayModified();  
+}
+
+void computeSourceTerm_dotTair(const VolDiscPtr vol_disc, SourceTermAirWindSkyPtr src, Real t, Real t_interior_dot,
+                               ArrayType<Real, 2>& rhs_arr, ArrayType<Real, 2>& rhs_arr_dot)
+{
+  auto& detJ  = vol_disc->detJ;
+  BasisVals basis_vals(vol_disc->vol_group.getTPMapperSol(), Mesh::TensorProductMapper(vol_disc->quad.getPoints()));
+  std::vector<Real> src_vals(vol_disc->getNumQuadPtsPerElement()), src_vals_dot(vol_disc->getNumQuadPtsPerElement());
+
+  auto& rev_nodemap = basis_vals.getRevNodemapOut();
+  for (int el=0; el < vol_disc->getNumElems(); ++el)
+  {
+    src->getValues(el, t, src_vals.data());
+    src->getValues_dTair(el, t, t_interior_dot, src_vals_dot.data());
+
+    for (int q=0; q < vol_disc->getNumQuadPtsPerElement(); ++q)
+    {
+      int k_i = rev_nodemap[q][0]; int k_j = rev_nodemap[q][1]; int k_k = rev_nodemap[q][2];
+      Real weight = vol_disc->quad.getWeight(k_i) * vol_disc->quad.getWeight(k_j) * vol_disc->quad.getWeight(k_k);
+
+      for (int i=0; i < vol_disc->getNumSolPtsPerElement(); ++i)
+      {
+        Real basis_val      =  basis_vals.getValue(i, q);
+        rhs_arr[el][i]     += basis_val * weight * src_vals[q] / detJ[el][q];
+        rhs_arr_dot[el][i] += basis_val * weight * src_vals_dot[q] / detJ[el][q];
+      }
+    }
   }
 }
 
