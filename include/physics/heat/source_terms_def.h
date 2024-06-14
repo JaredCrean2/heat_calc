@@ -82,7 +82,6 @@ class SourceTermSolarHeating : public SourceTermAirWindSky
       m_t_air_interior = t_air;
     }
 
-
     void setExteriorAirTemperature(Real t_air) override
     {
       m_t_air_exterior = t_air;
@@ -103,7 +102,12 @@ class SourceTermSolarHeating : public SourceTermAirWindSky
     Real getTotalFlux_dTair(Real t_air_dot)
     {
       return m_controller->get_value_dot(m_t_air_interior, t_air_dot) * computeCollectorFlux();
-    }    
+    }  
+
+    Real getControllerFactor()
+    {
+      return m_controller->get_value(m_t_air_interior);
+    }  
 
     void getValues(Index el, const Real t, Real* vals) override
     {
@@ -179,13 +183,13 @@ class SolarThermalPostProcessor : public physics::PostProcessorBase
     {}
 
     // returns number of values this postprocessor returns
-    int numValues() const override { return 1; }
+    int numValues() const override { return 2; }
 
-    std::vector<std::string> getNames() const override { return {"solar_thermal_flux"}; }
+    std::vector<std::string> getNames() const override { return {"solar_thermal_flux", "solar_thermal_controller"}; }
 
      std::vector<double> getValues(DiscVectorPtr u, AuxiliaryEquationsStoragePtr u_aux, double t) override
      {
-       return {m_src_term->getTotalFlux()};
+       return {m_src_term->getTotalFlux(), m_src_term->getControllerFactor()};
      }
 
   private:
